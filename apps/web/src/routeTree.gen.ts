@@ -14,6 +14,8 @@ import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as ShelfRouteImport } from './routes/shelf'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as CharacterMioRouteImport } from './routes/character.mio'
+import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
+import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as PlaySlugRouteImport } from './routes/play.$slug'
 import { Route as StorySlugRouteImport } from './routes/story.$slug'
 
@@ -42,6 +44,16 @@ const CharacterMioRoute = CharacterMioRouteImport.update({
   path: '/character/mio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KnowledgeIndexRoute = KnowledgeIndexRouteImport.update({
+  id: '/knowledge/',
+  path: '/knowledge/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeIdRoute = KnowledgeIdRouteImport.update({
+  id: '/knowledge/$id',
+  path: '/knowledge/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlaySlugRoute = PlaySlugRouteImport.update({
   id: '/play/$slug',
   path: '/play/$slug',
@@ -59,8 +71,10 @@ export interface FileRoutesByFullPath {
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
   '/character/mio': typeof CharacterMioRoute
+  '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/story/$slug': typeof StorySlugRoute
+  '/knowledge/': typeof KnowledgeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,8 +82,10 @@ export interface FileRoutesByTo {
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
   '/character/mio': typeof CharacterMioRoute
+  '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/story/$slug': typeof StorySlugRoute
+  '/knowledge': typeof KnowledgeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,8 +94,10 @@ export interface FileRoutesById {
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
   '/character/mio': typeof CharacterMioRoute
+  '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/story/$slug': typeof StorySlugRoute
+  '/knowledge/': typeof KnowledgeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -89,8 +107,10 @@ export interface FileRouteTypes {
     | '/shelf'
     | '/stories'
     | '/character/mio'
+    | '/knowledge/$id'
     | '/play/$slug'
     | '/story/$slug'
+    | '/knowledge/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -98,8 +118,10 @@ export interface FileRouteTypes {
     | '/shelf'
     | '/stories'
     | '/character/mio'
+    | '/knowledge/$id'
     | '/play/$slug'
     | '/story/$slug'
+    | '/knowledge'
   id:
     | '__root__'
     | '/'
@@ -107,8 +129,10 @@ export interface FileRouteTypes {
     | '/shelf'
     | '/stories'
     | '/character/mio'
+    | '/knowledge/$id'
     | '/play/$slug'
     | '/story/$slug'
+    | '/knowledge/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,8 +141,10 @@ export interface RootRouteChildren {
   ShelfRoute: typeof ShelfRoute
   StoriesRoute: typeof StoriesRoute
   CharacterMioRoute: typeof CharacterMioRoute
+  KnowledgeIdRoute: typeof KnowledgeIdRoute
   PlaySlugRoute: typeof PlaySlugRoute
   StorySlugRoute: typeof StorySlugRoute
+  KnowledgeIndexRoute: typeof KnowledgeIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -158,6 +184,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CharacterMioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/knowledge/': {
+      id: '/knowledge/'
+      path: '/knowledge'
+      fullPath: '/knowledge/'
+      preLoaderRoute: typeof KnowledgeIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge/$id': {
+      id: '/knowledge/$id'
+      path: '/knowledge/$id'
+      fullPath: '/knowledge/$id'
+      preLoaderRoute: typeof KnowledgeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/play/$slug': {
       id: '/play/$slug'
       path: '/play/$slug'
@@ -181,8 +221,10 @@ const rootRouteChildren: RootRouteChildren = {
   ShelfRoute: ShelfRoute,
   StoriesRoute: StoriesRoute,
   CharacterMioRoute: CharacterMioRoute,
+  KnowledgeIdRoute: KnowledgeIdRoute,
   PlaySlugRoute: PlaySlugRoute,
   StorySlugRoute: StorySlugRoute,
+  KnowledgeIndexRoute: KnowledgeIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

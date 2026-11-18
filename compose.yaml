@@ -1,0 +1,45 @@
+name: tidepost-knowledge
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: anime
+      POSTGRES_DB: anime_knowledge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - knowledge-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${KNOWLEDGE_PG_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U anime -d anime_knowledge"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  api:
+    build: ./apps/api
+    restart: unless-stopped
+    environment: &database
+      PGHOST: postgres
+      PGDATABASE: anime_knowledge
+      PGUSER: anime
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: "postgresql:///?sslmode=disable"
+      API_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:${KNOWLEDGE_API_PORT:-4321}:4311"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  sync:
+    build: ./apps/api
+    command: ["knowledge-sync"]
+    restart: unless-stopped
+    environment:
+      <<: *database
+      GITHUB_TOKEN: ${KNOWLEDGE_GITHUB_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  knowledge-data:

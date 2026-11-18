@@ -1,48 +1,45 @@
 package main
 
 import (
-	"database/sql"
-	"github.com/gin-gonic/gin"
-	_ "github.com/mattn/go-sqlite3"
+	"context"
 	"log"
+	"net"
 	"net/http"
 	"os"
-	"path/filepath"
+	"time"
+
+	"anime-agent/api/internal/knowledge"
+	"github.com/gin-gonic/gin"
 )
 
 func envOr(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+	if v := os.Getenv(key); v != "" {
+		return v
 	}
 	return fallback
 }
-
 func run() error {
-	path := envOr("APP_DB_PATH", "../../data/app.sqlite")
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return err
-	}
-	db, err := sql.Open("sqlite3", path)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	db, err := knowledge.Open(ctx)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	if err := db.Ping(); err != nil {
-		return err
-	}
-
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 	router.GET("/healthz", func(c *gin.Context) {
-		if err := db.PingContext(c.Request.Context()); err != nil {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+		defer cancel()
+		if db.Ping(ctx) != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"service": "api", "status": "unavailable"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"service": "api", "status": "ok"})
+		c.JSON(200, gin.H{"service": "api", "status": "ok"})
 	})
-	return router.Run("127.0.0.1:" + envOr("API_PORT", "4311"))
+	knowledge.Routes(router, db)
+	return router.Run(net.JoinHostPort(envOr("API_HOST", "127.0.0.1"), envOr("API_PORT", "4311")))
 }
-
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)

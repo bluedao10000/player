@@ -1,1 +1,9 @@
-{"name":"@anime/shared","private":true,"type":"module","exports":"./health.ts"}
+{
+  "name": "@anime/shared",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./health.ts",
+    "./knowledge": "./knowledge.ts"
+  }
+}

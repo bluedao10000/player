@@ -1,8 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Character } from '../features/post/editorial'
+import { Character } from '../features/post/character'
+import characterCss from '../features/post/character.css?url'
 
 export const Route = createFileRoute('/character/mio')({
   head: () => ({
+    links: [{ rel: 'stylesheet', href: characterCss }],
     meta: [
       { title: '阿澪 · 潮汐邮局' },
       {

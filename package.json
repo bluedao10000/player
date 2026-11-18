@@ -1,15 +1,27 @@
 {
   "name": "anime-agent",
   "private": true,
-  "workspaces": ["apps/web", "apps/agent", "packages/*"],
-  "engines": {"node": ">=24.13.0 <25"},
+  "workspaces": [
+    "apps/web",
+    "apps/agent",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.13.0 <25"
+  },
   "scripts": {
-    "dev": "concurrently --kill-others --names web,api,agent \"npm run dev:web\" \"npm run dev:api\" \"npm run dev:agent\"",
+    "dev": "dotenv -e .env -- concurrently --kill-others --names web,api,agent \"npm run dev:web\" \"npm run dev:api\" \"npm run dev:agent\"",
     "dev:web": "npm run dev -w @anime/web",
-    "dev:api": "cd apps/api && go run .",
+    "dev:api": "dotenv -e .env -- go -C apps/api run .",
     "dev:agent": "npm run dev -w @anime/agent",
     "build:web": "npm run build -w @anime/web",
-    "check": "npm run build:web && npm run check --workspaces --if-present && cd apps/api && go vet ./... && go test ./..."
+    "check": "npm run build:web && npm run check --workspaces --if-present && cd apps/api && go vet ./... && go test ./...",
+    "knowledge:sync": "dotenv -e .env -- go -C apps/api run ./cmd/knowledge-sync -once"
   },
-  "devDependencies": {"concurrently": "^9.2.1", "typescript": "~5.9.3", "@types/node": "^24.0.0"}
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.1",
+    "dotenv-cli": "^10.0.0",
+    "typescript": "~5.9.3"
+  }
 }

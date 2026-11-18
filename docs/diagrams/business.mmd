@@ -1,0 +1,39 @@
+%% 潮汐邮局 · 业务流程图 · 2026-11-18
+flowchart LR
+  entry["发现首页或角色<br/>直接访问公开链接<br/>〔已实现〕"]:::live
+  story["阅读公开故事<br/>从指定一幕进入互动<br/>〔已实现〕"]:::live
+  choice["选择预设行动<br/>显示该选项的固定回应<br/>〔已实现〕"]:::live
+  local["保存或重选<br/>同一浏览器可恢复选择<br/>〔已实现〕"]:::live
+  session["创建私人会话<br/>绑定角色卡与开场场景<br/>〔待开发〕"]:::planned
+  action["提交行动<br/>Agent 调用模型生成回合<br/>〔待开发〕"]:::planned
+  turn["写入剧情状态<br/>确认本回合，可继续行动<br/>〔待开发〕"]:::planned
+  consent["选取并授权一幕<br/>读者预览并确认分享范围<br/>〔待开发〕"]:::planned
+  draft["形成候选草稿<br/>摘编脱敏或编辑委托生成<br/>〔待开发〕"]:::planned
+  review["编辑审核<br/>核查来源与公开范围<br/>〔待开发〕"]:::planned
+  publish["发布内容版本<br/>切换公开快照与索引<br/>〔待开发〕"]:::planned
+  rediscover["新内容进入发现页<br/>沿公开链接回到阅读入口<br/>〔待开发〕"]:::planned
+  probe["定时探测版本<br/>未变化就记账并结束<br/>〔已实现〕"]:::live
+  stage["下载与构建暂存批次<br/>验摘要、解析、归一化<br/>〔已实现〕"]:::live
+  merge["匹配与事务合并<br/>稳定来源 ID 匹配或留候选<br/>〔已实现〕"]:::live
+  available["资料可查询<br/>Gin 提供作品与来源版本<br/>〔已实现〕"]:::live
+  entry --> story
+  story --> choice
+  choice --> local
+  session -.-> action
+  action -.-> turn
+  turn -.->|自愿分享| consent
+  draft -.-> review
+  review -.->|通过| publish
+  publish -.-> rediscover
+  probe -->|发现新版本| stage
+  stage --> merge
+  merge --> available
+  story -.->|正式会话入口| session
+  consent -.-> draft
+  rediscover -.->|公开内容回流| entry
+  review -.->|退回修改| draft
+  classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
+  classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
+  classDef external fill:#f2eadb,stroke:#aa8954,color:#765929
+  classDef area fill:#e5e9e6,stroke:#7a8b89,color:#425557
+  classDef brand fill:#27454c,stroke:#27454c,color:#ffffff

@@ -2,6 +2,15 @@
   "name": "@anime/agent",
   "private": true,
   "type": "module",
-  "scripts": {"dev": "node src/server.ts", "check": "tsc --noEmit"},
-  "dependencies": {"@anime/shared": "*", "@earendil-works/pi-durable": "1.5.2", "@earendil-works/pi-ai": "1.5.2", "@earendil-works/chord": "1.5.2"}
+  "scripts": {
+    "dev": "node src/server.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anime/shared": "*",
+    "@earendil-works/pi-durable": "1.5.2",
+    "@earendil-works/pi-ai": "1.5.2",
+    "@earendil-works/chord": "1.5.2",
+    "@earendil-works/pi-schema": "1.5.2"
+  }
 }

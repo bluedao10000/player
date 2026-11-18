@@ -1,8 +1,31 @@
+%% 潮汐邮局 · 技术架构图 · 2026-11-18
 flowchart LR
-    reader["搜索访客 / iOS 读者"] -->|"阅读、进入剧情"| web["TanStack Start · H5"]
-    web -->|"内容快照 / 会话命令"| api["Gin · 业务状态"]
-    api -->|"读写发布版本与回合"| appdb[("业务 SQLite")]
-    api -->|"持久任务"| agent["Pi Durable · 执行与恢复"]
-    agent -->|"草稿 / 状态补丁"| api
-    agent -->|"检查点"| agentdb[("运行 SQLite")]
-    agent -->|"生成剧情"| model["OpenAI 兼容端点"]
+  sources["双源作品数据<br/>AOD (GitHub) / bangumi-data (npm)<br/>〔外部来源〕"]:::external
+  worker["Go 同步 Worker<br/>版本探测 · 校验 · Normalize<br/>〔已实现〕"]:::live
+  stagepg["PostgreSQL 来源层<br/>批次暂存 · 源记录 · 版本审计<br/>〔已实现〕"]:::live
+  works["PostgreSQL 作品层<br/>works · 关联数据 · 匹配候选<br/>〔已实现〕"]:::live
+  web["TanStack Start<br/>H5 / SSR · 知识检索 server fn<br/>〔已实现〕"]:::live
+  client["共享知识客户端<br/>@anime/shared/knowledge<br/>〔已实现〕"]:::live
+  gin["Gin 知识 API<br/>作品 · 来源 · 运行记录 · 候选<br/>〔已实现〕"]:::live
+  biz["Gin 内容与会话 API<br/>内容修订 · owner · Outbox / SSE<br/>〔待开发〕"]:::planned
+  static["站点目录与浏览器<br/>仓库保存故事 · 本机保存进度<br/>〔已实现〕"]:::live
+  pi["Pi Durable 运行时<br/>Harness.resume · 两个知识工具<br/>〔已实现〕"]:::live
+  sqlite["运行时 SQLite<br/>Pi 执行检查点<br/>〔已实现〕"]:::live
+  llm["OpenAI 兼容模型<br/>生成剧情回合与故事草稿<br/>〔待开发〕"]:::planned
+  sources -->|发布物| worker
+  worker -->|暂存与校验| stagepg
+  stagepg -->|事务归并| works
+  web -->|server fn| client
+  client -->|HTTP GET| gin
+  gin -->|查询| works
+  web -->|读取正文或本机状态| static
+  pi -->|只读工具| client
+  pi -->|检查点| sqlite
+  gin -.-|规划扩展| biz
+  biz -.->|投递命令| pi
+  pi -.->|调用模型| llm
+  classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
+  classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
+  classDef external fill:#f2eadb,stroke:#aa8954,color:#765929
+  classDef area fill:#e5e9e6,stroke:#7a8b89,color:#425557
+  classDef brand fill:#27454c,stroke:#27454c,color:#ffffff

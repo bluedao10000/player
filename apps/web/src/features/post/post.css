@@ -83,7 +83,6 @@ svg {
 .section-head a,
 .world-preview,
 .icon-btn,
-.tags,
 .edition-controls,
 .foot,
 .byline,
@@ -91,8 +90,7 @@ svg {
 .return,
 .ending,
 .next-read,
-.continue,
-.relations a {
+.continue {
   display: flex;
   align-items: center;
 }
@@ -189,7 +187,6 @@ svg {
   margin-left: auto;
 }
 .headline,
-.character-hero,
 .reading-cover {
   position: relative;
   isolation: isolate;
@@ -204,7 +201,6 @@ svg {
   align-items: flex-end;
 }
 .headline-art,
-.character-hero > img,
 .reading-cover > img {
   position: absolute;
   inset: 0;
@@ -212,12 +208,10 @@ svg {
   height: 100%;
   z-index: -2;
 }
-.headline-art,
-.character-hero > img {
+.headline-art {
   object-position: 63% 35%;
 }
 .headline:before,
-.character-hero:before,
 .reading-cover:before {
   content: '';
   position: absolute;
@@ -231,8 +225,7 @@ svg {
   );
   z-index: -1;
 }
-.headline-copy,
-.character-copy {
+.headline-copy {
   padding: var(--s6);
   width: 100%;
 }
@@ -249,7 +242,6 @@ svg {
   background: #b9abd285;
 }
 .headline h1,
-.character-hero h1,
 .reading-cover h1 {
   font-family: var(--display);
   font-size: clamp(37px, 10vw, 56px);
@@ -267,7 +259,6 @@ svg {
   color: #e8ddff;
 }
 .headline-copy > p,
-.character-copy > p,
 .reading-cover p {
   color: #e3dfeb;
   font-size: 14px;
@@ -292,8 +283,7 @@ svg {
 .button:hover {
   background: #e2d8ff;
 }
-.headline .button,
-.character-copy .button {
+.headline .button {
   margin-top: var(--s5);
 }
 .edition-controls {
@@ -418,8 +408,7 @@ svg {
 }
 .reading-shelf,
 .grid,
-.scenes,
-.relations {
+.scenes {
   display: grid;
   gap: var(--s5);
 }
@@ -438,8 +427,7 @@ svg {
 }
 .story-preview h3,
 .scene-preview h3,
-.next-read h3,
-.relations h3 {
+.next-read h3 {
   font-size: clamp(17px, 2vw, 23px);
   font-weight: 620;
 }
@@ -520,8 +508,6 @@ svg {
   border-radius: var(--r-small);
 }
 .world-intro,
-.bio p,
-.relations p,
 .page-intro p,
 .empty p {
   color: var(--muted);
@@ -545,18 +531,6 @@ svg {
 .next-read > svg {
   margin-left: auto;
 }
-.character-hero {
-  min-height: min(610px, 75svh);
-  display: flex;
-  align-items: flex-end;
-}
-.character-copy h1 {
-  font-size: clamp(58px, 9vw, 100px);
-}
-.tags {
-  gap: var(--s2);
-  margin-top: var(--s3);
-}
 .tag {
   padding: 3px var(--s3);
   border: 1px solid #d5cce247;
@@ -565,35 +539,11 @@ svg {
   color: #ece4f9;
   background: #15131e6b;
 }
-.bio {
-  max-width: 760px;
-}
-.relations article {
-  display: flex;
-  gap: var(--s4);
-  align-items: flex-start;
-  scroll-margin-top: var(--s5);
-}
 .avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   object-position: 68% center;
-}
-.relations .avatar {
-  width: 64px;
-  height: 64px;
-}
-.relations p {
-  font-size: 14px;
-  margin-top: var(--s2);
-}
-.relations a {
-  gap: var(--s2);
-  min-height: var(--touch);
-  width: fit-content;
-  font-size: 13px;
-  color: var(--accent);
 }
 .reading-cover {
   min-height: 320px;
@@ -821,7 +771,6 @@ svg {
     min-height: 72px;
   }
   .headline,
-  .character-hero,
   .reading-cover {
     border-radius: var(--r-hero);
     margin-top: var(--s6);
@@ -830,8 +779,7 @@ svg {
     min-height: 400px;
     align-items: center;
   }
-  .headline:before,
-  .character-hero:before {
+  .headline:before {
     background:
       linear-gradient(
         90deg,
@@ -843,7 +791,6 @@ svg {
       linear-gradient(0deg, #090b1930, transparent 50%);
   }
   .headline-copy,
-  .character-copy,
   .reading-cover {
     padding: clamp(36px, 4.6vw, 72px);
   }
@@ -863,8 +810,7 @@ svg {
   .headline-copy p {
     font-size: 15px;
   }
-  .headline-art,
-  .character-hero > img {
+  .headline-art {
     object-position: 50% 18%;
   }
   .edition-controls {
@@ -888,8 +834,7 @@ svg {
     margin-top: var(--s10);
   }
   .reading-shelf,
-  .grid,
-  .relations {
+  .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--s6);
   }
@@ -898,12 +843,6 @@ svg {
   }
   .scene-preview {
     min-height: 185px;
-  }
-  .character-hero {
-    min-height: clamp(460px, 57vh, 680px);
-  }
-  .character-copy {
-    max-width: 52%;
   }
   .reading-cover {
     min-height: clamp(360px, 32vw, 490px);
@@ -943,8 +882,7 @@ svg {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .headline-copy,
-  .character-copy {
+  .headline-copy {
     animation: arrive var(--slow) both;
   }
   @keyframes arrive {

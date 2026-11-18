@@ -1,0 +1,300 @@
+/* Let the character's illustration run to the viewport edges while the shared shell keeps its measures. */
+main.wrap:has(> .mio-world) {
+  width: 100%;
+}
+.mio-arrival {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(525px, 73svh, 690px);
+  overflow: hidden;
+  background: var(--page);
+}
+.mio-key-art {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 100%;
+  height: 79%;
+  object-position: 65% 40%;
+  z-index: -2;
+}
+.mio-arrival::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    0deg,
+    var(--page) 10%,
+    rgba(13, 14, 22, 0.97) 21%,
+    rgba(13, 14, 22, 0.57) 40%,
+    transparent 65%
+  );
+}
+.mio-voice {
+  width: 100%;
+  padding: 0 var(--s6) var(--s5);
+  text-align: center;
+}
+.mio-voice h1 {
+  color: #fff9fd;
+  font: 700 clamp(64px, 17vw, 80px)/1.08 var(--display);
+  letter-spacing: 0.04em;
+}
+.mio-byline {
+  margin-top: var(--s2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  color: #d9d0e9;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+.mio-byline svg {
+  color: var(--accent);
+}
+.mio-voice blockquote {
+  margin: var(--s4) 0;
+  font: 400 19px/1.6 var(--display);
+  color: #f4eef8;
+}
+.mio-voice .button,
+.mio-departure .button {
+  display: inline-flex;
+  min-height: var(--touch);
+}
+.mio-trail {
+  width: min(calc(100% - 2 * var(--gutter)), 1112px);
+  margin-inline: auto;
+}
+.mio-trail > section {
+  margin-top: clamp(40px, 6vw, 84px);
+}
+.mio-trail h2 {
+  font-family: var(--display);
+  font-size: clamp(25px, 3vw, 39px);
+  font-weight: 650;
+}
+.mio-intro,
+.mio-people p,
+.mio-stops p {
+  line-height: 1.85;
+  color: var(--muted);
+}
+.mio-intro {
+  max-width: 39em;
+  margin-top: var(--s3);
+  font-size: 15px;
+}
+.mio-stories {
+  display: grid;
+  gap: var(--s4);
+  margin-top: var(--s6);
+}
+.mio-stories a {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+}
+.mio-stories img {
+  width: 100px;
+  aspect-ratio: 1.55;
+  height: auto;
+  border-radius: var(--r-small);
+}
+.mio-stories small {
+  font-size: 12px;
+  color: var(--link);
+}
+.mio-stories h3,
+.mio-people h3,
+.mio-stops h3 {
+  font-size: 19px;
+  margin: var(--s1) 0;
+}
+.mio-stories svg {
+  color: var(--dim);
+  margin-left: auto;
+}
+.mio-trail a:hover h3,
+.mio-people a:hover {
+  color: var(--accent);
+}
+.mio-scenes,
+.mio-people {
+  display: grid;
+  gap: var(--s5);
+}
+.mio-scenes .scene-preview {
+  min-height: clamp(155px, 26vw, 240px);
+}
+.mio-people article {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s4);
+}
+.mio-people .avatar {
+  width: 56px;
+  height: 56px;
+  flex: none;
+}
+.mio-people p,
+.mio-stops p {
+  font-size: 14px;
+}
+.mio-people a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--touch);
+  font-size: 13px;
+  color: var(--link);
+}
+.mio-stops {
+  list-style: none;
+  padding: 0;
+  margin: var(--s6) 0 0;
+}
+.mio-stops li {
+  position: relative;
+  padding: 0 0 var(--s5) var(--s6);
+}
+.mio-stops li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  width: 1px;
+  left: 3px;
+  top: 14px;
+  bottom: -9px;
+  background: var(--line);
+}
+.mio-stops li::after {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+}
+.mio-stops a {
+  display: block;
+}
+.mio-departure {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--r-hero);
+  padding: var(--s6);
+}
+.mio-departure img,
+.mio-departure::after {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+}
+.mio-departure::after {
+  content: '';
+  z-index: -1;
+  background: linear-gradient(90deg, #12121de6, #12121da3);
+}
+.mio-departure p {
+  max-width: 26em;
+  margin: var(--s3) 0 var(--s5);
+  color: #f1eaf4;
+}
+@media (min-width: 680px) {
+  .mio-arrival {
+    min-height: clamp(490px, 44vw, 750px);
+    align-items: center;
+  }
+  .mio-key-art {
+    width: 90%;
+    height: 100%;
+    object-position: 60% 29%;
+  }
+  .mio-arrival::after {
+    background:
+      linear-gradient(0deg, var(--page), transparent 20%),
+      linear-gradient(
+        90deg,
+        var(--page) 4%,
+        rgba(13, 14, 22, 0.96) 11%,
+        rgba(13, 14, 22, 0.66) 29%,
+        transparent 57%
+      );
+  }
+  .mio-voice {
+    width: min(calc(100% - 2 * var(--gutter)), 1112px);
+    margin-inline: auto;
+    padding: 0;
+    text-align: left;
+  }
+  .mio-voice h1 {
+    font-size: clamp(82px, 8vw, 126px);
+  }
+  .mio-byline {
+    justify-content: flex-start;
+    font-size: 15px;
+  }
+  .mio-voice blockquote {
+    font-size: clamp(24px, 2.3vw, 33px);
+    line-height: 1.6;
+    margin: var(--s6) 0;
+  }
+  .mio-trail > section:first-child {
+    margin-top: var(--s8);
+  }
+  .mio-stories {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s6);
+  }
+  .mio-stories a {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--s3);
+  }
+  .mio-stories img {
+    width: 100%;
+    aspect-ratio: 2.5;
+    border-radius: var(--r-medium);
+  }
+  .mio-stories svg {
+    align-self: center;
+  }
+  .mio-scenes,
+  .mio-people {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s8);
+  }
+  .mio-stops {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s6);
+  }
+  .mio-stops li {
+    padding: var(--s5) 0 0;
+  }
+  .mio-stops li::after {
+    top: 0;
+  }
+  .mio-stops li:not(:last-child)::before {
+    left: 6px;
+    right: calc(0px - var(--s6));
+    top: 3px;
+    width: auto;
+    height: 1px;
+  }
+  .mio-departure {
+    padding: var(--s12);
+  }
+  .mio-departure::after {
+    background: linear-gradient(90deg, #12121df2, #12121dc9 45%, transparent);
+  }
+}

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { artUrl, catalog, feature, stories, storyUrl } from './catalog'
 import type { Story } from './catalog'
 import {
-  Avatar,
   Button,
   CharacterChip,
   ContentMeta,
@@ -13,7 +12,6 @@ import {
   ScenePreview,
   SectionHeader,
   StoryPreview,
-  Tag,
   WorldPreview,
 } from './design'
 import { Icon } from './icons'
@@ -119,82 +117,11 @@ export function Home() {
         </div>
       </section>
       <section className="section" id="world">
-        <SectionHeader>探索白帆港</SectionHeader>
+        <SectionHeader href="/knowledge" link="作品知识库">探索白帆港</SectionHeader>
         <p className="world-intro">顺着邮路，读一读这些地方发生的故事。</p>
         <div className="places">
           {stories.map((s) => (
             <WorldPreview key={s.slug} story={s} />
-          ))}
-        </div>
-      </section>
-    </Layout>
-  )
-}
-function CharacterHero() {
-  return (
-    <section className="character-hero">
-      <img src={nightImage} alt={nightAlt} fetchPriority="high" />
-      <div className="character-copy">
-        <div className="eyebrow">
-          <Icon name="people" size={15} />
-          角色档案
-        </div>
-        <h1>阿澪</h1>
-        <p>替每一封迷路的信，找到靠岸的灯。</p>
-        <div className="tags">
-          <Tag>白帆港</Tag>
-          <Tag>夜班邮差</Tag>
-        </div>
-        <Button href="/play/night-courier">进入角色剧情</Button>
-      </div>
-    </section>
-  )
-}
-export function Character() {
-  return (
-    <Layout active="角色">
-      <CharacterHero />
-      <section className="bio section">
-        <SectionHeader>关于阿澪</SectionHeader>
-        <p>
-          阿澪熟悉港口的每一盏航灯。她随身带着潮汐表和一枚铜哨，相信那些没有地址的信，也有一个等着收信的人。
-        </p>
-      </section>
-      <section className="section">
-        <SectionHeader>她出场的故事</SectionHeader>
-        <div className="reading-shelf">
-          {catalog
-            .filter((s) => s.category !== '剧情片段')
-            .map((s) => (
-              <StoryPreview key={s.slug} story={s} />
-            ))}
-        </div>
-      </section>
-      <section className="section">
-        <SectionHeader>相关场景</SectionHeader>
-        <div className="scenes">
-          <ScenePreview story={stories[2]} />
-          <ScenePreview story={stories[0]} />
-        </div>
-      </section>
-      <section className="section" id="relationships">
-        <SectionHeader>人物关系</SectionHeader>
-        <div className="relations">
-          {people.slice(1).map((p, i) => (
-            <article id={p.id} key={p.id}>
-              <Avatar image={p.image} />
-              <div>
-                <h3>{p.name}</h3>
-                <p>
-                  {i === 0
-                    ? '她掌着末班船，也替阿澪留意迟到的乘客。'
-                    : '他教给阿澪的灯语，让海岸两端的人在夜里相认。'}
-                </p>
-                <a href={'/story/' + p.story}>
-                  读出场故事 <Icon name="arrow" size={14} />
-                </a>
-              </div>
-            </article>
           ))}
         </div>
       </section>

@@ -1,0 +1,32 @@
+%% 潮汐邮局 · 产品架构图 · 2026-11-18
+flowchart TB
+  site["潮汐邮局<br/>面向二次元读者的角色故事 H5<br/>〔产品〕"]:::brand
+  read["阅读与发现<br/>让读者找到并读完一个故事<br/>〔能力领域〕"]:::area
+  read1["公开阅读 H5<br/>首页 · 阿澪角色页 · 故事阅读<br/>〔已实现〕"]:::live
+  read2["内容入口与分发<br/>独立场景与百科 · SEO/GEO · iOS<br/>〔待开发〕"]:::planned
+  play["私人剧情<br/>从某一幕进入角色互动<br/>〔能力领域〕"]:::area
+  play1["预设分支与本机进度<br/>两种行动 · 本机选择与收藏<br/>〔已实现〕"]:::live
+  play2["持续角色扮演<br/>游客身份 · 自由行动 · 多轮续玩<br/>〔待开发〕"]:::planned
+  know["作品知识库<br/>为读者和 Agent 提供来源<br/>〔能力领域〕"]:::area
+  know1["作品检索与溯源<br/>作品 UUID · 别名 · 播出与来源<br/>〔已实现〕"]:::live
+  know2["匹配审核与语义检索<br/>候选裁决 · 按世界线检索<br/>〔待开发〕"]:::planned
+  edit["内容生产与出版<br/>把编辑确认的故事交给读者<br/>〔能力领域〕"]:::area
+  edit1["原创内容编入站点<br/>角色设定 · 短篇 · 剧情片段<br/>〔已实现〕"]:::live
+  edit2["草稿审核与发布<br/>内容 CRUD · 授权摘编 · 版本发布<br/>〔待开发〕"]:::planned
+  site --- read
+  read --- read1
+  read -.- read2
+  site --- play
+  play --- play1
+  play -.- play2
+  site --- know
+  know --- know1
+  know -.- know2
+  site --- edit
+  edit --- edit1
+  edit -.- edit2
+  classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
+  classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
+  classDef external fill:#f2eadb,stroke:#aa8954,color:#765929
+  classDef area fill:#e5e9e6,stroke:#7a8b89,color:#425557
+  classDef brand fill:#27454c,stroke:#27454c,color:#ffffff

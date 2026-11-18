@@ -6,12 +6,15 @@ import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context'
 import { createModels } from '@earendil-works/pi-ai/models'
 import { createRegistry, Harness } from '@earendil-works/pi-durable'
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node'
+import { knowledgeTools } from './knowledge.ts'
 import { health } from '@anime/shared'
 
 const path = process.env.AGENT_DB_PATH ?? fileURLToPath(new URL('../../../data/agent.sqlite', import.meta.url))
 await mkdir(dirname(path), { recursive: true })
 const storage = await openNodeSqliteStorage(path)
-const harness = await Harness.open(storage, { models: createModels(), registry: createRegistry() }, BACKGROUND_CONTEXT)
+const registry = createRegistry()
+registry.install(knowledgeTools)
+const harness = await Harness.open(storage, { models: createModels(), registry }, BACKGROUND_CONTEXT)
 harness.resume()
 
 const server = createServer((req, res) => {
