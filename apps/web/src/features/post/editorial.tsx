@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { artUrl, catalog, feature, stories, storyUrl } from './catalog'
-import type { Story } from './catalog'
 import {
   Button,
   CharacterChip,
@@ -17,6 +16,14 @@ import {
 import { Icon } from './icons'
 import { Save } from './storage'
 import { ContinueReading, ReadingProgress } from './progress'
+
+import type { ChapterDetail, HomeWorld } from '@anime/shared/knowledge'
+import {
+  ChapterPage,
+  ReadingBlocks,
+  SceneLink,
+  WorldTrail,
+} from '../worlds/pages'
 
 const nightImage = '/art/night-post.webp'
 const nightAlt = '夜班邮差阿澪提着灯，回望月光下的白帆港'
@@ -40,7 +47,9 @@ function StoryHero() {
           <Icon name="spark" size={15} />
           本期精选
           <span className="divider" />
-          {story.category}
+          <a href="/work/tidepost">
+            潮汐邮局 <span aria-hidden="true">↗</span>
+          </a>
         </div>
         <h1>
           {index === 0 ? (
@@ -65,10 +74,27 @@ function StoryHero() {
     </section>
   )
 }
-export function Home() {
+export function Home({ works }: { works: HomeWorld[] }) {
   return (
     <Layout active="发现">
       <StoryHero />
+      <nav className="work-discovery" aria-label="探索作品世界">
+        <h2>作品世界</h2>
+        <div className="work-covers">
+          {works.map((work) => (
+            <a key={work.slug} href={work.href}>
+              {work.hero_asset_key && (
+                <img src={work.hero_asset_key} alt="" loading="lazy" />
+              )}
+              <span>
+                <small>{work.edition_label}</small>
+                <strong>{work.title}</strong>
+              </span>
+              <Icon name="forward" size={16} />
+            </a>
+          ))}
+        </div>
+      </nav>
       <section className="section">
         <SectionHeader href="/character/mio#relationships" link="人物关系">
           港口人物
@@ -112,12 +138,20 @@ export function Home() {
         <SectionHeader>剧情片段</SectionHeader>
         <div className="scenes">
           {[stories[2], stories[0]].map((s) => (
-            <ScenePreview key={s.slug} story={s} />
+            <ScenePreview
+              key={s.slug}
+              story={s}
+              scene={works
+                .find((w) => w.slug === 'tidepost')
+                ?.scene_previews.find((scene) => scene.chapter_slug === s.slug)}
+            />
           ))}
         </div>
       </section>
       <section className="section" id="world">
-        <SectionHeader href="/knowledge" link="作品知识库">探索白帆港</SectionHeader>
+        <SectionHeader href="/knowledge" link="作品知识库">
+          探索白帆港
+        </SectionHeader>
         <p className="world-intro">顺着邮路，读一读这些地方发生的故事。</p>
         <div className="places">
           {stories.map((s) => (
@@ -128,7 +162,10 @@ export function Home() {
     </Layout>
   )
 }
-export function Reader({ story }: { story: Story }) {
+export function Reader({ page }: { page: ChapterDetail }) {
+  const { chapter, work, blocks, scenes } = page
+  const story = catalog.find((s) => s.slug === chapter.slug)
+  if (!story) return <ChapterPage {...page} />
   const next =
     catalog[
       (catalog.findIndex((s) => s.slug === story.slug) + 1) % catalog.length
@@ -137,20 +174,21 @@ export function Reader({ story }: { story: Story }) {
   return (
     <Layout active="故事">
       <ReadingProgress slug={story.slug} />
+      <WorldTrail work={work} />
       <article className="reading">
         <header className="reading-cover">
           <img
-            src={isFeature ? nightImage : artUrl(story)}
+            src={isFeature ? nightImage : chapter.image}
             alt={isFeature ? nightAlt : story.alt}
             fetchPriority="high"
           />
           <div>
             <div className="eyebrow">
               <Icon name="book" size={15} />
-              {story.category}
+              {chapter.label}
             </div>
-            <h1>{story.title}</h1>
-            <p>{story.intro}</p>
+            <h1>{chapter.title}</h1>
+            <p>{chapter.intro}</p>
           </div>
         </header>
         <div className="column">
@@ -159,11 +197,10 @@ export function Reader({ story }: { story: Story }) {
             <ContentMeta story={story} />
             <Save story={story} />
           </div>
-          <div id="prose" className="prose">
-            {story.paragraphs.map((p) => (
-              <p key={p}>{p}</p>
-            ))}
-          </div>
+          <ReadingBlocks blocks={blocks} />
+          {scenes.map((scene) => (
+            <SceneLink key={scene.slug} scene={scene} />
+          ))}
           <section id="scene">
             <GlassSurface>
               <div className="eyebrow">

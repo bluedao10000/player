@@ -1,0 +1,24 @@
+flowchart LR
+ W["作品 · 星际牛仔<br/>1998 TV · 26 集"]:::db
+ L["专题线 · 初识赏金猎人<br/>站内导读编排"]:::proposal
+ E1["第 1 集 · Asteroid Blues"]:::verified
+ E2["第 2 集 · Stray Dog Strut"]:::verified
+ C["角色 · 斯派克 / 杰特"]:::verified
+ A["角色 · 阿西莫夫 / 卡特琳娜"]:::verified
+ S["场景 · 两人走进酒吧<br/>站内描述性标题"]:::verified
+ P["地点 · 第 1 集中的酒吧"]:::verified
+ H["世界设定 · 赏金猎人"]:::verified
+ W -->|官方集序| E1
+ W -->|官方集序| E2
+ W -->|收录导读线| L
+ L -->|建议起点| E1
+ L -->|下一篇| E2
+ W -->|本作角色| C
+ C -->|本集出场| E1
+ C -->|职业| H
+ E1 -->|包含| S
+ A -->|出场| S
+ S -->|发生于| P
+ classDef db fill:#e4f1eb,stroke:#397565,color:#173e36
+ classDef verified fill:#e9eef7,stroke:#587391,color:#28415a
+ classDef proposal fill:#f5edf5,stroke:#925d87,color:#63395b,stroke-dasharray:5 3

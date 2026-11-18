@@ -11,11 +11,11 @@ body:has(.wb) {
   margin: auto;
   padding: 0 clamp(16px, 4vw, 56px) 50px;
   font:
-    15px/1.48 'IBM Plex Mono',
+    15px/1.48 "IBM Plex Mono",
     ui-monospace,
     SFMono-Regular,
     Menlo,
-    'PingFang SC',
+    "PingFang SC",
     sans-serif;
   color: #e7ecef;
 }
@@ -176,7 +176,7 @@ body:has(.wb) {
   font-size: 12px;
   margin-left: 5px;
 }
-.wb .wb-bar button[aria-pressed='true'] {
+.wb .wb-bar button[aria-pressed="true"] {
   background: #2d403d;
   border-color: #79ab97;
   color: #cdf4e0;
@@ -215,7 +215,7 @@ body:has(.wb) {
 .wb-node strong {
   font-size: 16px;
 }
-.wb-node[aria-pressed='true'] {
+.wb-node[aria-pressed="true"] {
   box-shadow: inset 3px 0 var(--ink, #a1c5ed);
   background: #262b33;
 }
@@ -235,7 +235,7 @@ body:has(.wb) {
 }
 .wb-branches:before,
 .wb-branches:after {
-  content: '';
+  content: "";
   position: absolute;
   left: 16.7%;
   right: 16.7%;
@@ -254,7 +254,7 @@ body:has(.wb) {
 .wb-branches > div:before,
 .wb-branches > div:after {
   position: absolute;
-  content: '';
+  content: "";
   left: 50%;
   height: 9px;
   width: 1px;
@@ -291,7 +291,7 @@ body:has(.wb) {
   background: transparent;
   font-size: 13px;
 }
-.wb .wb-events button[aria-pressed='true'] {
+.wb .wb-events button[aria-pressed="true"] {
   background: #28333b;
 }
 .wb-events time {
@@ -306,7 +306,7 @@ body:has(.wb) {
   text-align: right;
   color: var(--mint);
 }
-.wb-events span[data-state='failed'] {
+.wb-events span[data-state="failed"] {
   color: #ffa6a1;
 }
 .wb-log footer {
@@ -376,6 +376,78 @@ body:has(.wb) {
   color: #acd5be;
   margin-top: 4px;
 }
-.wb-node em[data-state='failed'] {
+.wb-node em[data-state="failed"] {
   color: #ffa6a1;
 }
+
+.wb-inventory {
+  margin: 0 0 20px;
+}
+.wb-worlds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));
+  gap: 14px;
+}
+.wb-worlds article {
+  padding: 16px 20px;
+  background: var(--panel);
+  border-top: 2px solid #779f95;
+}
+.wb-worlds h3 a {
+  color: #e9f3f1;
+}
+.wb-worlds p,
+.wb-worlds span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.wb-worlds strong {
+  display: inline-block;
+  color: var(--mint);
+  margin-top: 9px;
+}
+.wb-worlds dl {
+  margin: 8px 0;
+}
+.wb-worlds dt {
+  flex-shrink: 0;
+}
+.wb-worlds dd {
+  font-size: 13px;
+  text-align: right;
+  padding-left: 12px;
+}
+
+.wb-research > details { margin: 8px 0; padding: 12px 16px; background: var(--panel); border-left: 2px solid var(--mint); }
+.wb-research summary { cursor: pointer; }
+.wb-research p, .wb-research li { font-size: 13px; margin: 6px 0; overflow-wrap: anywhere; }
+.wb-research time, .wb-research code { color: var(--muted); }
+.wb-research a { color: var(--mint); }
+.wb-research ol, .wb-research ul { padding-inline-start: 1.5em; }
+.wb-research details details { margin: .8em 0; }
+
+.wb-media {margin:0 0 28px;scroll-margin-top:16px}
+.wb-art-heading {display:flex;align-items:center;gap:12px}
+.wb-art-heading img {width:76px;height:54px;object-fit:cover;border-radius:4px}
+.wb-art-tabs {display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.wb-art-tabs [aria-pressed=true]{color:var(--mint);border-color:#71978e}
+.wb-art-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px}
+.wb-art-candidate {background:var(--panel);min-width:0;padding:14px}
+.wb-art-candidate header {padding:0 0 9px;justify-content:space-between;border:0}
+.wb-art-candidate h3 {font-size:15px}
+.wb-art-candidate span {font-size:12px;color:var(--muted)}
+.wb-art-candidate [data-stage=passed]{color:var(--mint)}
+.wb-art-pair {display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.wb-art-pair figure {margin:0;min-width:0}
+.wb-art-pair img {width:100%;height:auto;display:block}
+.wb-art-pair figcaption,.wb-art-heading p,.wb-art-candidate p,.wb-art-candidate details {color:var(--muted);font-size:13px;margin:6px 0}
+.wb-art-candidate summary {cursor:pointer;color:#ded7ed}
+.wb-art-candidate ol {padding-left:20px}
+.wb-art-candidate li {margin:10px 0;overflow-wrap:anywhere}
+.wb-phone {position:relative;overflow:hidden;aspect-ratio:390/616}
+.wb-phone iframe {position:absolute;inset:0;width:390px;height:844px;max-width:none;border:0;transform-origin:top left;pointer-events:none}
+.wb-art-pair figcaption a {color:var(--mint)}
+
+.scope-dimensions details {padding:8px 0;border-bottom:1px solid var(--line);}
+.scope-dimensions summary {cursor:pointer;}
+#scope-acceptance a {color:var(--mint);}

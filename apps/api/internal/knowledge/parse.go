@@ -39,6 +39,7 @@ type title struct {
 }
 type normalized struct {
 	Title      string           `json:"title"`
+	Synopsis   string           `json:"synopsis,omitempty"`
 	Original   string           `json:"original,omitempty"`
 	Type       string           `json:"type"`
 	Episodes   *int             `json:"episodes,omitempty"`

@@ -21,6 +21,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func fixtureAnime(id int, name string) map[string]any {
@@ -81,8 +82,8 @@ func pack(t *testing.T, dist any) []byte {
 }
 
 // Only the newly created per-test schema is modified. The DSN must be a PostgreSQL URL.
-func TestPostgresSnapshotLifecycle(t *testing.T) {
-	t.Setenv("KNOWLEDGE_ARCHIVE_DIR", t.TempDir())
+func testStore(t *testing.T) *pgxpool.Pool {
+	t.Helper()
 	dsn := os.Getenv("KNOWLEDGE_TEST_DATABASE_URL")
 	if dsn == "" {
 		t.Skip("set KNOWLEDGE_TEST_DATABASE_URL for PostgreSQL integration")
@@ -92,12 +93,12 @@ func TestPostgresSnapshotLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer admin.Close(ctx)
+	t.Cleanup(func() { admin.Close(ctx) })
 	ns := fmt.Sprintf("kb_test_%d", time.Now().UnixNano())
 	if _, err = admin.Exec(ctx, "CREATE SCHEMA "+ns); err != nil {
 		t.Fatal(err)
 	}
-	defer admin.Exec(ctx, "DROP SCHEMA "+ns+" CASCADE")
+	t.Cleanup(func() { admin.Exec(ctx, "DROP SCHEMA "+ns+" CASCADE") })
 	u, err := url.Parse(dsn)
 	if err != nil {
 		t.Fatal(err)
@@ -110,7 +111,14 @@ func TestPostgresSnapshotLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	t.Cleanup(db.Close)
+	return db
+}
+func TestPostgresSnapshotLifecycle(t *testing.T) {
+	t.Setenv("KNOWLEDGE_ARCHIVE_DIR", t.TempDir())
+	ctx := context.Background()
+	db := testStore(t)
+	var err error
 	exec := func(sql string, args ...any) {
 		t.Helper()
 		if _, e := db.Exec(ctx, sql, args...); e != nil {

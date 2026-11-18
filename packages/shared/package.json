@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./health.ts",
-    "./knowledge": "./knowledge.ts"
+    "./knowledge": "./knowledge.ts",
+    "./media": "./media.ts"
   }
 }

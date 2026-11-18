@@ -42,8 +42,20 @@ function Knowledge() {
         <ul>
           {page.items.map((w) => (
             <li key={w.id}>
-              <a href={'/knowledge/' + w.id}>{w.canonical_title}</a> · {w.type}{' '}
-              {w.season_year}
+              <a href={w.world_href ?? '/knowledge/' + w.id}>
+                {w.cover_image && (
+                  <img
+                    className="catalog-cover"
+                    src={w.cover_image}
+                    alt=""
+                    width="92"
+                    height="60"
+                    loading="lazy"
+                  />
+                )}
+                {w.canonical_title}
+              </a>{' '}
+              · {w.type} {w.season_year}
             </li>
           ))}
         </ul>

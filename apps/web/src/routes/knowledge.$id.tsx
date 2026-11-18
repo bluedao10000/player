@@ -18,7 +18,25 @@ function Work() {
     <Layout active="">
       <div className="page-intro">
         <a href="/knowledge">返回作品知识库</a>
+        {w.world_href && w.cover_image && (
+          <a
+            href={w.world_href}
+            aria-label={'进入作品世界 · ' + w.canonical_title}
+          >
+            <img
+              className="catalog-world-cover"
+              src={w.cover_image}
+              alt=""
+              fetchPriority="high"
+            />
+          </a>
+        )}
         <h1>{w.canonical_title}</h1>
+        {w.world_href && (
+          <a className="button" href={w.world_href}>
+            进入作品世界
+          </a>
+        )}
         <p>
           {[
             w.type,
@@ -51,8 +69,15 @@ function Work() {
         <ul>
           {w.provenance.map((p, i) => (
             <li key={i}>
-              <a href={p.repository}>{p.source}</a> ·{' '}
-              {typeof p.license === 'string' ? p.license : p.license.name}
+              {p.repository.startsWith('https://') ? (
+                <a href={p.repository}>{p.source}</a>
+              ) : (
+                '潮汐邮局原创清单'
+              )}{' '}
+              ·{' '}
+              {typeof p.license === 'string'
+                ? p.license
+                : (p.license?.name ?? '来源记录')}
               <br />
               <small style={{ overflowWrap: 'anywhere' }}>{p.version}</small>
             </li>

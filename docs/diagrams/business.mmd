@@ -1,46 +1,32 @@
-%% 潮汐邮局 · 业务流程图 · 2026-11-18
+%% 潮汐邮局 · 知识库构建整体流程 · 2026-11-18
 flowchart LR
-  trigger["定时检查双源版本<br/>AOD 和 Bangumi 到期探测<br/>〔已实现〕"]:::live
-  stage["下载、校验与清洗<br/>按来源解析并归一化暂存<br/>〔已实现〕"]:::live
-  publish["匹配与合并作品<br/>稳定 ID 对齐 · 冲突留候选<br/>〔已实现〕"]:::live
-  reader["生成或更新知识库<br/>事务提交 PostgreSQL 作品库<br/>〔已实现〕"]:::live
-  clock["质检任务到期<br/>数据服务按时调度<br/>〔已实现〕"]:::live
-  rules["扫描已提交作品<br/>13 项质量规则 · 可解释评分<br/>〔已实现〕"]:::live
-  audit["写入运行记录<br/>状态、时间、命中和结果<br/>〔已实现〕"]:::live
-  observe["数据工作台<br/>展示拓扑和批次日志<br/>〔已实现〕"]:::live
-  gap["发现图片缺口<br/>缺图、版本变化或到期<br/>〔待开发〕"]:::planned
-  job["创建图片优化任务<br/>数据服务锁定预算与设定<br/>〔待开发〕"]:::planned
-  agent["Pi 执行候选生成<br/>Harness 恢复与工具调用<br/>〔待开发〕"]:::planned
-  check["验证候选与裁切<br/>数据服务执行规则<br/>〔待开发〕"]:::planned
-  fallback["保留可用版本<br/>预算耗尽或无法确认<br/>〔待开发〕"]:::planned
-  redo["重裁或重新生成<br/>有预算时记录新轮次<br/>〔待开发〕"]:::planned
-  judge["仅对疑点调用 Jev<br/>分项判断回传数据服务<br/>〔待开发〕"]:::planned
-  live["自动发布合格版本<br/>按用途切换资产指针<br/>〔待开发〕"]:::planned
-  skip["跳过本轮导入<br/>版本未变 · 记录成功跳过<br/>〔已实现〕"]:::live
-  failed["失败保留上一版<br/>记录失败 · 清理本批暂存<br/>〔已实现〕"]:::live
-  readapi["Gin 查询作品库<br/>按作品 UUID / 标题读取<br/>〔已实现〕"]:::live
-  use["H5 与 Pi 使用知识<br/>展示作品或调用只读工具<br/>〔已实现〕"]:::live
-  trigger --> stage
-  stage --> publish
-  publish --> reader
-  clock --> rules
-  rules --> audit
-  audit --> observe
-  gap -.-> job
-  job -.-> agent
-  agent -.-> check
-  check -.->|通过| live
-  check -.->|存疑| judge
-  judge -.->|通过| live
-  judge -.->|需要返工| redo
-  check -.->|规则失败| redo
-  redo -.->|超限| fallback
-  redo -.->|下一轮| agent
-  trigger -->|版本未变| skip
-  stage -->|校验失败| failed
-  publish -->|合并失败| failed
-  reader -->|已提交| readapi
-  readapi -->|返回作品资料| use
+  sync["同步与清洗<br/>按源探测 · 解析 · 归一化暂存<br/>〔已实现〕"]:::live
+  clean["基础档案<br/>作品 UUID · 别名 · 来源版本<br/>〔已实现〕"]:::live
+  sample["已有关联知识<br/>原创清单 / 站内清单与外部证据<br/>〔已实现〕"]:::live
+  reader["已发布样板可读<br/>Gin → H5 · 章节与场景互链<br/>〔已实现〕"]:::live
+  observe["定时质检与运行观测<br/>检查入库质量 · 查看同步结果<br/>〔已实现〕"]:::live
+  select["运营选定构建范围<br/>指定版本、集章范围、必需图位<br/>〔待开发〕"]:::planned
+  research["AI 联网研究与取证<br/>Pi 查权威资料 · 对齐清洗事实<br/>〔待开发〕"]:::planned
+  draft["编写四类候选内容<br/>人物 · 剧情 · 世界观 · 时间线<br/>〔待开发〕"]:::planned
+  pics["创建图位任务<br/>主视觉 · 角色立绘 · 场景图<br/>〔待开发〕"]:::planned
+  checkpic["自动验图与优化<br/>来源 · 一致性 · 剧情 · 手机裁切<br/>〔待开发〕"]:::planned
+  gate["五维通过 → 知识已验收<br/>覆盖范围 · 叙事质量 · 图位通过数<br/>〔待开发〕"]:::planned
+  fix["待补证或返工<br/>补材料／重编／重裁后复验<br/>〔待开发〕"]:::planned
+  publish["正式发布指定范围<br/>按范围切换版本 · 新集增量重验<br/>〔待开发〕"]:::planned
+  sync --> clean
+  clean --> sample
+  sample --> reader
+  sync --> observe
+  clean -.->|选中| select
+  select -.-> research
+  research -.-> draft
+  select -.-> pics
+  pics -.-> checkpic
+  checkpic -.-> gate
+  draft -.-> gate
+  gate -.->|通过| publish
+  gate -.->|待补证或返工| fix
+  fix -.->|复验| gate
   classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
   classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
   classDef external fill:#f2eadb,stroke:#aa8954,color:#765929

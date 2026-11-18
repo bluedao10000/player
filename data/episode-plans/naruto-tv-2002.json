@@ -1,0 +1,437 @@
+{
+  "world": "naruto-tv-2002",
+  "title": "火影忍者",
+  "edition": "2002 TV",
+  "provider": "bangumi",
+  "externalID": "3425",
+  "year": 2002,
+  "intro": "木叶村里，鸣人一直想让大家记住他的名字。从忍者学校到第七班的演习场，一条护额、两枚铃铛和一份便当，让他慢慢有了可以并肩的同伴。",
+  "people": [
+    {
+      "slug": "naruto",
+      "name": "鸣人",
+      "role": "想让木叶村记住自己名字的少年",
+      "portrait": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F001%2FC062_0108.jpg",
+        "sourceSHA": "71b890b4aa0adbb1b16a4afa4d68aa4ef028c09b1e63396e3226c65fe9a9356d",
+        "brief": "2002 TV 版鸣人单人头肩肖像。金黄短发，蓝眼，双颊各三道胡须纹，少年橙色外套。",
+        "box": [
+          0.27,
+          0,
+          0.65,
+          0.95
+        ]
+      }
+    },
+    {
+      "slug": "iruka",
+      "name": "伊鲁卡",
+      "role": "在忍者学校教鸣人的老师",
+      "portrait": {
+        "referenceURL": "https://lain.bgm.tv/pic/crt/l/fb/d8/8839_crt_nnoOm.jpg",
+        "sourceSHA": "fd887d86cd5a5baf0bce609940e78924f51e4e4dcd4c9fc459d686d603a83af1",
+        "brief": "2002 TV 版伊鲁卡单人头肩肖像。海野伊鲁卡，深棕色高马尾、横贯鼻梁的细长旧疤、木叶护额、绿色中忍背心。"
+      }
+    },
+    {
+      "slug": "konohamaru",
+      "name": "木叶丸",
+      "role": "想凭自己的本事成为火影的孩子",
+      "portrait": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F002%2FC092.jpg",
+        "sourceSHA": "8d4b09e0e609b527233623ed973e33ed12d6584f6a7dcf4796811e823372f69a",
+        "brief": "2002 TV 版木叶丸单人头肩肖像。棕发，护目镜，长蓝围巾，儿童形象。",
+        "box": [
+          0.55,
+          0.16,
+          0.43,
+          0.84
+        ]
+      }
+    },
+    {
+      "slug": "sasuke",
+      "name": "佐助",
+      "role": "与鸣人同届的宇智波家少年",
+      "portrait": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F003%2FC239.jpg",
+        "sourceSHA": "77cf58257af9c0bed869cf565a466342654376ef48ec18fb351fa5ae096134d9",
+        "brief": "2002 TV 版佐助单人头肩肖像。黑发、深蓝色高领短袖，神情寡言。",
+        "box": [
+          0.03,
+          0,
+          0.54,
+          0.98
+        ]
+      }
+    },
+    {
+      "slug": "sakura",
+      "name": "小樱",
+      "role": "忍者学校毕业后加入第七班的少女",
+      "portrait": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F003%2FC039.jpg",
+        "sourceSHA": "7935b45d6e63923a06e834534b5236e40644f619065eaa17f96f1bb6388b5415",
+        "brief": "2002 TV 版小樱单人头肩肖像。粉色长发、红色上衣，初代TV少年时期。",
+        "box": [
+          0.03,
+          0.05,
+          0.48,
+          0.9
+        ]
+      }
+    },
+    {
+      "slug": "kakashi",
+      "name": "卡卡西",
+      "role": "负责考核第七班的上忍",
+      "portrait": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F004%2FC157.jpg",
+        "sourceSHA": "e00d0bf4187b96a36891824555283e63ca2ef90af0b5ba2c23ff6bc7b2b66bb3",
+        "brief": "2002 TV 版卡卡西单人头肩肖像。银色上翘头发、黑色面罩、护额斜垂遮住左眼、上忍绿色背心。",
+        "box": [
+          0.53,
+          0,
+          0.47,
+          0.87
+        ]
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "enter-naruto",
+      "title": "漩涡鸣人登场",
+      "officialTitle": "Enter: Naruto Uzumaki",
+      "guideTitle": "Enter: Naruto Uzumaki!",
+      "official": "https://naruto-official.com/en/anime/naruto1/list/01_225",
+      "guide": "https://en.wikipedia.org/wiki/Naruto_season_1#ep1",
+      "sceneSlug": "academy-exam",
+      "place": "木叶忍者学校",
+      "sceneName": "毕业考试",
+      "sceneBeat": 2,
+      "art": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F001%2FC072.jpg",
+        "sourceSHA": "3aa577a11330b9ddf06f4fcc96c2864bff472884d9d45ad39f7cdd70491a1894",
+        "brief": "木叶忍者学校的教室里，戴护目镜、穿橙衣的少年鸣人紧张地完成分身考试，旁边出现一个软绵绵的分身。"
+      },
+      "intro": "鸣人盼着拿到护额，成为村里承认的忍者。一场没能通过的毕业考试，让他轻信了一个关于封印之书的秘密。",
+      "people": [
+        {
+          "slug": "naruto",
+          "name": "鸣人",
+          "role": "想让木叶村记住自己名字的少年",
+          "beat": 1
+        },
+        {
+          "slug": "iruka",
+          "name": "伊鲁卡",
+          "role": "在忍者学校教鸣人的老师",
+          "beat": 3
+        }
+      ],
+      "setting": [
+        "火影",
+        1
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "defaced a monument",
+          "question": "鸣人为什么在火影岩恶作剧，梦想是什么？",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "stealing a scroll",
+          "question": "毕业考试为何失败，水木让鸣人去做什么？",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "Iruka protects Naruto",
+          "question": "伊鲁卡如何保护鸣人，鸣人怎样回应？"
+        },
+        {
+          "kind": "cause",
+          "needle": "gives the headband",
+          "question": "伊鲁卡的护额对鸣人意味着什么？"
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "slug": "konohamaru",
+      "title": "我是木叶丸",
+      "officialTitle": "My Name is Konohamaru!",
+      "guideTitle": "My Name Is Konohamaru!",
+      "official": "https://naruto-official.com/en/anime/naruto1/list/01_226",
+      "guide": "https://en.wikipedia.org/wiki/Naruto_season_1#ep2",
+      "sceneSlug": "village-path",
+      "place": "木叶村的小路",
+      "sceneName": "两个人的名字",
+      "sceneBeat": 2,
+      "art": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F002%2FC092.jpg",
+        "sourceSHA": "8d4b09e0e609b527233623ed973e33ed12d6584f6a7dcf4796811e823372f69a",
+        "brief": "鸣人和戴护目镜、围长蓝围巾的木叶丸站在木叶村小路上认真交谈。两人穿着完整日常服饰。"
+      },
+      "intro": "刚毕业的鸣人碰见了火影的孙子。木叶丸满心想让人记住自己的名字，也想知道鸣人为什么不把他当少爷。",
+      "people": [
+        {
+          "slug": "naruto",
+          "name": "鸣人",
+          "role": "想让木叶村记住自己名字的少年",
+          "beat": 2
+        },
+        {
+          "slug": "konohamaru",
+          "name": "木叶丸",
+          "role": "想凭自己的本事成为火影的孩子",
+          "beat": 3
+        }
+      ],
+      "setting": [
+        "火影",
+        3
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "Ninja Registration Form",
+          "question": "鸣人登记时遇到了谁？交代木叶丸与三代火影的关系。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "first person to not see him solely",
+          "question": "木叶丸为什么跟着鸣人？不要描述术的身体细节。"
+        },
+        {
+          "kind": "motive",
+          "needle": "desire to be recognised",
+          "question": "木叶丸想怎样成为火影？惠比寿为何插手？"
+        },
+        {
+          "kind": "cause",
+          "needle": "grandfather's footsteps",
+          "question": "鸣人让木叶丸明白祖父的名号能不能代替自己的努力？"
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "slug": "team-seven",
+      "title": "宿敌！佐助和小樱",
+      "officialTitle": "Sasuke and Sakura: Friends or Foes?",
+      "guideTitle": "Sasuke and Sakura: Friends or Foes?",
+      "official": "https://naruto-official.com/en/anime/naruto1/list/01_227",
+      "guide": "https://en.wikipedia.org/wiki/Naruto_season_1#ep3",
+      "sceneSlug": "teammates",
+      "place": "木叶村",
+      "sceneName": "同班的两人",
+      "sceneBeat": 2,
+      "art": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F003%2FC239.jpg",
+        "sourceSHA": "77cf58257af9c0bed869cf565a466342654376ef48ec18fb351fa5ae096134d9",
+        "brief": "树荫下，少年佐助穿深蓝高领衫在前，粉色长发红衣的小樱在几步外望向他。初次分班的拘谨气氛。"
+      },
+      "intro": "鸣人想接近小樱，小樱的目光却一直追着佐助。分班名单公布，三个人偏偏要一起行动。",
+      "people": [
+        {
+          "slug": "naruto",
+          "name": "鸣人",
+          "role": "想让木叶村记住自己名字的少年",
+          "beat": 3
+        },
+        {
+          "slug": "sasuke",
+          "name": "佐助",
+          "role": "与鸣人同届的宇智波家少年",
+          "beat": 2
+        },
+        {
+          "slug": "sakura",
+          "name": "小樱",
+          "role": "忍者学校毕业后加入第七班的少女",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "第七班",
+        2
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "all the girls were fighting",
+          "question": "鸣人因为什么与佐助较劲？"
+        },
+        {
+          "kind": "turn",
+          "needle": "put into Team 7",
+          "question": "点名鸣人、佐助和小樱，解释第七班三人分组和各自的心思。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "pose as Sasuke",
+          "question": "鸣人为何假扮佐助，计划如何被打断？",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "blames Naruto",
+          "question": "真正的佐助如何回应小樱拿孤儿开玩笑？误会如何收场？"
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "slug": "survival-test",
+      "title": "考验！求生的演练",
+      "officialTitle": "Pass or Fail: Survival Test",
+      "guideTitle": "Pass or Fail: Survival Test",
+      "official": "https://naruto-official.com/en/anime/naruto1/list/01_228",
+      "guide": "https://en.wikipedia.org/wiki/Naruto_season_1#ep4",
+      "sceneSlug": "two-bells",
+      "place": "木叶演习场",
+      "sceneName": "两枚铃铛",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F004%2FC179.jpg",
+        "sourceSHA": "5b0ba569a140b8bc90f8975629719445925de5b1efb902e69149c0529dc43373",
+        "brief": "木叶演习场的绿树前，银发蒙面卡卡西将两枚小铃铛举给少年鸣人看，晨光中两人相对而立。"
+      },
+      "intro": "第七班终于见到了带队老师卡卡西。第一次考核却只有两枚铃铛，三个人都想知道，谁会被送回学校。",
+      "people": [
+        {
+          "slug": "naruto",
+          "name": "鸣人",
+          "role": "想让木叶村记住自己名字的少年",
+          "beat": 4
+        },
+        {
+          "slug": "kakashi",
+          "name": "卡卡西",
+          "role": "负责考核第七班的上忍",
+          "beat": 3
+        },
+        {
+          "slug": "sasuke",
+          "name": "佐助",
+          "role": "与鸣人同届的宇智波家少年",
+          "beat": 2
+        },
+        {
+          "slug": "sakura",
+          "name": "小樱",
+          "role": "忍者学校毕业后加入第七班的少女",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "铃铛",
+        3
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "forced to wait",
+          "question": "第七班怎样等到卡卡西？",
+          "officialSentence": 1
+        },
+        {
+          "kind": "motive",
+          "needle": "tell each other their desires",
+          "question": "点名鸣人、小樱和佐助；他们各自如何介绍自己？"
+        },
+        {
+          "kind": "turn",
+          "needle": "seizure of one of two bells",
+          "question": "卡卡西的铃铛考试怎样规定去留？",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "falls for a snare trap",
+          "question": "鸣人的主动出击怎样收场，佐助如何接着行动？"
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "slug": "kakashis-decision",
+      "title": "不及格？卡卡西的结论",
+      "officialTitle": "You Failed! Kakashi’s Final Decision",
+      "guideTitle": "You Failed! Kakashi's Final Decision",
+      "official": "https://naruto-official.com/en/anime/naruto1/list/01_229",
+      "guide": "https://en.wikipedia.org/wiki/Naruto_season_1#ep5",
+      "sceneSlug": "shared-lunch",
+      "place": "木叶演习场",
+      "sceneName": "分享午饭",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://cmsapi-frontend.naruto-official.com/site/api/naruto/Image/get?path=%2Fnaruto%2Fimport%2Fimages%2Fnaruto01%2F001%EF%BD%9E100%2F005%2FC131.jpg",
+        "sourceSHA": "1f4804c6bd9304e2b071ad9ea60a2f1de49ba8e7f6ae23aedeab36cc19f96efd",
+        "brief": "正午树影里，鸣人坐在演习场木桩边，小樱和佐助蹲在他身边递出便当，神情温和。表现伙伴分享食物，不描绘伤害。"
+      },
+      "intro": "考核时间已到，谁也没拿到铃铛。卡卡西把午餐留给佐助和小樱，说谁也不准给鸣人吃。",
+      "people": [
+        {
+          "slug": "sasuke",
+          "name": "佐助",
+          "role": "与鸣人同届的宇智波家少年",
+          "beat": 3
+        },
+        {
+          "slug": "sakura",
+          "name": "小樱",
+          "role": "忍者学校毕业后加入第七班的少女",
+          "beat": 3
+        },
+        {
+          "slug": "naruto",
+          "name": "鸣人",
+          "role": "想让木叶村记住自己名字的少年",
+          "beat": 3
+        },
+        {
+          "slug": "kakashi",
+          "name": "卡卡西",
+          "role": "负责考核第七班的上忍",
+          "beat": 4
+        }
+      ],
+      "setting": [
+        "同伴",
+        4
+      ],
+      "beats": [
+        {
+          "kind": "turn",
+          "needle": "buried up to his neck",
+          "question": "各自为战的佐助、小樱和鸣人遇到了什么问题？",
+          "officialSentence": 1
+        },
+        {
+          "kind": "motive",
+          "needle": "lack of teamwork",
+          "question": "卡卡西为什么判定三人失败，给了什么新规矩？"
+        },
+        {
+          "kind": "turn",
+          "needle": "Sasuke and Sakura feed Naruto",
+          "question": "佐助和小樱为何决定把便当分给鸣人？"
+        },
+        {
+          "kind": "cause",
+          "needle": "accepts them as his students",
+          "question": "卡卡西为什么收下三人？明确说出不能抛下同伴的道理。",
+          "officialSentence": 2
+        }
+      ]
+    }
+  ]
+}

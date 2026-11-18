@@ -1,49 +1,55 @@
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn } from "@tanstack/react-start";
 
-type Status = 'running' | 'pending' | 'success' | 'failed'
+import type { ScopeAcceptance, MediaCandidate, ResearchRun, WorkKnowledgeStatus } from "@anime/shared/knowledge";
+
+type Status = "running" | "pending" | "success" | "failed";
 type Sync = {
-  id: string
-  source: string
-  status: Status
-  started_at: string
-  finished_at: string | null
-  skip_reason: string | null
-  records_read: number
-  records_updated: number
-  records_created: number
-  http_status: number | null
-  records_failed: number
-}
+  id: string;
+  source: string;
+  status: Status;
+  started_at: string;
+  finished_at: string | null;
+  skip_reason: string | null;
+  records_read: number;
+  records_updated: number;
+  records_created: number;
+  http_status: number | null;
+  records_failed: number;
+};
 type Quality = {
-  id: string
-  started_at: string
-  finished_at: string | null
-  status: Status
+  id: string;
+  started_at: string;
+  finished_at: string | null;
+  status: Status;
   report: {
-    works: number
-    mean_score: number
-    issues: Record<string, number>
-  } | null
-}
+    works: number;
+    mean_score: number;
+    issues: Record<string, number>;
+  } | null;
+};
 
 async function get<T>(path: string): Promise<T[] | null> {
   try {
-    const base = process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'
+    const base = process.env.KNOWLEDGE_API_URL ?? "http://127.0.0.1:4321";
     const res = await fetch(
-      new URL('/api/v1/knowledge/' + path + '?limit=30', base),
-      { signal: AbortSignal.timeout(5000), cache: 'no-store' },
-    )
-    if (res.ok) return (await res.json()) as T[]
+      new URL("/api/v1/knowledge/" + path + "?limit=30", base),
+      { signal: AbortSignal.timeout(5000), cache: "no-store" },
+    );
+    if (res.ok) return (await res.json()) as T[];
   } catch {
     /* Show an unavailable feed separately from an empty one. */
   }
-  return null
+  return null;
 }
-export const readFeed = createServerFn({ method: 'GET' }).handler(async () => {
-  const [sync, quality] = await Promise.all([
-    get<Sync>('sync-runs'),
-    get<Quality>('quality-runs'),
-  ])
+export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
+  const [sync, quality, worlds, research, media, scopes] = await Promise.all([
+    get<Sync>("sync-runs"),
+    get<Quality>("quality-runs"),
+    get<WorkKnowledgeStatus>("world-statuses"),
+    get<ResearchRun>("research-runs"),
+    get<MediaCandidate>("media-candidates"),
+    get<ScopeAcceptance>("scope-acceptances"),
+  ]);
   const runs = [
     ...(sync ?? []).map((r) => ({
       id: r.id,
@@ -61,7 +67,7 @@ export const readFeed = createServerFn({ method: 'GET' }).handler(async () => {
     })),
     ...(quality ?? []).map((r) => ({
       id: r.id,
-      task: '质量扫描',
+      task: "质量扫描",
       start: r.started_at,
       finish: r.finished_at,
       status: r.status,
@@ -75,11 +81,15 @@ export const readFeed = createServerFn({ method: 'GET' }).handler(async () => {
         ? Object.values(r.report.issues).reduce((a, b) => a + b, 0)
         : null,
     })),
-  ].sort((a, b) => Date.parse(b.start) - Date.parse(a.start))
+  ].sort((a, b) => Date.parse(b.start) - Date.parse(a.start));
   return {
     runs,
+    worlds,
+    research,
+    scopes,
+    media,
     syncOnline: sync !== null,
     qualityOnline: quality !== null,
     checked: new Date().toISOString(),
-  }
-})
+  };
+});

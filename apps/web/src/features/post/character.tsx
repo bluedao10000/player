@@ -9,6 +9,9 @@ import {
 } from './design'
 import { Icon } from './icons'
 
+import type { CharacterDetail } from '@anime/shared/knowledge'
+import { WorldTrail } from '../worlds/pages'
+
 const [ferry, letter, lighthouse] = stories
 const opening = '/play/' + feature.slug
 const connections = {
@@ -32,22 +35,25 @@ const stops = [
   },
 ]
 
-function CharacterHero() {
+export function CharacterHero({ name, role, preview }: {
+  name: string; role: string; preview?: {src:string;focus:number}
+}) {
   return (
     <header className="mio-arrival" aria-labelledby="mio-name">
       <img
         className="mio-key-art"
-        src="/art/mio-invitation.webp"
+        src={preview?.src ?? "/art/mio-invitation.webp"}
+        style={preview ? {objectPosition: "65% "+preview.focus+"%"} : undefined}
         width="1672"
         height="941"
-        alt="白帆港的夜色里，阿澪站在亮着灯的邮局门前，向你递出一封信。"
+        alt={preview ? "阿澪场景候选图" : "白帆港的夜色里，阿澪站在亮着灯的邮局门前，向你递出一封信。"}
         fetchPriority="high"
       />
       <div className="mio-voice">
-        <h1 id="mio-name">阿澪</h1>
+        <h1 id="mio-name">{name}</h1>
         <p className="mio-byline">
           <Icon name="moon" size={15} />
-          夜班邮差 <span>·</span> 白帆港
+          {role}
         </p>
         <blockquote>
           「替每一封迷路的信，
@@ -60,29 +66,35 @@ function CharacterHero() {
   )
 }
 
-export function Character() {
+export function Character({
+  work,
+  character,
+  appearances,
+  scene_previews,
+}: CharacterDetail) {
   return (
     <Layout active="角色">
       <article className="mio-world">
-        <CharacterHero />
+        <WorldTrail work={work} />
+        <CharacterHero name={character.name} role={character.role} />
         <div className="mio-trail">
-          <section aria-labelledby="mio-stories">
-            <h2 id="mio-stories">阿澪的投递手记</h2>
+          <section aria-label="出场章节">
+            <h2>出场章节</h2>
             <p className="mio-intro">
               阿澪熟悉港口的每一盏航灯。她的制服口袋里总装着潮汐表和一枚铜哨，偶尔还有一封舍不得退回的信。
             </p>
             <div className="mio-stories">
-              {[feature, ferry, letter].map((story) => (
-                <a key={story.slug} href={storyUrl(story)}>
+              {appearances.map((story) => (
+                <a key={story.slug} href={story.href}>
                   <img
-                    src={artUrl(story)}
+                    src={story.image}
                     alt=""
                     width="766"
                     height="510"
                     loading="lazy"
                   />
                   <div>
-                    <small>{story.category}</small>
+                    <small>{story.label}</small>
                     <h3>{story.title}</h3>
                   </div>
                   <Icon name="forward" size={15} />
@@ -93,7 +105,12 @@ export function Character() {
           <section aria-label="相关场景">
             <SectionHeader>夜班途中的两幕</SectionHeader>
             <div className="mio-scenes">
-              <ScenePreview story={ferry} />
+              <ScenePreview
+                story={ferry}
+                scene={scene_previews.find(
+                  (s) => s.chapter_slug === ferry.slug,
+                )}
+              />
               <ScenePreview story={lighthouse} />
             </div>
           </section>

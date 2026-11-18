@@ -1,0 +1,10 @@
+**
+!package*.json
+!apps
+!apps/agent
+!apps/agent/package.json
+!apps/agent/src
+!apps/agent/src/**
+!packages
+!packages/shared
+!packages/shared/**

@@ -19,6 +19,12 @@ import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as PlaySlugRouteImport } from './routes/play.$slug'
 import { Route as StorySlugRouteImport } from './routes/story.$slug'
+import { Route as WorkbenchArtFileRouteImport } from './routes/workbench-art.$file'
+import { Route as WorkbenchHeroFileRouteImport } from './routes/workbench-hero.$file'
+import { Route as ArtEpisodeScenesFileRouteImport } from './routes/art.episode-scenes.$file'
+import { Route as ArtPortraitsFileRouteImport } from './routes/art.portraits.$file'
+import { Route as WorkWorkIndexRouteImport } from './routes/work.$work.index'
+import { Route as WorkWorkKindSlugRouteImport } from './routes/work.$work.$kind.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +76,36 @@ const StorySlugRoute = StorySlugRouteImport.update({
   path: '/story/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkbenchArtFileRoute = WorkbenchArtFileRouteImport.update({
+  id: '/workbench-art/$file',
+  path: '/workbench-art/$file',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkbenchHeroFileRoute = WorkbenchHeroFileRouteImport.update({
+  id: '/workbench-hero/$file',
+  path: '/workbench-hero/$file',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtEpisodeScenesFileRoute = ArtEpisodeScenesFileRouteImport.update({
+  id: '/art/episode-scenes/$file',
+  path: '/art/episode-scenes/$file',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtPortraitsFileRoute = ArtPortraitsFileRouteImport.update({
+  id: '/art/portraits/$file',
+  path: '/art/portraits/$file',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkWorkIndexRoute = WorkWorkIndexRouteImport.update({
+  id: '/work/$work/',
+  path: '/work/$work/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkWorkKindSlugRoute = WorkWorkKindSlugRouteImport.update({
+  id: '/work/$work/$kind/$slug',
+  path: '/work/$work/$kind/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -81,7 +117,13 @@ export interface FileRoutesByFullPath {
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/story/$slug': typeof StorySlugRoute
+  '/workbench-art/$file': typeof WorkbenchArtFileRoute
+  '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
   '/knowledge/': typeof KnowledgeIndexRoute
+  '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
+  '/art/portraits/$file': typeof ArtPortraitsFileRoute
+  '/work/$work/': typeof WorkWorkIndexRoute
+  '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,7 +135,13 @@ export interface FileRoutesByTo {
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/story/$slug': typeof StorySlugRoute
+  '/workbench-art/$file': typeof WorkbenchArtFileRoute
+  '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
   '/knowledge': typeof KnowledgeIndexRoute
+  '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
+  '/art/portraits/$file': typeof ArtPortraitsFileRoute
+  '/work/$work': typeof WorkWorkIndexRoute
+  '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,7 +154,13 @@ export interface FileRoutesById {
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/story/$slug': typeof StorySlugRoute
+  '/workbench-art/$file': typeof WorkbenchArtFileRoute
+  '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
   '/knowledge/': typeof KnowledgeIndexRoute
+  '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
+  '/art/portraits/$file': typeof ArtPortraitsFileRoute
+  '/work/$work/': typeof WorkWorkIndexRoute
+  '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,7 +174,13 @@ export interface FileRouteTypes {
     | '/knowledge/$id'
     | '/play/$slug'
     | '/story/$slug'
+    | '/workbench-art/$file'
+    | '/workbench-hero/$file'
     | '/knowledge/'
+    | '/art/episode-scenes/$file'
+    | '/art/portraits/$file'
+    | '/work/$work/'
+    | '/work/$work/$kind/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,7 +192,13 @@ export interface FileRouteTypes {
     | '/knowledge/$id'
     | '/play/$slug'
     | '/story/$slug'
+    | '/workbench-art/$file'
+    | '/workbench-hero/$file'
     | '/knowledge'
+    | '/art/episode-scenes/$file'
+    | '/art/portraits/$file'
+    | '/work/$work'
+    | '/work/$work/$kind/$slug'
   id:
     | '__root__'
     | '/'
@@ -144,7 +210,13 @@ export interface FileRouteTypes {
     | '/knowledge/$id'
     | '/play/$slug'
     | '/story/$slug'
+    | '/workbench-art/$file'
+    | '/workbench-hero/$file'
     | '/knowledge/'
+    | '/art/episode-scenes/$file'
+    | '/art/portraits/$file'
+    | '/work/$work/'
+    | '/work/$work/$kind/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -157,7 +229,13 @@ export interface RootRouteChildren {
   KnowledgeIdRoute: typeof KnowledgeIdRoute
   PlaySlugRoute: typeof PlaySlugRoute
   StorySlugRoute: typeof StorySlugRoute
+  WorkbenchArtFileRoute: typeof WorkbenchArtFileRoute
+  WorkbenchHeroFileRoute: typeof WorkbenchHeroFileRoute
   KnowledgeIndexRoute: typeof KnowledgeIndexRoute
+  ArtEpisodeScenesFileRoute: typeof ArtEpisodeScenesFileRoute
+  ArtPortraitsFileRoute: typeof ArtPortraitsFileRoute
+  WorkWorkIndexRoute: typeof WorkWorkIndexRoute
+  WorkWorkKindSlugRoute: typeof WorkWorkKindSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,6 +310,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workbench-art/$file': {
+      id: '/workbench-art/$file'
+      path: '/workbench-art/$file'
+      fullPath: '/workbench-art/$file'
+      preLoaderRoute: typeof WorkbenchArtFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workbench-hero/$file': {
+      id: '/workbench-hero/$file'
+      path: '/workbench-hero/$file'
+      fullPath: '/workbench-hero/$file'
+      preLoaderRoute: typeof WorkbenchHeroFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/art/episode-scenes/$file': {
+      id: '/art/episode-scenes/$file'
+      path: '/art/episode-scenes/$file'
+      fullPath: '/art/episode-scenes/$file'
+      preLoaderRoute: typeof ArtEpisodeScenesFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/art/portraits/$file': {
+      id: '/art/portraits/$file'
+      path: '/art/portraits/$file'
+      fullPath: '/art/portraits/$file'
+      preLoaderRoute: typeof ArtPortraitsFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/work/$work/': {
+      id: '/work/$work/'
+      path: '/work/$work'
+      fullPath: '/work/$work/'
+      preLoaderRoute: typeof WorkWorkIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/work/$work/$kind/$slug': {
+      id: '/work/$work/$kind/$slug'
+      path: '/work/$work/$kind/$slug'
+      fullPath: '/work/$work/$kind/$slug'
+      preLoaderRoute: typeof WorkWorkKindSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -245,7 +365,13 @@ const rootRouteChildren: RootRouteChildren = {
   KnowledgeIdRoute: KnowledgeIdRoute,
   PlaySlugRoute: PlaySlugRoute,
   StorySlugRoute: StorySlugRoute,
+  WorkbenchArtFileRoute: WorkbenchArtFileRoute,
+  WorkbenchHeroFileRoute: WorkbenchHeroFileRoute,
   KnowledgeIndexRoute: KnowledgeIndexRoute,
+  ArtEpisodeScenesFileRoute: ArtEpisodeScenesFileRoute,
+  ArtPortraitsFileRoute: ArtPortraitsFileRoute,
+  WorkWorkIndexRoute: WorkWorkIndexRoute,
+  WorkWorkKindSlugRoute: WorkWorkKindSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

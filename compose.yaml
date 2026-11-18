@@ -38,23 +38,57 @@ services:
       API_HOST: 0.0.0.0
     volumes:
       - knowledge-archive:/var/lib/knowledge/archive
+      - media-assets:/media:ro
     ports:
       - "127.0.0.1:${KNOWLEDGE_API_PORT:-4321}:4311"
     depends_on:
       postgres:
         condition: service_healthy
+  research-agent:
+    build:
+      context: .
+      dockerfile: apps/agent/Dockerfile
+    restart: unless-stopped
+    environment:
+      AGENT_HOST: 0.0.0.0
+      AGENT_DB_PATH: /state/agent.sqlite
+      OPENAI_API_KEY: ${RESEARCH_OPENAI_API_KEY:-}
+      MEDIA_AI_API_KEY: ${MEDIA_AI_API_KEY:-}
+      MEDIA_AI_MODEL: ${MEDIA_AI_MODEL:-gpt-image-2}
+      MEDIA_SECOND_REVIEW_MODEL: ${MEDIA_SECOND_REVIEW_MODEL:-gpt-4.1}
+      MEDIA_REVIEW_MODEL: ${MEDIA_REVIEW_MODEL:-gpt-4.1-mini}
+      RESEARCH_MODEL: ${RESEARCH_MODEL:-gpt-4.1-mini}
+    volumes:
+      - research-state:/state
+      - media-assets:/media
+      - ./apps/web/public/art/mio-invitation.webp:/mio-reference.webp:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4312/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
   sync:
     build: ./apps/api
     command: ["knowledge-sync"]
     volumes:
+      - media-assets:/media:ro
+      - ./data/episode-plans:/episode-plans:ro
+      - ./apps/web/public/art:/reader-art:ro
       - knowledge-archive:/var/lib/knowledge/archive
     restart: unless-stopped
     environment:
       <<: *database
+      EPISODE_PLAN_DIR: /episode-plans
+      MEDIA_WORKER_ENABLED: ${MEDIA_WORKER_ENABLED:-false}
+      KNOWLEDGE_RESEARCH_URL: http://research-agent:4312
       GITHUB_TOKEN: ${KNOWLEDGE_GITHUB_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy
+      research-agent:
+        condition: service_healthy
 volumes:
   knowledge-data:
+  research-state:
+  media-assets:
   knowledge-archive:

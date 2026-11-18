@@ -35,7 +35,7 @@ FROM evidence e CROSS JOIN LATERAL (VALUES
  ('language',e.bad_lang,replace(e.bad_lang,'_','-'),e.bad_lang IS NOT NULL),
  ('alias',e.duplicate,NULL,e.duplicate IS NOT NULL),('duplicate_id',e.shared_id,NULL,e.shared_id IS NOT NULL),
  ('conflict',e.conflict,NULL,e.conflict IS NOT NULL),('date',e.end_date::text,NULL,e.end_date<e.start_date),
- ('enum',concat_ws('/',e.type,e.status),NULL,e.type NOT IN ('TV','OVA','ONA','MOVIE','SPECIAL','UNKNOWN') OR e.status NOT IN ('ONGOING','FINISHED','UPCOMING','UNKNOWN')),
+ ('enum',concat_ws('/',e.type,e.status),NULL,e.type NOT IN ('TV','OVA','ONA','MOVIE','SPECIAL','SHORT_STORY_COLLECTION','UNKNOWN') OR e.status NOT IN ('ONGOING','FINISHED','UPCOMING','UNKNOWN')),
  ('cover',NULL,NULL,NOT coalesce(e.cover,false)),('relation',e.broken_url,NULL,e.broken_url IS NOT NULL),
  ('suspicious',e.episodes::text,NULL,e.episodes<0 OR e.episodes>10000)
 ) v(rule_id,actual,suggested,fails) JOIN knowledge_quality_rules r USING(rule_id) WHERE v.fails AND r.enabled
@@ -47,6 +47,6 @@ SELECT id,(SELECT sum(value::int) FROM jsonb_each_text(parts)),parts,now() FROM 
  'chinese_title',CASE WHEN chinese THEN 10 ELSE 0 END,'original_title',CASE WHEN length(trim(original_title))>0 THEN 10 ELSE 0 END,
  'provider',CASE WHEN ids>0 AND shared_id IS NULL AND conflict IS NULL THEN 15 ELSE 0 END,
  'date',CASE WHEN start_date IS NOT NULL AND (end_date IS NULL OR end_date>=start_date) THEN 10 ELSE 0 END,
- 'type',CASE WHEN type IN ('TV','OVA','ONA','MOVIE','SPECIAL') THEN 10 ELSE 0 END,'approved_image',0,
+ 'type',CASE WHEN type IN ('TV','OVA','ONA','MOVIE','SPECIAL','SHORT_STORY_COLLECTION') THEN 10 ELSE 0 END,'approved_image',0,
  'source',CASE WHEN trusted THEN 10 ELSE 0 END,'relations',CASE WHEN broken_url IS NULL THEN 10 ELSE 0 END) parts FROM evidence
 ) scored ON CONFLICT(work_id) DO UPDATE SET score=excluded.score,components=excluded.components,checked_at=now();

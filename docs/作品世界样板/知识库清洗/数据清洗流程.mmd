@@ -1,0 +1,22 @@
+flowchart TB
+    T["数据服务按来源定时检查 · 登记同步批次"]
+    A["通用作品目录<br/>anime-offline-database + bangumi-data"]
+    B["潮汐邮局 · 原创清单<br/>角色、短篇全文、场景和导读顺序"]
+    C["星际牛仔 · 站内编辑清单<br/>中文导读和候选出场关系"]
+    T --> A & B & C
+    A --> N["版本变化时下载并校验<br/>解析、统一标题和来源 ID，写暂存批次"]
+    N --> W["匹配作品版本并事务归并<br/>作品 UUID、译名、类型、集数、机构与来源"]
+    W --> K["Gin → H5 知识库检索"]
+    B --> O["校验原创清单结构<br/>按自有来源键建立或复用作品身份"]
+    C --> E["用 Bangumi API 核对集序和人物身份<br/>用官方分集简介及补充资料核对出场"]
+    W -.->|使用已归并的 1998 TV 版身份| E
+    O --> P["验证、比对内容摘要并暂存新版本<br/>同一事务写入可读内容与关系"]
+    E --> P
+    P --> G["公开作品世界<br/>角色、章节与段落、导读线、场景与地点<br/>本集／本幕人物、回跳段落、证据与发布版本"]
+    G --> H["Gin → H5 作品世界 → 角色 → 出场章节 → 场景 → 原段落"]
+    classDef source fill:#edf3f7,stroke:#6e8794,color:#243641
+    classDef catalog fill:#e0f1ed,stroke:#408178,color:#183c38
+    classDef pub fill:#eae8f3,stroke:#7c739d,color:#3e3953
+    class A,B,C source
+    class N,W,K catalog
+    class O,E,P,G,H pub

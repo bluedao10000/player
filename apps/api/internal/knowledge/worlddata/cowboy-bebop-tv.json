@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "slug": "cowboy-bebop-tv",
+  "name": "星际牛仔",
+  "edition": "1998 · TV 动画 · 全 26 集",
+  "intro": "登上 Bebop 号，跟随斯派克和杰特，读一份从小行星开始的赏金委托。",
+  "cast_title": "委托中的人物",
+  "image": "",
+  "position": 2,
+  "people": [
+    {
+      "slug": "spike",
+      "name": "斯派克",
+      "role": "Bebop 号的赏金猎人",
+      "provider_id": 77,
+      "alias": "スパイク"
+    },
+    {
+      "slug": "jet",
+      "name": "杰特",
+      "role": "斯派克的搭档",
+      "provider_id": 78,
+      "alias": "ジェット"
+    },
+    {
+      "slug": "asimov",
+      "name": "阿西莫夫",
+      "role": "第一份委托的追捕目标",
+      "provider_id": 170324,
+      "alias": "アシモフ"
+    },
+    {
+      "slug": "katerina",
+      "name": "卡特琳娜",
+      "role": "阿西莫夫的恋人",
+      "provider_id": 170325,
+      "alias": "カテリーナ"
+    },
+    {
+      "slug": "ein",
+      "name": "爱因",
+      "role": "第二份委托中的柯基犬",
+      "provider_id": 81,
+      "alias": "アイン"
+    },
+    {
+      "slug": "hakim",
+      "name": "阿卜杜勒·哈基姆",
+      "role": "赏金猎人追查的窃贼",
+      "provider_id": 170331,
+      "alias": "ハキム"
+    }
+  ],
+  "lines": [
+    {
+      "slug": "first-bounties",
+      "title": "初识赏金猎人",
+      "intro": "从一桩交易到一场追逐，读前两集风格迥异的委托。",
+      "chapters": [
+        "asteroid-blues",
+        "stray-dog-strut"
+      ]
+    }
+  ],
+  "chapters": [
+    {
+      "slug": "asteroid-blues",
+      "name": "Asteroid Blues",
+      "label": "第 1 集",
+      "intro": "同一笔悬赏，把两名猎人和一对逃亡的恋人引向小行星上的小镇。",
+      "episode": 1,
+      "cast": [
+        "spike",
+        "jet",
+        "asimov",
+        "katerina"
+      ],
+      "blocks": [
+        {
+          "key": "bounty",
+          "text": "斯派克和杰特接到的目标叫阿西莫夫。他从敌对组织手里偷走了代号「血腥之眼」的药物。对两名赏金猎人来说，这趟行程从追查他的下落开始。"
+        },
+        {
+          "key": "bar-deal",
+          "text": "另一边，阿西莫夫和恋人卡特琳娜走进一家酒吧。柜台后的酒保也是他们想找的买家。两人想把手里的货换成钱，而这起交易已经牵动了镇上的几方人马。"
+        }
+      ],
+      "scenes": [
+        {
+          "slug": "bar-visit",
+          "name": "两人走进酒吧",
+          "place": "小行星上的酒吧",
+          "cast": [
+            "asimov",
+            "katerina"
+          ],
+          "block": "bar-deal",
+          "text": "阿西莫夫带着「血腥之眼」，和卡特琳娜一起去见酒保。追捕暂时留在画面之外，这一幕先让我们看见被追的人要做什么。"
+        }
+      ]
+    },
+    {
+      "slug": "stray-dog-strut",
+      "name": "Stray Dog Strut",
+      "label": "第 2 集",
+      "intro": "下一份悬赏和连续宠物失窃案有关，一只狗把追逐带进唐人街。",
+      "episode": 2,
+      "cast": [
+        "spike",
+        "jet",
+        "ein",
+        "hakim"
+      ],
+      "blocks": [
+        {
+          "key": "commission",
+          "text": "这次要找的是一名惯于格斗的宠物窃贼。盯上他的除了斯派克一行，还有一家动物研究所。"
+        },
+        {
+          "key": "chase",
+          "text": "追逐围绕一只狗在唐人街展开。与第一集的阴郁交易相比，这一集把赏金猎人的工作写成了一场错位的喜剧。"
+        }
+      ],
+      "scenes": [
+        {
+          "slug": "chinatown-chase",
+          "name": "唐人街的追逐",
+          "place": "唐人街",
+          "cast": [
+            "spike",
+            "ein",
+            "hakim"
+          ],
+          "block": "chase",
+          "text": "追捕在唐人街变了调。一只狗成了各方争夺的中心，斯派克也被卷进这场忙乱的追逐。"
+        }
+      ]
+    }
+  ]
+}

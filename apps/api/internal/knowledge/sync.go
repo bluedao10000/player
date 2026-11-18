@@ -95,7 +95,15 @@ func syncSource(ctx context.Context, db *pgxpool.Pool, id int, manual, refresh b
 	var st stats
 	_, err = conn.Exec(ctx, "UPDATE knowledge_sources SET last_checked_at=now(),updated_at=now() WHERE id=$1", id)
 	if err == nil {
-		err = importBatch(ctx, conn, s, batch, &st, refresh, replay)
+		switch s.Kind {
+		case "world-original", "world-enrichment":
+			err = importWorld(ctx, conn, s, batch, &st, replay)
+			if err != nil {
+				st.Failed = 1
+			}
+		default:
+			err = importBatch(ctx, conn, s, batch, &st, refresh, replay)
+		}
 	}
 	if err != nil {
 		recordCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)

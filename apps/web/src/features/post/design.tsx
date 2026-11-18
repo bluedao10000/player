@@ -1,3 +1,4 @@
+import type { SceneCard } from '@anime/shared/knowledge'
 import type { ReactNode } from 'react'
 import { artUrl, storyUrl } from './catalog'
 import type { Story } from './catalog'
@@ -149,7 +150,7 @@ export const people = [
     name: '渡船船长',
     role: '旧渡口的引路人',
     image: 'captain',
-    href: '/character/mio#captain',
+    href: '/work/tidepost/character/captain',
     story: 'last-ferry',
   },
   {
@@ -211,13 +212,22 @@ export function StoryPreview({ story }: { story: Story }) {
     </article>
   )
 }
-export function ScenePreview({ story }: { story: Story }) {
+export function ScenePreview({
+  story,
+  scene,
+}: {
+  story: Story
+  scene?: SceneCard
+}) {
   return (
-    <a className="scene-preview" href={storyUrl(story) + '#scene'}>
+    <a
+      className="scene-preview"
+      href={scene?.href ?? storyUrl(story) + '#scene'}
+    >
       <img src={artUrl(story)} alt="" loading="lazy" />
       <div>
         <small>{story.location}</small>
-        <h3>{story.title}</h3>
+        <h3>{scene?.title ?? story.title}</h3>
       </div>
       <Icon name="forward" />
     </a>

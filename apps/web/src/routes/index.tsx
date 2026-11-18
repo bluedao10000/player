@@ -1,7 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Home } from '../features/post/editorial'
 
+import { discovery } from '../features/worlds/api'
+
 export const Route = createFileRoute('/')({
+  loader: () => discovery(),
   head: () => ({
     meta: [
       { title: '潮汐邮局 · 白帆港故事集' },
@@ -12,5 +15,5 @@ export const Route = createFileRoute('/')({
       },
     ],
   }),
-  component: Home,
+  component: () => <Home works={Route.useLoaderData().items} />,
 })

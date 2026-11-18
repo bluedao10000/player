@@ -2,7 +2,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Character } from '../features/post/character'
 import characterCss from '../features/post/character.css?url'
 
+import { character } from '../features/worlds/api'
+
 export const Route = createFileRoute('/character/mio')({
+  loader: () => character({ data: { work: 'tidepost', slug: 'mio' } }),
   head: () => ({
     links: [{ rel: 'stylesheet', href: characterCss }],
     meta: [
@@ -14,5 +17,5 @@ export const Route = createFileRoute('/character/mio')({
       },
     ],
   }),
-  component: Character,
+  component: () => <Character {...Route.useLoaderData()} />,
 })

@@ -1,6 +1,10 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { readFeed } from '../features/workbench/feed'
+import { ScopeReport } from '../features/workbench/scope-report'
+import { MediaGallery } from '../features/workbench/media-gallery'
+import { ResearchHistory } from '../features/workbench/research-history'
+import { WorldInventory } from '../features/workbench/world-inventory'
 import css from '../features/workbench/board.css?url'
 
 export const Route = createFileRoute('/workbench')({
@@ -40,36 +44,12 @@ const flows = {
     ],
   ],
   media: [
-    [
-      '图片任务',
-      '数据服务 · 规划',
-      '数据服务按缺图、设定版本变化或上次审核结果创建任务，持有用途、预算和发布策略。',
-    ],
-    [
-      '执行与恢复',
-      'Pi Durable Harness',
-      '数据服务调用 Pi；Harness 负责检查点、工具调用和失败恢复。图片任务接线待开发。',
-    ],
-    [
-      '候选生成',
-      '生成工具',
-      '外部图片服务已通过独立 CLI 联调；自动任务接入待开发。',
-    ],
-    [
-      '裁切与规则',
-      '数据服务工具',
-      '计划按真实手机用途生成派生图，执行文件、内容和角色一致性规则。',
-    ],
-    [
-      '疑点复核',
-      'Jev 视觉判断',
-      '仅在规则无法确定时调用。现有作品判同已接入 Jev，图片复核仍待接入。',
-    ],
-    [
-      '自动处置',
-      '发布 / 返工 / 回退',
-      '通过后由数据服务切换版本；先重裁再重生成。预算耗尽或证据不足时保留上一合格图。',
-    ],
+    ['场景选题', '数据服务', '每个作品批次选三个场景，每个场景三个候选，任务与修订记录保存在 PostgreSQL。'],
+    ['任务执行', 'Pi Durable', '按候选、版本和操作建立持久任务，重复轮询复用同一次执行。'],
+    ['参考图生成', '图片模型', '基于现有角色立绘执行图像编辑，保存原图和参考指纹。'],
+    ['手机裁切', '角色首屏', '按手机角色页的尺寸、渐变和文字位置生成预览。'],
+    ['自动验图', '视觉模型', '对照参考、原图和手机预览检查人物、场景、手部与构图。'],
+    ['返工与复验', '数据服务', '裁切问题先重裁，原图问题重绘一次；仍未通过则保留试稿及原因。'],
   ],
 } as const
 const states = {
@@ -152,6 +132,14 @@ function Board() {
         </div>
         <code>UTC　{time(feed.checked)}</code>
       </div>
+      {[...new Set(feed.media?.filter(c=>c.art).map(c=>c.batch))].map(batch=><MediaGallery key={batch} items={feed.media} batch={batch} />)}
+      <MediaGallery items={feed.media} batch="bebop-e3" />
+      <MediaGallery items={feed.media} batch="bebop-portrait" />
+      <MediaGallery items={feed.media} batch="bebop" />
+      <MediaGallery items={feed.media} batch="mio" />
+      <ResearchHistory runs={feed.research} />
+      <ScopeReport scopes={feed.scopes} />
+      <WorldInventory worlds={feed.worlds} scopes={feed.scopes} />
       <div className="wb-grid">
         <aside>
           <h2>运行摘要</h2>
@@ -209,7 +197,7 @@ function Board() {
           <p className="wb-caption">
             {flow === 'sync'
               ? '已接入同步与质检记录 · 节点可查看职责'
-              : '规划视图 · 尚无自动图片任务遥测'}
+              : '当前候选和实际验图结果见上方场景试稿'}
           </p>
           <div className="wb-flow">
             <div>{tile(0)}</div>

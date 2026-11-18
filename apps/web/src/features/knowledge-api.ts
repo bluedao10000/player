@@ -12,6 +12,8 @@ export const readWork = createServerFn({ method: 'GET' })
       const {
         id,
         canonical_title,
+        world_href,
+        cover_image,
         type,
         season_year,
         status,
@@ -23,6 +25,8 @@ export const readWork = createServerFn({ method: 'GET' })
       return {
         id,
         canonical_title,
+        world_href,
+        cover_image,
         type,
         season_year,
         status,
