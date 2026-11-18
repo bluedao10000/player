@@ -1,34 +1,24 @@
-%% 潮汐邮局 · 知识库构建整体流程 · 2026-11-18
-flowchart LR
-  sync["同步与清洗<br/>按源探测 · 解析 · 归一化暂存<br/>〔已实现〕"]:::live
-  clean["基础档案<br/>作品 UUID · 别名 · 来源版本<br/>〔已实现〕"]:::live
-  sample["已有关联知识<br/>原创清单 / 站内清单与外部证据<br/>〔已实现〕"]:::live
-  reader["已发布样板可读<br/>Gin → H5 · 章节与场景互链<br/>〔已实现〕"]:::live
-  observe["定时质检与运行观测<br/>检查入库质量 · 查看同步结果<br/>〔已实现〕"]:::live
-  select["运营选定构建范围<br/>指定版本、集章范围、必需图位<br/>〔待开发〕"]:::planned
-  research["AI 联网研究与取证<br/>Pi 查权威资料 · 对齐清洗事实<br/>〔待开发〕"]:::planned
-  draft["编写四类候选内容<br/>人物 · 剧情 · 世界观 · 时间线<br/>〔待开发〕"]:::planned
-  pics["创建图位任务<br/>主视觉 · 角色立绘 · 场景图<br/>〔待开发〕"]:::planned
-  checkpic["自动验图与优化<br/>来源 · 一致性 · 剧情 · 手机裁切<br/>〔待开发〕"]:::planned
-  gate["五维通过 → 知识已验收<br/>覆盖范围 · 叙事质量 · 图位通过数<br/>〔待开发〕"]:::planned
-  fix["待补证或返工<br/>补材料／重编／重裁后复验<br/>〔待开发〕"]:::planned
-  publish["正式发布指定范围<br/>按范围切换版本 · 新集增量重验<br/>〔待开发〕"]:::planned
-  sync --> clean
-  clean --> sample
-  sample --> reader
-  sync --> observe
-  clean -.->|选中| select
-  select -.-> research
-  research -.-> draft
-  select -.-> pics
-  pics -.-> checkpic
-  checkpic -.-> gate
-  draft -.-> gate
-  gate -.->|通过| publish
-  gate -.->|待补证或返工| fix
-  fix -.->|复验| gate
-  classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
-  classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
-  classDef external fill:#f2eadb,stroke:#aa8954,color:#765929
-  classDef area fill:#e5e9e6,stroke:#7a8b89,color:#425557
-  classDef brand fill:#27454c,stroke:#27454c,color:#ffffff
+flowchart TB
+    probe["定时探测上游版本"] -->|有变化| stage["下载校验 · 解析暂存"]
+    probe -->|没变化| skip["记录跳过"]
+    stage -->|完整批次| works["归并到已清洗作品库"]
+    works -->|选定发行版本与集数| plan["登记分集与稳定链接"]
+    plan --> proof["Pi 联网取证 · 逐段校对"]
+    proof -->|来源和引用有效| media["出图 · 手机裁切 · 自动验图"]
+    media -->|裁切或画面有缺陷| media
+    media --> gate{"五维验收"}
+    gate -->|缺项| gap["工作台显示缺项"]
+    gap -->|可重写的正文缺项| proof
+    gate -->|通过| freeze["冻结分集、锚点与选图"]
+    freeze -->|前置集已发布| h5["H5 连续完成范围"]
+%% probe | 每个来源按自己的间隔检查。失败原因与跳过结果写入同步运行表。 | apps/api/internal/knowledge/sync.go
+%% skip | 相同远程版本保留上次发布投影。 | apps/api/internal/knowledge/sync.go
+%% stage | 校验下载与格式，暂存完整批次后才进入归并事务。 | apps/api/internal/knowledge/parse.go
+%% works | 普通作品停在可查询的 canonical 档案。 | apps/api/internal/knowledge/merge.sql
+%% plan | 挂载配置绑定版本、集号、来源和美术任务。 | apps/api/internal/knowledge/episode_plan.go
+%% proof | 收集来源快照，按句定位事件，保留校对和退回记录。 | apps/agent/src/research.ts
+%% media | 记录参考指纹、原图、手机预览和两轮内的处置结果。 | apps/api/internal/knowledge/media.go
+%% gate | 按人物、剧情、世界观、时间线与图片核验。 | apps/api/internal/knowledge/episode_plan.go
+%% gap | 可以查看每个缺项、证据及历史记录；超出自动重试上限时保留失败。 | apps/web/src/features/workbench/scope-report.tsx
+%% freeze | 保存本次正文、阅读锚点及入选图片的内容地址。 | apps/api/internal/knowledge/acceptance.go
+%% h5 | 读模型聚合相同作品版本的连续公开范围。 | apps/api/internal/knowledge/sql/026.sql

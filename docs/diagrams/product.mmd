@@ -1,32 +1,21 @@
-%% 潮汐邮局 · 产品架构图 · 2026-11-18
 flowchart TB
-  site["作品世界与角色故事 H5<br/>发现作品 → 读懂故事 → 与角色互动<br/>〔产品〕"]:::brand
-  read["读者体验<br/>阅读与私人剧情<br/>〔能力领域〕"]:::area
-  read1["作品世界与场景阅读<br/>首页 · 角色 → 章节 → 场景回跳<br/>〔已实现〕"]:::live
-  read2["正式世界与互动<br/>正式阅读 · 深度角色扮演 · iOS<br/>〔待开发〕"]:::planned
-  ops["数据工作台<br/>观察与选题<br/>〔能力领域〕"]:::area
-  ops1["作品状态与运行记录<br/>知识库存 · 同步 · 质检<br/>〔已实现〕"]:::live
-  ops2["选题范围与知识验收<br/>范围 · 必需项 · 更新差距<br/>〔待开发〕"]:::planned
-  world["知识库构建<br/>资料层与可读内容<br/>〔能力领域〕"]:::area
-  world1["基础档案与关联知识<br/>PostgreSQL · 来源与版本<br/>〔已实现〕"]:::live
-  world2["AI 研究与五维验收<br/>人物 · 剧情 · 世界观 · 时间线<br/>〔待开发〕"]:::planned
-  media["图片资产<br/>作品、角色与场景图位<br/>〔能力领域〕"]:::area
-  media1["已有插画与生成试稿<br/>图片引用 · 独立生成 CLI<br/>〔已实现〕"]:::live
-  media2["图位验收与发布<br/>参考图 · 重生成 · 手机裁切<br/>〔待开发〕"]:::planned
-  site --- read
-  read --- read1
-  read -.- read2
-  site --- ops
-  ops --- ops1
-  ops -.- ops2
-  site --- world
-  world --- world1
-  world -.- world2
-  site --- media
-  media --- media1
-  media -.- media2
-  classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
-  classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
-  classDef external fill:#f2eadb,stroke:#aa8954,color:#765929
-  classDef area fill:#e5e9e6,stroke:#7a8b89,color:#425557
-  classDef brand fill:#27454c,stroke:#27454c,color:#ffffff
+    discovery["首页发现 · 作品搜索"] -->|选择版本| world["作品世界 · 可读范围"]
+    world --> cast["角色与出场章节"]
+    cast --> chapter["章节正文与插画"]
+    chapter --> scene["场景与在场人物"]
+    scene -->|回到原段| chapter
+    chapter -->|原创故事| play["预设剧情 · 本地书架"]
+    play -.-> future["待开发 · 自由角色扮演与 iOS 壳"]
+    catalog["作品知识库"] -->|提供目录与定稿| world
+    desk["数据工作台"] -->|观察五维验收| catalog
+    classDef pending fill:#f4eaf2,stroke:#926581,stroke-dasharray:5 4
+    class future pending
+%% discovery | 从首页作品栏或别名搜索确定要读的作品版本。 | apps/web/src/features/post/editorial.tsx
+%% world | 读取作品关系图和当前连续完成的集数。 | apps/api/internal/knowledge/world_api.go
+%% cast | 角色页按作品版本列出人物实际出场的章节。 | apps/web/src/features/worlds/pages.tsx
+%% chapter | 定稿正文保存章节 slug、段落与插图的稳定锚点。 | apps/api/internal/knowledge/acceptance.go
+%% scene | 场景携带 return_to.href，可以回到故事中对应的段落。 | apps/api/internal/knowledge/world_api.go
+%% play | 原创故事有预设行动，进度与收藏保存在浏览器。 | apps/web/src/features/post/roleplay-controls.tsx
+%% future | 自由输入与服务器多轮角色扮演、原生壳仍待实现。 | docs/产品架构.md
+%% catalog | 目录、已清洗身份、作品世界和范围定稿在 PostgreSQL 中分别建模。 | apps/api/internal/knowledge/sql
+%% desk | 工作台通过 Gin 读取来源、取证、试稿与自动验收记录。 | apps/web/src/features/workbench/feed.ts

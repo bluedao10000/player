@@ -1,31 +1,29 @@
-%% 潮汐邮局 · 部署架构图 · 2026-11-18
-flowchart LR
-  entry["HTTPS 入口<br/>H5、Pi 与管理员访问<br/>〔待部署〕"]:::cloud
-  aliapi["阿里云 API 服务器<br/>业务查询 · 运行观测<br/>〔待部署〕"]:::cloud
-  db["PostgreSQL 主库<br/>建议靠近 API 部署<br/>〔待部署〕"]:::cloud
-  tasks["任务记录与运行结果<br/>同一 PostgreSQL 内的表<br/>〔待开发〕"]:::planned
-  upstream["上游与模型服务<br/>GitHub · npm · TypeSafe<br/>〔外部来源〕"]:::external
-  txclean["腾讯云数据服务器<br/>定时治理 · 图片任务归属<br/>〔待部署〕"]:::cloud
-  archive["清洗侧快照存储<br/>摘要寻址 · 版本回放<br/>〔待部署〕"]:::cloud
-  subgraph ali[阿里云]
-    entry
-    aliapi
-    db
-    tasks
-  end
-  subgraph tencent[腾讯云]
-    txclean
-    archive
-  end
-  entry -.->|HTTPS| aliapi
-  aliapi -.->|内网 SQL| db
-  db -.-|同库| tasks
-  txclean -.->|跨云私网 + TLS| db
-  txclean -.->|HTTPS 出站| upstream
-  txclean -.->|写入 / 回放| archive
-  classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
-  classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
-  classDef external fill:#f2eadb,stroke:#aa8954,color:#765929
-  classDef area fill:#e5e9e6,stroke:#7a8b89,color:#425557
-  classDef brand fill:#27454c,stroke:#27454c,color:#ffffff
-  classDef cloud fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
+flowchart TB
+    subgraph local["已实现 · 单机开发环境"]
+      browser["宿主机浏览器"] -->|4310| web["H5 SSR"]
+      web -->|127.0.0.1:4321 → 4311| api["Compose · api"]
+      api -->|5432| pg[("postgres")]
+      sync["Compose · sync"] -->|5432| pg
+      sync -->|内部 4312| pi["research-agent"]
+      api --- vols["本地归档与媒体卷"]
+      sync --- vols
+      pi --- vols
+    end
+    subgraph cloud["待部署 · 双云目标"]
+      ali["阿里云 · H5 / Gin"] -.-> cloudpg[("建议阿里云 PostgreSQL")]
+      tencent["腾讯云 · 数据服务 / Pi"] -.->|私网 TLS| cloudpg
+      tencent -.->|写入与分发| assets["共享或复制已发布资产"]
+      ali -.->|按摘要读取| assets
+    end
+    local ~~~ cloud
+%% browser | 阅读和工作台共用本地 H5，端口可配置。 | apps/web/vite.config.ts
+%% web | H5 在宿主机运行，通过宿主机回环映射访问 Gin。 | packages/shared/knowledge.ts
+%% api | 对宿主机只绑定 127.0.0.1。内部服务名为 api。 | compose.yaml
+%% pg | 容器内为 5432，本机管理端口默认为 5434。 | compose.yaml
+%% sync | 常驻 worker 读取分集清单，出站取来源并调用内部 Agent。 | compose.yaml
+%% pi | 4312 只在 Compose 网络内使用；状态卷、媒体卷分别持久化。 | compose.yaml
+%% vols | Gin 和 sync 读取媒体；Pi 写媒体。sync 保存快照与场景衍生图。 | compose.yaml
+%% ali | 阿里云承载在线 API；H5 与主库靠近读侧是建议布局。 | docs/部署架构.md
+%% cloudpg | 跨云前需独立凭据、证书校验及可恢复备份。 | docs/部署架构.md
+%% tencent | 数据服务放腾讯云，Pi 同地是目标方案；云主机尚未配置。 | docs/部署架构.md
+%% assets | 本机卷须替换为跨机可读资产，发布前验证摘要与可达性。 | docs/部署架构.md
