@@ -1,0 +1,8 @@
+flowchart LR
+    reader["搜索访客 / iOS 读者"] -->|"阅读、进入剧情"| web["TanStack Start · H5"]
+    web -->|"内容快照 / 会话命令"| api["Gin · 业务状态"]
+    api -->|"读写发布版本与回合"| appdb[("业务 SQLite")]
+    api -->|"持久任务"| agent["Pi Durable · 执行与恢复"]
+    agent -->|"草稿 / 状态补丁"| api
+    agent -->|"检查点"| agentdb[("运行 SQLite")]
+    agent -->|"生成剧情"| model["OpenAI 兼容端点"]

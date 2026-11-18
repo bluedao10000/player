@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>剧情内容站 · 产品架构</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f4ed;color:#212f31;font:16px/1.65 "Instrument Sans","PingFang SC",sans-serif}main{max-width:1050px;margin:auto;padding:clamp(18px,5vw,64px)}h1,h2,p{margin:0}h1{font:600 clamp(32px,5vw,56px)/1.35 "STIX Two Text","Songti SC",serif}header p{max-width:40em;margin:12px 0 28px;color:#405456}nav{display:flex;gap:10px;flex-wrap:wrap}button{font:inherit;color:inherit;cursor:pointer;background:#fff;border:1px solid #a9b8b3;border-radius:8px;padding:8px 17px}button[aria-pressed=true]{background:#164f49;border-color:#164f49;color:white}button:focus-visible,[role=button]:focus-visible{outline:3px solid #af572e;outline-offset:3px}.sheet{background:white;border:1px solid #d4dad4;border-radius:14px;overflow:auto;margin:18px 0}.sheet svg{min-width:690px;width:100%;display:block}.line{stroke:#758c85;fill:none;stroke-width:1.7;marker-end:url(#arrow)}svg text{text-anchor:middle;font-size:14px;fill:#344d49}.box{cursor:pointer}.box rect{fill:#edf4ef;stroke:#91aba0}.box text{font-size:16px;font-weight:600}.box[aria-pressed=true] rect{fill:#164f49}.box[aria-pressed=true] text{fill:white}.flow{display:flex;gap:9px;flex-wrap:wrap;padding:24px}.flow button{border-radius:5px}.detail{border-left:4px solid #bb6a3c;padding:0 18px;max-width:760px}.detail h2{font-size:22px}.detail p{margin:5px 0}.ref{font-size:14px;color:#536660}footer{margin-top:34px;color:#526760;font-size:14px}a{color:#165c53} [hidden]{display:none!important}
+</style>
+<main>
+<header><h1>剧情内容站的产品架构</h1><p>读者从一个角色或一篇故事进入世界。私人剧情中的一幕，经过选择、摘编和审核，也能成为下一位读者的入口。</p></header>
+<nav aria-label="视图"><button id="overview" aria-pressed="true">系统架构</button><button id="journey" aria-pressed="false">读者与编辑流程</button></nav>
+<div class="sheet" id="diagram">
+<svg viewBox="0 0 920 355" aria-label="目标服务架构，点击节点查看职责">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#758c85"/></marker></defs>
+<path class="line" d="M137 105H208"/><text x="173" y="93">访问</text>
+<path class="line" d="M368 105H445"/><text x="406" y="93">读 / 写</text>
+<path class="line" d="M600 90H698"/><text x="649" y="77">投递任务</text>
+<path class="line" d="M698 122H600"/><text x="649" y="146">提交产物</text>
+<path class="line" d="M521 135V237"/><text x="556" y="191">业务事务</text>
+<path class="line" d="M752 135V237"/><text x="719" y="191">检查点</text>
+<path class="line" d="M832 135V164H866V237"/><text x="854" y="192">生成</text>
+<g id="nodes"></g>
+</svg></div>
+<div class="sheet flow" id="steps" aria-label="剧情流程步骤" hidden></div>
+<section class="detail" aria-live="polite"><h2 id="title"></h2><p id="summary"></p><p class="ref" id="source"></p></section>
+<footer>2026-11-18 · 本图为首版目标设计，已实现范围见节点说明。 <a href="产品架构.md">完整产品设计</a></footer>
+</main>
+<script>
+const nodes = [
+  ['读者', 23,75,114,'匿名读者沿可抓取链接阅读。进入具体场景时建立游客身份，每条私人时间线绑定所有者。','规划 · H5 优先，预留 iOS Universal Links'],
+  ['TanStack Start',208,75,160,'服务端输出公开正文与 head，附属推荐使用流式边界。角色页与故事页分别提供适合该情境的互动入口。','阶段 1 已有 SSR 骨架 · apps/web/src/routes/__root.tsx'],
+  ['Gin API',445,75,155,'读取当前发布版本，管理角色卡与私有会话。经权限、版本和幂等检查后，提交发布变更或最终回合。','阶段 1 已连接业务库 · apps/api/main.go；业务接口按阶段 3 至 7 实施'],
+  ['Pi Durable',698,75,170,'按角色卡和剧情起点运行生成任务，写入检查点，将候选草稿或状态补丁交给 Gin。','阶段 1 已打开 Harness 并调用 resume · apps/agent/src/server.ts'],
+  ['业务 SQLite',449,237,145,'保存发布指针、公开内容修订、用户、已确认回合与 StoryState，未来可独立迁移至 PostgreSQL。','阶段 1 已连接 · data/app.sqlite；领域表从阶段 3 起建立'],
+  ['运行 SQLite',675,237,125,'Pi 存放执行状态。重启恢复同一数据库，任务提交由 Gin 验证并去重。','阶段 1 已打开 Pi 存储 · data/agent.sqlite；回合恢复在阶段 7 验证'],
+  ['模型端点',811,237,100,'Agent 通过 OpenAI 兼容接口生成剧情；embedding 独立配置。阅读请求只取已发布正文。','阶段 5 接入并验证真实模型']
+]
+const steps = [
+  ['搜索落地','读者在角色「阿澪」的页面认识夜班邮差，通过出场故事链接打开《末班渡船》。','公开 SSR · 阶段 2、4、8'],
+  ['选择场景','文末的“从码头这一幕开始”携带角色与场景 ID。Gin 创建私有会话并固定起点版本。','业务库 · 阶段 7'],
+  ['推进行动','读者拆开退信。Agent 让阿澪认出旧邮戳，并提出寻找灯塔看守人的行动选项。Gin 保存已确认的状态与回复。','运行库 + 业务库 · 阶段 7'],
+  ['摘编送审','读者选择愿意分享的一幕，确认移除个人信息后的摘编。编辑核对来源和正文，私有会话继续由读者访问。','候选修订 · 阶段 6、7'],
+  ['发布新篇','编辑发布独立片段。匿名读者可从场景 URL 阅读正文，并沿角色内链回到阿澪的故事。','公开快照 + sitemap · 阶段 6、8']
+]
+const byId = id => document.getElementById(id)
+function showDetails(elements, index, heading, body, ref) {
+  elements.forEach((el,i)=>el.setAttribute('aria-pressed',String(i===index)))
+  byId('title').textContent=heading
+  byId('summary').textContent=body
+  byId('source').textContent=ref
+}
+const boxes=[]
+for (const [i,[name,x,y,width,body,ref]] of nodes.entries()) {
+  const svgTag = tag => document.createElementNS('http://www.w3.org/2000/svg',tag)
+  const group=svgTag('g'), rect=svgTag('rect'), label=svgTag('text')
+  group.setAttribute('class','box');group.setAttribute('role','button');group.setAttribute('tabindex','0')
+  group.setAttribute('aria-label',name)
+  Object.entries({x,y,width,height:60,rx:10}).forEach(([k,v])=>rect.setAttribute(k,v))
+  label.setAttribute('x',x+width/2);label.setAttribute('y',y+36);label.textContent=name
+  group.append(rect,label);byId('nodes').append(group);boxes.push(group)
+  group.onclick=()=>showDetails(boxes,i,name,body,ref)
+  group.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();group.onclick()}}
+}
+const buttons=steps.map(([name,body,ref],i)=>{
+  const btn=document.createElement('button')
+  btn.textContent=name
+  btn.onclick=()=>showDetails(buttons,i,name,body,ref)
+  byId('steps').append(btn)
+  return btn
+})
+function view(flow){
+  byId('steps').hidden=!flow;byId('diagram').hidden=flow
+  byId('overview').setAttribute('aria-pressed',String(!flow));byId('journey').setAttribute('aria-pressed',String(flow))
+  if(flow) buttons[0].click();else boxes[1].onclick()
+}
+byId('overview').onclick=()=>view(false);byId('journey').onclick=()=>view(true);view(false)
+</script>
+</html>

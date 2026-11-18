@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.tanstack/
+.DS_Store
+.env
+.env.*
+!.env.example
+data/*.sqlite*
+apps/api/api

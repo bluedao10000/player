@@ -1,0 +1,45 @@
+:root {
+  color-scheme: dark;
+  --page: #0d0e16;
+  --surface: #161823;
+  --raised: #20212f;
+  --text: #f2f0f8;
+  --muted: #bbb9ca;
+  --dim: #9b9bad;
+  --accent: #d2c1ff;
+  --link: #c9bfed;
+  --cyan: #accfd8;
+  --line: rgba(208, 208, 240, 0.14);
+  --glass: rgba(23, 24, 36, 0.78);
+  --font:
+    Inter, Geist, -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
+  --display: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 40px;
+  --s12: 48px;
+  --s16: 64px;
+  --r-small: 10px;
+  --r-medium: 16px;
+  --r-large: 24px;
+  --r-hero: 32px;
+  --pill: 999px;
+  --blur: 18px;
+  --inset: inset 0 0 0 1px var(--line);
+  --ease: 240ms ease;
+  --slow: 420ms ease;
+  --z-nav: 20;
+  --z-progress: 25;
+  --z-skip: 30;
+  --touch: 44px;
+  --gutter: 16px;
+  --max-width: 1280px;
+  --body-size: 16px;
+  --section-title: clamp(23px, 2.3vw, 32px);
+}
