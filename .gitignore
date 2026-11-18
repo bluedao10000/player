@@ -7,3 +7,4 @@ dist/
 !.env.example
 data/*.sqlite*
 apps/api/api
+data/knowledge-archive/

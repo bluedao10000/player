@@ -41,6 +41,7 @@ func queryJSON(c *gin.Context, db *pgxpool.Pool, sql string, args ...any) {
 	c.Data(http.StatusOK, "application/json; charset=utf-8", result)
 }
 func Routes(r *gin.Engine, db *pgxpool.Pool) {
+	adminRoutes(r, db)
 	g := r.Group("/api/v1/knowledge")
 	g.GET("/works", func(c *gin.Context) {
 		n := limit(c)
@@ -55,7 +56,7 @@ func Routes(r *gin.Engine, db *pgxpool.Pool) {
 		}
 		queryJSON(c, db, `WITH page AS MATERIALIZED (
    SELECT w.id,w.canonical_title,w.original_title,w.type,w.episodes,w.status,w.season_year
-   FROM works w WHERE active AND ($1='' OR EXISTS(SELECT FROM work_titles t WHERE t.work_id=w.id AND strpos(lower(t.title),lower($1))>0))
+   FROM works w WHERE active AND ($1='' OR strpos(lower(w.canonical_title),lower($1))>0 OR strpos(lower(w.original_title),lower($1))>0 OR EXISTS(SELECT FROM work_titles t WHERE t.work_id=w.id AND strpos(lower(t.title),lower($1))>0))
    AND (nullif($2,'') IS NULL OR w.id>nullif($2,'')::uuid) ORDER BY w.id LIMIT $3+1
   ), visible AS(SELECT * FROM page ORDER BY id LIMIT $3)
   SELECT jsonb_build_object('items',coalesce(jsonb_agg(to_jsonb(visible) ORDER BY id),'[]'),
@@ -82,6 +83,14 @@ func Routes(r *gin.Engine, db *pgxpool.Pool) {
 	g.GET("/sources", func(c *gin.Context) {
 		queryJSON(c, db, `SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM
   (SELECT id,name,type,repository_url,enabled,sync_interval::text,last_checked_at,last_synced_at,current_version FROM knowledge_sources) x`)
+	})
+	g.GET("/quality-runs", func(c *gin.Context) {
+		n := limit(c)
+		if n == 0 {
+			return
+		}
+		queryJSON(c, db, `SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY started_at DESC),'[]') FROM
+ (SELECT id,started_at,finished_at,status,report FROM knowledge_quality_runs ORDER BY started_at DESC LIMIT $1)x`, n)
 	})
 	g.GET("/sync-runs", func(c *gin.Context) {
 		n := limit(c)

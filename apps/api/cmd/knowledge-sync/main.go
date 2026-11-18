@@ -37,6 +37,9 @@ func main() {
 		if *once || ctx.Err() != nil {
 			return
 		}
+		if err = knowledge.QualityIfDue(ctx, db); err != nil && ctx.Err() == nil {
+			log.Printf("scheduled quality: %v", err)
+		}
 		select {
 		case <-ctx.Done():
 			return

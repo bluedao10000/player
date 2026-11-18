@@ -46,10 +46,10 @@ AOD JSON Schema 取自 cedya77 仓库提交 `d96517ebea2975b916c36e2c4c24c6633ec
 ## 作品身份与合并
 
 - 每个来源记录有独立身份。AOD 优先选取可信 provider 键；Bangumi 包含共用作品 ID 的配音及发行条目，因此记录键组合 provider、语言、类型、首播时刻。缺少资讯站 ID 时使用标题作为回退。重复键使整批失败，避免静默覆盖。
-- 同源已有记录优先保留 UUID。跨源只有 provider + external_id 唯一定位且共有 provider 无矛盾时才自动匹配。没有可靠映射的记录获得独立 UUID。多个候选、互相冲突的 provider ID，或仅标题与年份一致的条目进入候选表。审核依据可以从当前记录的 raw、norm 和来源版本追溯。本次没有引入自动模糊合并或审核写接口。
+- 同源已有记录优先保留 UUID。跨源只有 provider + external_id 唯一定位且共有 provider 无矛盾时才自动匹配。没有可靠映射的记录获得独立 UUID。多个候选、互相冲突的 provider ID，或仅标题与年份一致的条目进入候选表。审核依据可以从当前记录的 raw、norm 和来源版本追溯。治理管理员可通过下述接口作出审核决定。
 - AOD 优先提供展示标题、集数、状态和季节；Bangumi 提供原名、译名和日期。canonical 日期取上游时间戳的 UTC 日期，原始播出时刻仍保留。缺少剧情简介时 synopsis 为 NULL。标题、标签、来源、制作方等按所有有效贡献去重。
 - 删除是源级撤回。一条记录从快照消失后标为 inactive，仍有其他来源的作品继续提供服务，仅撤去已消失的贡献。所有来源撤回后保留 UUID 并退出公开查询。相关作品 URL 暂无本地目标时保留 URL；后续出现目标后，关系视图可返回其 UUID。
-- `knowledge_source_versions` 保留成功版本、SHA-256、metadata 和许可；`knowledge_source_records` 保存每个来源键最近一次的 raw 与 norm。版本日志不是历史全量快照备份。按时用 `pg_dump` 备份可恢复 PostgreSQL 全库。
+- `knowledge_source_versions` 保留成功版本、SHA-256、metadata 和许可；`knowledge_source_records` 保存每个来源键最近一次的 raw 与 norm。治理迁移后的版本另有按 SHA-256 寻址的上游原文件。备份时同时保存 PostgreSQL 和归档卷。
 
 ## 接口
 
@@ -83,3 +83,88 @@ npm run check
 ```
 
 PostgreSQL 集成测试用 `KNOWLEDGE_TEST_DATABASE_URL` 指定可创建 schema 的测试数据库，运行 `go -C apps/api test ./internal/knowledge -count=1 -v`。每次测试建立独立 schema 并回收。覆盖双源明确匹配、同名候选、provider 冲突、重复探测、损坏下载、已部分 staging 后解析失败、事务提交前拒绝、重试、批量减少保护、源撤回、遗留批次回收及同源锁竞争。默认测试路径始终运行 AOD schema/parser 测试。
+
+## Phase 1 数据治理
+
+**审计。** 迁移前的同步器已经有下载、Schema 校验、Normalize、staging、确定性身份匹配和事务发布。源记录只保存最近值，来源优先级写在合并 SQL 中，候选只读，缺少评分、字段覆盖和人工操作历史。H5 的作品检索页消费 Gin；原创页面的八张 WebP 由静态路径引用，数据库未登记图片与实体的关系、授权、版本或处理历史。后续媒体阶段再接入这些图片。
+
+**版本和恢复。** 新增迁移 003。成功版本保存归档键、适配器类型和归档内文件名。同步器在提交前把已校验的原文件写入持久卷，原子替换同摘要文件；同一内容只占一份。PostgreSQL 保存版本引用和最近原始记录。事务失败可能留下无引用的文件，清理时需先核对版本引用和正在运行的任务。升级后首次探测当前版本会补取一次归档。升级前已经消失且未备份的发布物无法还原。历史重建按当前解析器重新归一化，并将该来源的当前投影切换到所选版本，下一次正常同步仍可推进至最新版本。
+
+**人工决定。** 字段投影先取人工值，再按字段来源优先级、来源默认优先级取有效值，缺少年份时可从开始日期推导。高值优先；字段优先级表使用 norm 字段名。API 使用 works 字段名。撤销覆盖后重新计算当前值。变更、审核和同步共用事务锁，操作人、前后值、原因、时间和入口写入操作日志。原始数据接口只读。
+
+| 治理表 | 用途 |
+| --- | --- |
+| knowledge_field_priorities、work_field_overrides | 来源优先级与独立人工值 |
+| knowledge_identity_pins、knowledge_match_rejections | 保存已确认的归属及拒绝决定，供后续同步使用 |
+| knowledge_quality_rules、knowledge_quality_issues、knowledge_quality_scores | 规则开关、按作品和规则聚合的异常、九项评分明细 |
+| knowledge_curation_actions | 字段和身份操作审计 |
+
+### 管理与命令行
+
+Compose 重建 api 和 sync 后可使用下列命令。原文件位于命名卷 knowledge-archive。本机可用 KNOWLEDGE_ARCHIVE_DIR 指定绝对路径。数据库 CLI 使用数据库凭据；HTTP 管理接口要求配置单一管理员身份 KNOWLEDGE_ADMIN_OPERATOR 和至少 32 字节的 KNOWLEDGE_ADMIN_TOKEN，通过 Authorization Bearer 提交。给不同审核者分别分配身份和凭据后再开展多人审核。
+
+```sh
+docker compose exec api knowledge quality --source all
+docker compose exec api knowledge quality --work-id "$WORK_UUID"
+docker compose exec api knowledge review list
+docker compose exec api knowledge review approve "$CANDIDATE_ID" "已对照两个来源的作品 ID 和发行记录"
+docker compose exec api knowledge diff --source anime-offline-database --from "$OLD_VERSION" --to "$NEW_VERSION" --record "$RECORD_KEY"
+docker compose exec api knowledge project --source anime-offline-database
+docker compose exec api knowledge rebuild --source anime-offline-database --version "$VERSION"
+```
+
+project 从当前 source records 重算作品；rebuild 从已归档的上游文件重跑解析、匹配及投影，不指定版本时使用当前版本。diff 按原始记录键输出两版发生变化的顶层字段和前后值。质量扫描可按来源或单部作品执行，重复扫描将已消失的问题标为 resolved。检查和评分只写治理表。常驻 knowledge-sync 每轮检查质检是否到期，有活动作品时自动扫描，成功后六小时再执行，失败十五分钟后再试。专用数据库会话锁防止多个 Worker 重复扫描，重启会标记中断批次。单次 -once 导入沿用原有语义。GET /api/v1/knowledge/quality-runs 返回运行状态及报告，/workbench 通过只读 API 观测。
+
+管理 API 前缀为 `/api/v1/admin/knowledge`。
+
+| 请求 | 用途 |
+| --- | --- |
+| GET /versions?source=来源名 | 版本、SHA-256、归档可用性 |
+| POST /quality?source=all 或 ?work_id=UUID | 执行扫描并返回范围统计 |
+| GET /works/:id/issues、GET /works/:id/history | 评分分项、问题与操作历史 |
+| GET /matches、GET /matches/:id | 待审核候选、两侧原始字段和差异 |
+| POST /actions | 显式提交审核，成功返回 204 |
+
+actions 的 JSON 必须提供 action 和 reason。override 接收 work_id、field、value；undo 接收 work_id、field，移除该字段的人工覆盖。approve 把单条记录归入候选作品；merge 把该作品所有来源记录归入目标；reject 排除该配对。三者使用 candidate_id。split 按 record_id 拆到新 UUID，也可用 work_id 指定该记录在合并历史中的旧 UUID。rematch 按 record_id 解除人工匹配约束并重建候选供复核。无贡献的 UUID 保留，退出活动作品查询。字段修正和身份操作完成后重新扫描相应作品，可查看最新分数。
+
+### 数据质量报告
+
+2026-11-18 在开发库的隔离副本上扫描 39,033 部活动作品，平均 66.38 分。每个数字是触发对应规则的作品数，同一作品可以计入多项。
+
+| 规则 | 作品数 |
+| --- | ---: |
+| 同一来源记录中同语种别名重复 | 7,542 |
+| 缺少封面来源线索 | 581 |
+| 多部作品共用 provider ID | 425 |
+| 同一作品的 provider ID 冲突 | 286 |
+| 标题空白需规范化 | 5 |
+
+本次其余规则为零，覆盖必填类型、空标题、无效来源 URL、语言标签、日期顺序、枚举值、未解析关联和异常集数。解析器此前拒收的记录不在本报告内。检查项可作为复核线索，多个发行条目共用同一个外部 ID 需要查证后再处理。
+
+总分 100，标题、Provider 身份各 15 分，中文标题、原文标题、日期、类型、已批准图片、可信来源、关联完整性各 10 分。各项实际分值以 JSON 保存。当前已批准图片项统一为零；封面 URL 仅用于发现线索，不能证明图片可用或获准发布。
+
+### AI 辅助判同与原创图片试稿
+
+配置 MATCH_AI_BASE_URL、MATCH_AI_MODEL、MATCH_AI_API_KEY 后，管理员可向 `POST /api/v1/admin/knowledge/matches/{id}/assessments` 请求一次判断。数据发送至管理员选定的 OpenAI 兼容服务。请求包含双方标题、别名、来源 ID、发行时间、类型和集数。服务需要支持 chat/completions 和 JSON 输出。Jev 可改用原生 TypeSafe 接口：设置 MATCH_AI_PROVIDER=typesafe、TYPESAFE_API_KEY，TYPESAFE_MODEL 默认 jev-latest。服务端调用 POST /v1/systemone，将名称是否为别名、是否属于不同篇章作为两个 Noul 问题。程序保留完整问题、输入和返回概率，以及实际回答的模型名。初始 0.8 / 0.2 阈值尚待标注样本验证；判同还需 ID 或年份与类型佐证，冲突转人工。图片生成仍由 MEDIA_AI 配置的独立服务处理。
+
+判断有 same、different、uncertain 三种。审核时先看作品的发行形态，再核对是否续季、总集篇或重制版。每条引用必须能定位到双方的同一字段，语义解释由审核者核实。GET 同路径可查历次建议、证据原文、模型、请求人及证据是否仍然有效。同证据、同模型、同提示词版本复用已存结果。最终接受或拒绝仍走人工 actions。上线评估建议用人工双标样本分别统计误合并、漏匹配与无法判断的比例，特别检查同名重制和不同语言发行版。
+
+原创美术可先调用独立服务生成私人试稿。从 apps/api 运行下列命令，向进程提供 MEDIA_AI_BASE_URL、MEDIA_AI_MODEL、MEDIA_AI_API_KEY。生成服务需要支持 images/generations、指定尺寸和 b64_json PNG 响应。命令只在主动执行时请求一张图片。结果写入用户缓存目录，控制台输出本次目录。图库发现、参考图权利审批、正式资产入库和 CDN 发布仍按媒体阶段实施。
+
+```sh
+go run ./cmd/media generate-preview --brief /path/to/brief.json --size 1024x1536
+```
+
+原创角色试稿 brief 示例：
+
+```json
+{
+  "original_subject": "白帆港夜班邮差阿澪，原创角色概念试稿",
+  "visual_bible": "本次试稿设定：深色短发、青灰色眼睛、深蓝邮差制服、旧帆布邮包",
+  "scene": "雨刚停，她在渡船舷梯前辨认一封信的邮戳",
+  "composition": "竖幅半身，脸位于上半部，右手持信清晰，底部留出对白空间",
+  "art_direction": "手绘动画背景，港灯暖光与海面冷光分离，制服轮廓在夜色中可辨"
+}
+```
+
+**美术验收**分为文件检查与画面评审。试稿工具会解码整张 PNG，检查实际尺寸，重新编码，并记录提示词、模型和文件摘要。评审时把同一角色的候选与已确认的视觉设定并排，在原尺寸查看五官、手部、配饰和场景连续性，再按目标页面裁切预览，检查手机首屏的人脸、叙事动作与对白留白。难以认出角色、手部遮挡关键动作、关键主体被裁掉或疑似复刻第三方海报，均应退回并记录具体返工原因。技术检查通过只代表文件合格。正式角色图采用获准参考资产与版本化自动审核标准；不确定的视觉项提交 Jev，数据服务根据结果与预算决定重裁、重生成或结束。发布记录按具体用途留存。见[三层架构与图片优化](部署架构.md#三层架构中的图片优化)。

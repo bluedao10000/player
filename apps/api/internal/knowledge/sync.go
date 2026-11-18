@@ -18,6 +18,9 @@ import (
 //go:embed merge.sql
 var mergeSQL string
 
+//go:embed projection.sql
+var projectionSQL string
+
 // Sweep checks enabled, due sources; manual runs also probe sources not yet due.
 func Sweep(ctx context.Context, db *pgxpool.Pool, name string, manual, refresh bool) error {
 	rows, err := db.Query(ctx, "SELECT id FROM knowledge_sources WHERE enabled AND ($1='' OR name=$1) ORDER BY id", name)
@@ -33,13 +36,13 @@ func Sweep(ctx context.Context, db *pgxpool.Pool, name string, manual, refresh b
 	}
 	var failures []error
 	for _, id := range ids {
-		if err := syncSource(ctx, db, id, manual, refresh); err != nil {
+		if err := syncSource(ctx, db, id, manual, refresh, ""); err != nil {
 			failures = append(failures, fmt.Errorf("source %d: %w", id, err))
 		}
 	}
 	return errors.Join(failures...)
 }
-func syncSource(ctx context.Context, db *pgxpool.Pool, id int, manual, refresh bool) error {
+func syncSource(ctx context.Context, db *pgxpool.Pool, id int, manual, refresh bool, replay string) error {
 	// A dedicated physical connection owns the session lock until Close, including cancellation.
 	conn, err := pgx.ConnectConfig(ctx, db.Config().ConnConfig)
 	if err != nil {
@@ -54,6 +57,9 @@ func syncSource(ctx context.Context, db *pgxpool.Pool, id int, manual, refresh b
 		if manual {
 			_, err = conn.Exec(ctx, "INSERT INTO knowledge_sync_runs(source_id,status,finished_at,local_version,skipped,skip_reason) SELECT id,'success',now(),current_version,true,'already_running' FROM knowledge_sources WHERE id=$1", id)
 			log.Printf("knowledge source=%d skipped: already running", id)
+		}
+		if replay != "" && err == nil {
+			return fmt.Errorf("source is already running")
 		}
 		return err
 	}
@@ -89,7 +95,7 @@ func syncSource(ctx context.Context, db *pgxpool.Pool, id int, manual, refresh b
 	var st stats
 	_, err = conn.Exec(ctx, "UPDATE knowledge_sources SET last_checked_at=now(),updated_at=now() WHERE id=$1", id)
 	if err == nil {
-		err = importBatch(ctx, conn, s, batch, &st, refresh)
+		err = importBatch(ctx, conn, s, batch, &st, refresh, replay)
 	}
 	if err != nil {
 		recordCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -106,25 +112,43 @@ func syncSource(ctx context.Context, db *pgxpool.Pool, id int, manual, refresh b
 	log.Printf("knowledge source=%s run=%s version=%s records=%d", s.Name, batch, st.Remote, st.Read)
 	return nil
 }
-func importBatch(ctx context.Context, c *pgx.Conn, s source, batch string, st *stats, refresh bool) error {
-	a, err := check(ctx, s, st)
+func importBatch(ctx context.Context, c *pgx.Conn, s source, batch string, st *stats, refresh bool, replay string) error {
+	var a artifact
+	var err error
+	if replay != "" {
+		err = c.QueryRow(ctx, "SELECT version,checksum,parser_type,asset_name FROM knowledge_source_versions WHERE source_id=$1 AND version=coalesce(nullif($2,'@current'),$3) AND snapshot_key IS NOT NULL", s.ID, replay, s.Local).Scan(&a.Version, &a.Digest, &s.Kind, &s.Asset)
+		a.URL = "archive:" + a.Digest
+	} else {
+		a, err = check(ctx, s, st)
+	}
 	if err != nil {
 		return err
 	}
 	st.Remote = a.Version
 	st.URL = a.URL
-	if a.Version == s.Local && !refresh {
+	var archived bool
+	if err = c.QueryRow(ctx, "SELECT EXISTS(SELECT FROM knowledge_source_versions WHERE source_id=$1 AND version=$2 AND snapshot_key IS NOT NULL)", s.ID, a.Version).Scan(&archived); err != nil {
+		return err
+	}
+	if a.Version == s.Local && !refresh && archived {
 		_, err = c.Exec(ctx, `UPDATE knowledge_sync_runs SET status='success',skipped=true,skip_reason='version_unchanged',finished_at=now(),remote_version=$2,download_url=$3,http_status=$4 WHERE id=$1`, batch, a.Version, a.URL, st.HTTP)
 		return err
 	}
 	if _, err = c.Exec(ctx, "UPDATE knowledge_sync_runs SET remote_version=$2,download_url=$3,http_status=$4 WHERE id=$1", batch, a.Version, a.URL, st.HTTP); err != nil {
 		return err
 	}
-	f, err := download(ctx, a, st)
+	var f *os.File
+	if replay != "" {
+		f, err = openArchive(a.Digest, st)
+	} else {
+		f, err = download(ctx, a, st)
+	}
 	if err != nil {
 		return err
 	}
-	defer os.Remove(f.Name())
+	if replay == "" {
+		defer os.Remove(f.Name())
+	}
 	defer f.Close()
 	if _, err = c.Exec(ctx, "UPDATE knowledge_sync_runs SET content_length=$2,checksum=$3,http_status=$4 WHERE id=$1", batch, st.Length, st.Checksum, st.HTTP); err != nil {
 		return err
@@ -184,6 +208,11 @@ func importBatch(ctx context.Context, c *pgx.Conn, s source, batch string, st *s
 	if st.Read == 0 {
 		return fmt.Errorf("empty snapshot")
 	}
+	if replay == "" {
+		if err = archive(f, st.Checksum); err != nil {
+			return err
+		}
+	}
 	return pgx.BeginFunc(ctx, c, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(82045102)"); err != nil {
 			return err
@@ -193,12 +222,15 @@ func importBatch(ctx context.Context, c *pgx.Conn, s source, batch string, st *s
    $3::numeric >= (SELECT count(*) FROM knowledge_source_records WHERE source_id=$2 AND active)*(SELECT min_retained_ratio FROM knowledge_sources WHERE id=$2)`, batch, s.ID, st.Read).Scan(&valid); err != nil {
 			return err
 		}
-		if !valid {
+		if !valid && replay == "" {
 			return fmt.Errorf("snapshot count outside configured retention threshold")
 		}
 		var version int64
 		if err := tx.QueryRow(ctx, `INSERT INTO knowledge_source_versions(source_id,version,checksum,metadata,run_id) VALUES($1,$2,$3,$4,$5)
-  ON CONFLICT(source_id,version) DO UPDATE SET run_id=excluded.run_id WHERE knowledge_source_versions.checksum=excluded.checksum RETURNING id`, s.ID, a.Version, st.Checksum, meta, batch).Scan(&version); err != nil {
+  ON CONFLICT(source_id,version) DO UPDATE SET checksum=excluded.checksum WHERE knowledge_source_versions.checksum=excluded.checksum RETURNING id`, s.ID, a.Version, st.Checksum, meta, batch).Scan(&version); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, "UPDATE knowledge_source_versions SET snapshot_key=$2,parser_type=$3,asset_name=$4 WHERE id=$1", version, st.Checksum, s.Kind, s.Asset); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, "CREATE TEMP TABLE merge_context(batch uuid,source int, version bigint) ON COMMIT DROP"); err != nil {
@@ -207,7 +239,11 @@ func importBatch(ctx context.Context, c *pgx.Conn, s source, batch string, st *s
 		if _, err := tx.Exec(ctx, "INSERT INTO merge_context VALUES($1,$2,$3)", batch, s.ID, version); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, mergeSQL); err != nil {
+		projection := projectionSQL
+		if replay != "" {
+			projection = "INSERT INTO affected SELECT work_id FROM knowledge_source_records WHERE source_id=(SELECT source FROM merge_context) ON CONFLICT DO NOTHING;" + projection
+		}
+		if _, err := tx.Exec(ctx, mergeSQL+projection); err != nil {
 			return fmt.Errorf("merge: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `UPDATE knowledge_sync_runs SET finished_at=now(),status='success',remote_version=$2,download_url=$3,http_status=$4,content_length=$5,checksum=$6,

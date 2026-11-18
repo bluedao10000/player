@@ -1,0 +1,31 @@
+%% 潮汐邮局 · 部署架构图 · 2026-11-18
+flowchart LR
+  entry["HTTPS 入口<br/>H5、Pi 与管理员访问<br/>〔待部署〕"]:::cloud
+  aliapi["阿里云 API 服务器<br/>业务查询 · 运行观测<br/>〔待部署〕"]:::cloud
+  db["PostgreSQL 主库<br/>建议靠近 API 部署<br/>〔待部署〕"]:::cloud
+  tasks["任务记录与运行结果<br/>同一 PostgreSQL 内的表<br/>〔待开发〕"]:::planned
+  upstream["上游与模型服务<br/>GitHub · npm · TypeSafe<br/>〔外部来源〕"]:::external
+  txclean["腾讯云数据服务器<br/>定时治理 · 图片任务归属<br/>〔待部署〕"]:::cloud
+  archive["清洗侧快照存储<br/>摘要寻址 · 版本回放<br/>〔待部署〕"]:::cloud
+  subgraph ali[阿里云]
+    entry
+    aliapi
+    db
+    tasks
+  end
+  subgraph tencent[腾讯云]
+    txclean
+    archive
+  end
+  entry -.->|HTTPS| aliapi
+  aliapi -.->|内网 SQL| db
+  db -.-|同库| tasks
+  txclean -.->|跨云私网 + TLS| db
+  txclean -.->|HTTPS 出站| upstream
+  txclean -.->|写入 / 回放| archive
+  classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
+  classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
+  classDef external fill:#f2eadb,stroke:#aa8954,color:#765929
+  classDef area fill:#e5e9e6,stroke:#7a8b89,color:#425557
+  classDef brand fill:#27454c,stroke:#27454c,color:#ffffff
+  classDef cloud fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4

@@ -1,29 +1,56 @@
 %% 潮汐邮局 · 技术架构图 · 2026-11-18
 flowchart LR
-  sources["双源作品数据<br/>AOD (GitHub) / bangumi-data (npm)<br/>〔外部来源〕"]:::external
-  worker["Go 同步 Worker<br/>版本探测 · 校验 · Normalize<br/>〔已实现〕"]:::live
-  stagepg["PostgreSQL 来源层<br/>批次暂存 · 源记录 · 版本审计<br/>〔已实现〕"]:::live
-  works["PostgreSQL 作品层<br/>works · 关联数据 · 匹配候选<br/>〔已实现〕"]:::live
-  web["TanStack Start<br/>H5 / SSR · 知识检索 server fn<br/>〔已实现〕"]:::live
-  client["共享知识客户端<br/>@anime/shared/knowledge<br/>〔已实现〕"]:::live
-  gin["Gin 知识 API<br/>作品 · 来源 · 运行记录 · 候选<br/>〔已实现〕"]:::live
-  biz["Gin 内容与会话 API<br/>内容修订 · owner · Outbox / SSE<br/>〔待开发〕"]:::planned
-  static["站点目录与浏览器<br/>仓库保存故事 · 本机保存进度<br/>〔已实现〕"]:::live
-  pi["Pi Durable 运行时<br/>Harness.resume · 两个知识工具<br/>〔已实现〕"]:::live
-  sqlite["运行时 SQLite<br/>Pi 执行检查点<br/>〔已实现〕"]:::live
-  llm["OpenAI 兼容模型<br/>生成剧情回合与故事草稿<br/>〔待开发〕"]:::planned
-  sources -->|发布物| worker
-  worker -->|暂存与校验| stagepg
-  stagepg -->|事务归并| works
-  web -->|server fn| client
-  client -->|HTTP GET| gin
-  gin -->|查询| works
-  web -->|读取正文或本机状态| static
-  pi -->|只读工具| client
-  pi -->|检查点| sqlite
-  gin -.-|规划扩展| biz
-  biz -.->|投递命令| pi
-  pi -.->|调用模型| llm
+  web["内容 H5<br/>SSR · 角色与故事 · 作品查询<br/>〔已实现〕"]:::live
+  studio["数据工作台 · Web<br/>只读拓扑 · 批次日志 · 自动刷新<br/>〔已实现〕"]:::live
+  api["Gin API<br/>鉴权 · 知识与治理接口<br/>〔已实现〕"]:::live
+  jobs["运行观测 API<br/>同步记录 · 质检报告<br/>〔已实现〕"]:::live
+  data["定时同步调度<br/>knowledge-sync · 按源探测<br/>〔已实现〕"]:::live
+  assets["图片任务与优化流程<br/>任务归属 · 预算 · 发布策略<br/>〔待开发〕"]:::planned
+  pi["Pi Durable 运行时<br/>SQLite 重开 · 两个知识工具<br/>〔已实现〕"]:::live
+  flow["Pi 工作流与 Harness<br/>工具路由 · 检查点 · 恢复<br/>〔待开发〕"]:::planned
+  gen["生成与重生成工具<br/>参考图 + 指令 → 图片服务<br/>〔待开发〕"]:::planned
+  validate["评估与返工工具<br/>规则优先 · 存疑再问 Jev<br/>〔待开发〕"]:::planned
+  knowledge["作品知识库<br/>PostgreSQL · works / UUID<br/>〔已实现〕"]:::live
+  merge["作品匹配与事务发布<br/>来源记录 → 统一作品<br/>〔已实现〕"]:::live
+  clean["清洗与归一化<br/>校验 · 解析 · raw / norm 暂存<br/>〔已实现〕"]:::live
+  upstream["双源作品快照<br/>AOD / GitHub · Bangumi / npm<br/>〔外部来源〕"]:::external
+  subgraph front[前端 · TanStack Start]
+    web
+    studio
+  end
+  subgraph backend[后端 · Go]
+    subgraph online[API 服务 · 阿里云目标部署]
+      api
+      jobs
+    end
+    subgraph datasvc[数据服务 · 腾讯云目标部署]
+      data
+      clean
+      merge
+      assets
+    end
+    knowledge
+  end
+  subgraph agent[Agent 端 · Pi Durable]
+    pi
+    flow
+    gen
+    validate
+  end
+  web -->|读取知识| api
+  pi -.->|运行| flow
+  flow -.->|生成候选| gen
+  gen -.->|检测候选| validate
+  validate -.->|读写资产与检测结果| assets
+  studio -->|轮询遥测| jobs
+  assets -.->|数据服务委托执行| flow
+  assets -.-|定时调度与回写| data
+  upstream -->|新快照| clean
+  data -->|定时触发| clean
+  clean -->|验证完整批次| merge
+  merge -->|生成或更新| knowledge
+  api -->|查询已提交作品| knowledge
+  pi -->|知识查询| api
   classDef live fill:#e5f0ea,stroke:#317167,color:#184e46
   classDef planned fill:#f5edf3,stroke:#986987,color:#78476a,stroke-dasharray:6 4
   classDef external fill:#f2eadb,stroke:#aa8954,color:#765929

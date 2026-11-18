@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as ShelfRouteImport } from './routes/shelf'
 import { Route as StoriesRouteImport } from './routes/stories'
+import { Route as WorkbenchRouteImport } from './routes/workbench'
 import { Route as CharacterMioRouteImport } from './routes/character.mio'
 import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
@@ -37,6 +38,11 @@ const ShelfRoute = ShelfRouteImport.update({
 const StoriesRoute = StoriesRouteImport.update({
   id: '/stories',
   path: '/stories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkbenchRoute = WorkbenchRouteImport.update({
+  id: '/workbench',
+  path: '/workbench',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CharacterMioRoute = CharacterMioRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/healthz': typeof HealthzRoute
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
+  '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/healthz': typeof HealthzRoute
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
+  '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/healthz': typeof HealthzRoute
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
+  '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/healthz'
     | '/shelf'
     | '/stories'
+    | '/workbench'
     | '/character/mio'
     | '/knowledge/$id'
     | '/play/$slug'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/healthz'
     | '/shelf'
     | '/stories'
+    | '/workbench'
     | '/character/mio'
     | '/knowledge/$id'
     | '/play/$slug'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/healthz'
     | '/shelf'
     | '/stories'
+    | '/workbench'
     | '/character/mio'
     | '/knowledge/$id'
     | '/play/$slug'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   HealthzRoute: typeof HealthzRoute
   ShelfRoute: typeof ShelfRoute
   StoriesRoute: typeof StoriesRoute
+  WorkbenchRoute: typeof WorkbenchRoute
   CharacterMioRoute: typeof CharacterMioRoute
   KnowledgeIdRoute: typeof KnowledgeIdRoute
   PlaySlugRoute: typeof PlaySlugRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/stories'
       fullPath: '/stories'
       preLoaderRoute: typeof StoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workbench': {
+      id: '/workbench'
+      path: '/workbench'
+      fullPath: '/workbench'
+      preLoaderRoute: typeof WorkbenchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/character/mio': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   HealthzRoute: HealthzRoute,
   ShelfRoute: ShelfRoute,
   StoriesRoute: StoriesRoute,
+  WorkbenchRoute: WorkbenchRoute,
   CharacterMioRoute: CharacterMioRoute,
   KnowledgeIdRoute: KnowledgeIdRoute,
   PlaySlugRoute: PlaySlugRoute,

@@ -1,8 +1,12 @@
 # 二次元剧情内容站
 
-产品设计、领域模型、SEO/GEO 和八阶段验收见 [产品架构](docs/产品架构.md)。[交互架构图集](docs/architecture.html) 标注已实现与待开发的能力，可离线查看并点击节点核对源码。可编辑的 Mermaid 图源包括[产品架构](docs/diagrams/product.mmd)、[业务流程](docs/diagrams/business.mmd)和[技术架构](docs/architecture.mmd)。
+产品设计、领域模型、SEO/GEO 和八阶段验收见 [产品架构](docs/产品架构.md)。[交互架构图集](docs/architecture.html) 标注已实现与待开发的能力，可离线查看并点击节点核对源码。可编辑的 Mermaid 图源包括[产品架构](docs/diagrams/product.mmd)、[业务流程](docs/diagrams/business.mmd)、[技术架构](docs/architecture.mmd)和[双云部署](docs/diagrams/deployment.mmd)。
 
 目前已搭建阶段 1 的服务骨架，并在 apps/web 接入可点击的「潮汐邮局」H5 产品设计原型。apps/api 运行 Gin 并连接 PostgreSQL 作品知识库，apps/agent 打开 Pi Durable 的 SQLite 存储并启动恢复调度。packages/shared 提供健康响应和跨语言 JSON Schema，packages/seo 为后续发布页面预留。阶段 1 无需模型密钥。
+
+[网页数据工作台](http://127.0.0.1:4310/workbench) 展示数据服务的自动同步、质检记录和图片优化规划拓扑。
+
+各项已实现能力的实测范围见[架构实现核验](docs/架构实现核验.md)。
 
 ## 体验产品原型
 

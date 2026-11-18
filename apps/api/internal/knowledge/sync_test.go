@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -81,6 +82,7 @@ func pack(t *testing.T, dist any) []byte {
 
 // Only the newly created per-test schema is modified. The DSN must be a PostgreSQL URL.
 func TestPostgresSnapshotLifecycle(t *testing.T) {
+	t.Setenv("KNOWLEDGE_ARCHIVE_DIR", t.TempDir())
 	dsn := os.Getenv("KNOWLEDGE_TEST_DATABASE_URL")
 	if dsn == "" {
 		t.Skip("set KNOWLEDGE_TEST_DATABASE_URL for PostgreSQL integration")
@@ -264,4 +266,142 @@ func TestPostgresSnapshotLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	count("SELECT skip_reason FROM knowledge_sync_runs ORDER BY started_at DESC LIMIT 1", "version_unchanged")
+	report, e := Quality(ctx, db, "all", "")
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Log(string(report))
+	var candidate, record int64
+	if err = db.QueryRow(ctx, "SELECT id,source_record_id FROM knowledge_match_candidates ORDER BY id LIMIT 1").Scan(&candidate, &record); err != nil {
+		t.Fatal(err)
+	}
+	decide := func(d Decision) {
+		t.Helper()
+		d.Reason = "fixture review"
+		if e := Decide(ctx, db, d, "fixture", "test"); e != nil {
+			t.Fatal(e)
+		}
+	}
+	decide(Decision{Action: "reject", Candidate: candidate})
+	decide(Decision{Action: "rematch", Record: record})
+	if err = db.QueryRow(ctx, "SELECT id FROM knowledge_match_candidates WHERE source_record_id=$1 LIMIT 1", record).Scan(&candidate); err != nil {
+		t.Fatal(err)
+	}
+	decide(Decision{Action: "approve", Candidate: candidate})
+	decide(Decision{Action: "split", Record: record})
+	work = one("SELECT work_id::text FROM knowledge_source_records WHERE record_key='mal:1'")
+	decide(Decision{Action: "override", Work: work, Field: "canonical_title", Value: json.RawMessage(`"Reviewed"`)})
+	first := one("SELECT version FROM knowledge_source_versions WHERE source_id=(SELECT id FROM knowledge_sources WHERE name='anime-offline-database') ORDER BY id LIMIT 1")
+	latest := one("SELECT current_version FROM knowledge_sources WHERE name='anime-offline-database'")
+	delta, e := DiffSnapshots(ctx, db, A, first, latest, "mal:1")
+	if e != nil || string(delta["title"][1]) != `"Changed"` {
+		t.Fatal(delta, e)
+	}
+	if err = Reproject(ctx, db, A); err != nil {
+		t.Fatal(err)
+	}
+	engine := gin.New()
+	Routes(engine, db)
+	token := strings.Repeat("a", 32)
+	t.Setenv("KNOWLEDGE_ADMIN_TOKEN", token)
+	t.Setenv("KNOWLEDGE_ADMIN_OPERATOR", "tester")
+	route := func(path string, auth bool, want int) {
+		t.Helper()
+		req := httptest.NewRequest("GET", "/api/v1/admin/knowledge/"+path, nil)
+		if auth {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		w := httptest.NewRecorder()
+		engine.ServeHTTP(w, req)
+		if w.Code != want {
+			t.Fatal(path, w.Code, w.Body.String())
+		}
+	}
+	route("matches", false, 401)
+	route("matches", true, 200)
+	route("works/"+work+"/issues", true, 200)
+	route("works/"+work+"/history", true, 200)
+	match := one("SELECT id::text FROM knowledge_match_candidates LIMIT 1")
+	route("matches/"+match, true, 200)
+	aiCalls := 0
+	var cited int64
+	if err = db.QueryRow(ctx, "SELECT (candidates->0->>'record_id')::bigint FROM knowledge_match_evidence WHERE id=$1", match).Scan(&cited); err != nil {
+		t.Fatal(err)
+	}
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		aiCalls++
+		a := assessment{Verdict: "uncertain", Reason: "需人审核", Evidence: []comparison{{Field: "title", Record: cited, Observation: "比对两个标题"}}}
+		content, _ := json.Marshal(a)
+		json.NewEncoder(w).Encode(gin.H{"choices": []gin.H{{"message": gin.H{"content": string(content)}}}})
+	}))
+	defer provider.Close()
+	t.Setenv("MATCH_AI_BASE_URL", provider.URL)
+	t.Setenv("MATCH_AI_MODEL", "fixture")
+	assess := func(expected int) {
+		t.Helper()
+		r := httptest.NewRequest("POST", "/api/v1/admin/knowledge/matches/"+match+"/assessments", nil)
+		r.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		engine.ServeHTTP(w, r)
+		if w.Code != expected {
+			t.Fatal(w.Code, w.Body.String())
+		}
+	}
+	assess(200)
+	assess(200)
+	route("matches/"+match+"/assessments", true, 200)
+	if aiCalls != 1 {
+		t.Fatal("expected cached assessment")
+	}
+	count("SELECT count(*)::text FROM knowledge_ai_match_assessments", "1")
+	cited = -1
+	t.Setenv("MATCH_AI_MODEL", "different-fixture")
+	assess(502)
+
+	if err = Rebuild(ctx, db, A, first); err != nil {
+		t.Fatal(err)
+	}
+	count("SELECT canonical_title FROM works WHERE id='"+work+"'", "Reviewed")
+	decide(Decision{Action: "undo", Work: work, Field: "canonical_title"})
+	count("SELECT canonical_title FROM works WHERE id='"+work+"'", "Shared")
+	count("SELECT count(*)::text FROM knowledge_curation_actions", "6")
+	if err = QualityIfDue(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	if err = QualityIfDue(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	count("SELECT count(*)::text FROM knowledge_quality_runs WHERE status='success' AND report IS NOT NULL", "1")
+	exec("UPDATE knowledge_quality_runs SET finished_at=now()-interval '7 hours'")
+	if err = QualityIfDue(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	count("SELECT count(*)::text FROM knowledge_quality_runs WHERE status='success'", "2")
+
+	// A quality check must only write governance rows. Resolving a field then
+	// scanning the same work a second time closes the original issue.
+	decide(Decision{Action: "override", Work: work, Field: "canonical_title", Value: json.RawMessage(`"  Shared  "`)})
+	if _, e = Quality(ctx, db, "all", work); e != nil {
+		t.Fatal(e)
+	}
+	count("SELECT canonical_title FROM works WHERE id='"+work+"'", "  Shared  ")
+	count("SELECT status FROM knowledge_quality_issues WHERE rule_id='title_norm' AND entity_id='"+work+"'", "open")
+	decide(Decision{Action: "undo", Work: work, Field: "canonical_title"})
+	if _, e = Quality(ctx, db, A, work); e != nil {
+		t.Fatal(e)
+	}
+	count("SELECT status FROM knowledge_quality_issues WHERE rule_id='title_norm' AND entity_id='"+work+"'", "resolved")
+	key := one("SELECT snapshot_key FROM knowledge_source_versions WHERE version='" + first + "'")
+	path, e := archivePath(key)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = os.WriteFile(path, []byte("corrupt fixture"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	if e = Rebuild(ctx, db, A, first); e == nil {
+		t.Fatal("corrupt archive accepted")
+	}
+	count("SELECT canonical_title FROM works WHERE id='"+work+"'", "Shared")
+
 }
