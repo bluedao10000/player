@@ -19,6 +19,7 @@ import {
 import worldCss from '../features/worlds/world.css?url'
 
 export const Route = createFileRoute('/editor-preview/$id')({
+  headers: () => ({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'private, no-store' }),
   head: () => ({
     meta: [
       { title: siteTitle('手机审稿预览') },

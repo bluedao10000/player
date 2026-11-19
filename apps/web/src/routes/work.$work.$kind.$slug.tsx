@@ -1,4 +1,4 @@
-import { siteTitle } from '../site'
+import { chapterHead, characterHead, sceneHead } from '../features/seo/world'
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { character, chapter, scene } from '../features/worlds/api'
 import { ChapterPage, PersonPage, ScenePage } from '../features/worlds/pages'
@@ -14,8 +14,6 @@ export const Route = createFileRoute('/work/$work/$kind/$slug')({
         return {
           kind: 'character' as const,
           page,
-          title: page.character.name,
-          summary: page.intro ?? page.character.role,
         }
       }
       case 'chapter': {
@@ -25,8 +23,6 @@ export const Route = createFileRoute('/work/$work/$kind/$slug')({
         return {
           kind: 'chapter' as const,
           page,
-          title: page.chapter.title,
-          summary: page.chapter.intro,
         }
       }
       case 'scene': {
@@ -34,24 +30,20 @@ export const Route = createFileRoute('/work/$work/$kind/$slug')({
         return {
           kind: 'scene' as const,
           page,
-          title: page.scene.title,
-          summary: page.scene.text,
         }
       }
       default:
         throw notFound()
     }
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: siteTitle(
-          loaderData ? loaderData.title + ' · ' + loaderData.page.work.title : '未找到内容',
-        ),
-      },
-      { name: 'description', content: loaderData?.summary },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    switch (loaderData?.kind) {
+      case 'character': return characterHead(loaderData.page)
+      case 'chapter': return chapterHead(loaderData.page)
+      case 'scene': return sceneHead(loaderData.page)
+      default: return {}
+    }
+  },
   component: WorldDetail,
 })
 function WorldDetail() {

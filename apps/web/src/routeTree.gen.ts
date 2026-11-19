@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CommissionsRouteImport } from './routes/commissions'
 import { Route as HealthzRouteImport } from './routes/healthz'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ShelfRouteImport } from './routes/shelf'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as WorkbenchRouteImport } from './routes/workbench'
 import { Route as CharacterMioRouteImport } from './routes/character.mio'
@@ -46,9 +48,19 @@ const HealthzRoute = HealthzRouteImport.update({
   path: '/healthz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShelfRoute = ShelfRouteImport.update({
   id: '/shelf',
   path: '/shelf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoriesRoute = StoriesRouteImport.update({
@@ -141,7 +153,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/shelf': typeof ShelfRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
@@ -164,7 +178,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/shelf': typeof ShelfRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
@@ -188,7 +204,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/shelf': typeof ShelfRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
@@ -213,7 +231,9 @@ export interface FileRouteTypes {
     | '/'
     | '/commissions'
     | '/healthz'
+    | '/robots.txt'
     | '/shelf'
+    | '/sitemap.xml'
     | '/stories'
     | '/workbench'
     | '/character/mio'
@@ -236,7 +256,9 @@ export interface FileRouteTypes {
     | '/'
     | '/commissions'
     | '/healthz'
+    | '/robots.txt'
     | '/shelf'
+    | '/sitemap.xml'
     | '/stories'
     | '/workbench'
     | '/character/mio'
@@ -259,7 +281,9 @@ export interface FileRouteTypes {
     | '/'
     | '/commissions'
     | '/healthz'
+    | '/robots.txt'
     | '/shelf'
+    | '/sitemap.xml'
     | '/stories'
     | '/workbench'
     | '/character/mio'
@@ -283,7 +307,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CommissionsRoute: typeof CommissionsRoute
   HealthzRoute: typeof HealthzRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   ShelfRoute: typeof ShelfRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoriesRoute: typeof StoriesRoute
   WorkbenchRoute: typeof WorkbenchRoute
   CharacterMioRoute: typeof CharacterMioRoute
@@ -326,11 +352,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthzRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shelf': {
       id: '/shelf'
       path: '/shelf'
       fullPath: '/shelf'
       preLoaderRoute: typeof ShelfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stories': {
@@ -459,7 +499,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CommissionsRoute: CommissionsRoute,
   HealthzRoute: HealthzRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   ShelfRoute: ShelfRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoriesRoute: StoriesRoute,
   WorkbenchRoute: WorkbenchRoute,
   CharacterMioRoute: CharacterMioRoute,

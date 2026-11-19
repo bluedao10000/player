@@ -1,4 +1,4 @@
-import { siteName } from '../site'
+import { siteName, siteOrigin } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
 import { Home } from '../features/post/editorial'
 
@@ -7,6 +7,7 @@ import { discovery } from '../features/worlds/api'
 export const Route = createFileRoute('/')({
   loader: () => discovery(),
   head: () => ({
+    links: [{ rel: 'canonical', href: siteOrigin + '/' }],
     meta: [
       { title: siteName + ' · 二次元作品世界' },
       {

@@ -17,10 +17,11 @@ export const Route = createFileRoute('/workbench')({
   }),
   loaderDeps: ({ search }) => ({ view: search.view }),
   loader: ({ deps }) => (deps.view === 'data' ? readFeed() : null),
+  headers: () => ({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'private, no-store' }),
   head: () => ({
     meta: [
       { title: siteTitle('编辑与数据工作台') },
-      { name: 'robots', content: 'noindex' },
+      { name: 'robots', content: 'noindex,nofollow' },
     ],
     links: [
       { rel: 'stylesheet', href: css },

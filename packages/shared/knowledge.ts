@@ -75,6 +75,7 @@ export type ChapterCard = {
   slug: string
   title: string
   label: string
+  episode?: number
   intro: string
   image?: string
   image_caption?: string
