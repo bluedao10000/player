@@ -1,6 +1,7 @@
 package knowledge
 
 import (
+	_ "embed"
 	"strconv"
 	"time"
 
@@ -8,8 +9,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Both endpoints use the same half-open UTC window and server-side admin guard.
+//go:embed production_usage.sql
+var productionUsage string
+
+// The usage endpoints use the same half-open UTC window and server-side admin guard.
 func usageRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
+	g.GET("/production-usage", func(c *gin.Context) {
+		n := limit(c)
+		if n > 0 {
+			queryJSON(c, db, productionUsage, n)
+		}
+	})
 	window := func(c *gin.Context) (from, to time.Time, ok bool) {
 		to = time.Now().UTC()
 		var err error

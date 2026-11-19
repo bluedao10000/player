@@ -96,6 +96,27 @@ type Attribution = { uri: string; locator: string }
 export type EpisodeIllustration = {
   name: string; chapter: string; block: string; anchor: string; image: string
 }
+export type ProductionUsage = {
+  world: string
+  title: string
+  edition: string
+  registered_at: string
+  started_at: string | null
+  published_at: string | null
+  last_media_at: string | null
+  failed_research: number
+  operations: {
+    purpose: string
+    operation: string
+    model: string
+    calls: number
+    errors: number
+    unmetered: number
+    tokens: number | null
+    images: number | null
+    seconds: number | null
+  }[]
+}
 export type ScopeAcceptance = {
   id: number; world: string; edition_title: string; first: number; last: number; version: number; rule: number; checked_at: string
   previous_gaps?: {id:number; items:string[]} | null

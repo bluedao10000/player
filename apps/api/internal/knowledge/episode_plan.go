@@ -21,7 +21,7 @@ type planCast struct {
 	Portrait         json.RawMessage
 }
 type episodeSpec struct {
-	Number, SceneBeat                                                                           int
+	Number, SceneBeat, SourceNumber                                                             int
 	Slug, Title, Intro, OfficialTitle, GuideTitle, Official, Guide, SceneSlug, SceneName, Place string
 	People                                                                                      []planCast
 	Art                                                                                         json.RawMessage
@@ -56,7 +56,9 @@ func (e episodeSpec) validate() error {
 	naruto := official.Host == "naruto-official.com" && strings.HasPrefix(official.Path, "/en/anime/")
 	takopi := official.Host == "www.tbs.co.jp" && official.Path == tbsPath && e.Number <= 6 && official.RawQuery == "" && official.Fragment == ""
 	lookBack := e.Number == 1 && e.Official == "https://lookback-anime.com/"
-	if !naruto && !takopi && !lookBack {
+	apothecary := e.Number == 1 && e.SourceNumber == 49 && e.Official == "https://www.animatetimes.com/news/details.php?id=1790842934"
+	council := e.Number == 1 && e.Official == "https://nama-anaru.com/episode/?id=1"
+	if !naruto && !takopi && !lookBack && !apothecary && !council {
 		return errors.New("官方来源或标题无效")
 	}
 	guide, err := url.Parse(e.Guide)
@@ -67,8 +69,21 @@ func (e episodeSpec) validate() error {
 			return errors.New("电影版剧情来源不匹配")
 		}
 	}
-	if err != nil || guide.Scheme != "https" || guide.Host != "en.wikipedia.org" || !strings.HasPrefix(guide.Path, "/wiki/") || guide.Fragment != guideAnchor || e.GuideTitle == "" {
+	if apothecary {
+		guideAnchor = "ep49"
+		if e.Guide != "https://en.wikipedia.org/wiki/List_of_The_Apothecary_Diaries_episodes#ep49" {
+			return errors.New("第49话分集表来源不匹配")
+		}
+	}
+	if council {
+		if e.Guide != "https://2jigen-otaku.com/seitokai-ana-1wa/" {
+			return errors.New("TV第1话补充来源不匹配")
+		}
+	} else if err != nil || guide.Scheme != "https" || guide.Host != "en.wikipedia.org" || !strings.HasPrefix(guide.Path, "/wiki/") || guide.Fragment != guideAnchor {
 		return errors.New("分集指南与集号不一致")
+	}
+	if e.GuideTitle == "" {
+		return errors.New("分集指南缺少标题")
 	}
 	if len(e.Beats) < 4 || len(e.Beats) > 6 || e.SceneBeat < 1 || e.SceneBeat > len(e.Beats) || len(e.People) == 0 {
 		return errors.New("需要人物、4–6 个剧情节点和有效场景段号")

@@ -1,0 +1,136 @@
+{
+  "world": "seitokai-ana-tv-2026",
+  "title": "学生会也有洞！",
+  "edition": "2026 · TV 播出版",
+  "provider": "bangumi",
+  "externalID": "554779",
+  "year": 2026,
+  "type": "TV",
+  "intro": "理科成绩让水之江梅面临留级。平塚老师推荐他加入藤成学园的学生会，梅由此开始认识这群各有一套工作方式的同学。",
+  "people": [
+    {
+      "slug": "ume",
+      "name": "水之江梅",
+      "role": "为免留级加入学生会的新任书记",
+      "beat": 1,
+      "portrait": {
+        "referenceURL": "https://nama-anaru.com/teaser_assets/img/chara/face/chara_01_face_A.png",
+        "sourceSHA": "4f3c7d230cb5d3d511bd67f647960c9346fb9a41b11838e25672cce88fce2abd",
+        "brief": "参考图中戴黑框眼镜的棕色短发男生水之江梅，绘制端正的单人胸像，制服整齐，素色背景。"
+      }
+    },
+    {
+      "slug": "hisako",
+      "name": "古都吹寿子",
+      "role": "学生会会长",
+      "beat": 5,
+      "portrait": {
+        "referenceURL": "https://nama-anaru.com/teaser_assets/img/chara/face/chara_04_face_A.png",
+        "sourceSHA": "c163e842804c70126b90a2ed56fc9698e4ed4ecc883d26a466a63ea2fc1d9125",
+        "brief": "参考图中棕发、配黄色发饰的古都吹寿子。绘制校刊风格单人头像，制服整齐，背景简洁。"
+      }
+    },
+    {
+      "slug": "arisu",
+      "name": "照井有栖",
+      "role": "负责社团预算的学生会会计",
+      "beat": 2,
+      "portrait": {
+        "referenceURL": "https://nama-anaru.com/teaser_assets/img/chara/face/chara_05_face_A.png",
+        "sourceSHA": "c0ab3b34fee235d12f728a1feef4560cd15aca05eef240067fe3b78c7c7c0d0d",
+        "brief": "参考图中黑色直发、齐刘海的照井有栖，制作单人普通校刊头像，素净背景。"
+      }
+    },
+    {
+      "slug": "tan",
+      "name": "尾鸟丹",
+      "role": "为文化祭宣传的学生会宣传委员",
+      "beat": 3,
+      "portrait": {
+        "referenceURL": "https://nama-anaru.com/teaser_assets/img/chara/face/chara_02_face_A.png",
+        "sourceSHA": "97809531453daf5275b2b210ca8f0fdb8f88ab67803076db66f90ca4b904dd41",
+        "brief": "参考图中薄荷绿短发的尾鸟丹，制作单人普通校刊头像，保持脸部、发色与制服，背景干净。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "new-secretary",
+      "title": "新来的学生会书记",
+      "intro": "为了避免留级，水之江梅成为藤成学园的学生会书记。工作刚开始，社团预算、值勤和全校集会就接连找上门。",
+      "official": "https://nama-anaru.com/episode/?id=1",
+      "officialTitle": "「オスガキにも穴はあるんだよな…」 「かいちょーは梅くんに貰われました」",
+      "guide": "https://2jigen-otaku.com/seitokai-ana-1wa/",
+      "guideTitle": "アニメ【生徒会にも穴はある】1話",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "主人公の水之江梅は",
+          "officialSentence": 1,
+          "question": "交代水之江梅为什么怕留级、听取了谁的建议，因此接下学生会书记的工作。"
+        },
+        {
+          "kind": "turn",
+          "needle": "1本目では、梅が",
+          "officialSentence": 2,
+          "question": "说明第一则短篇中水之江梅初到学生会遇到负责会计的照井有栖。只写角色初识、有关机器人的笑点和学生会工作，省去成人玩笑。"
+        },
+        {
+          "kind": "cause",
+          "needle": "仕事の説明でも",
+          "question": "接着介绍分工。用尾鸟丹曾为文化祭招徕观众、照井有栖严格审查社团预算两件事解释学生会的日常。"
+        },
+        {
+          "kind": "turn",
+          "needle": "2本目は、朝のあいさつ運動",
+          "question": "明确从这里进入第二则短篇。早晨的问候活动和检查物品是怎样改变梅对学生会工作的预期的？写日常校园工作。"
+        },
+        {
+          "kind": "cause",
+          "needle": "そして全校集会での生徒会の発表",
+          "question": "用古都吹寿子的全名说明全校集会时梅紧张，学生会各司其职。讲到演示故障与梅事后选择面对会长即止，不描述私密内容、不补写事故细节。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "ume",
+          "name": "水之江梅",
+          "role": "为免留级加入学生会的新任书记",
+          "beat": 1
+        },
+        {
+          "slug": "hisako",
+          "name": "古都吹寿子",
+          "role": "学生会会长",
+          "beat": 5
+        },
+        {
+          "slug": "arisu",
+          "name": "照井有栖",
+          "role": "负责社团预算的学生会会计",
+          "beat": 2
+        },
+        {
+          "slug": "tan",
+          "name": "尾鸟丹",
+          "role": "为文化祭宣传的学生会宣传委员",
+          "beat": 3
+        }
+      ],
+      "setting": [
+        "文化祭",
+        3
+      ],
+      "sceneSlug": "first-day-in-council",
+      "sceneName": "书记的第一天",
+      "place": "藤成学园学生会室",
+      "sceneBeat": 2,
+      "art": {
+        "referenceURL": "https://nama-anaru.com/episode/SYS/CONTENTS/story_4714_photo_1790228019234428432",
+        "sourceSHA": "3349ed88ab43a3fdb360535fc2d029fb40ba38d001ba25ce10f3666b69a86cf7",
+        "brief": "为校园日常导读绘制学生会室内新任书记第一次工作的横向插画。以参考中的棕发眼镜男生水之江梅为唯一人物，校服整齐，居中坐在木桌前看工作笔记，神情略紧张。窗光、纸张和一本空白笔记即可。无文字、无其他人物。"
+      }
+    }
+  ]
+}

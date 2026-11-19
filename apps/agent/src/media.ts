@@ -154,6 +154,8 @@ async function configuredReference(j: Job): Promise<Result> {
     url.protocol !== 'https:' ||
     url.username || url.password ||
     !(['cmsapi-frontend.naruto-official.com', 'lain.bgm.tv'].includes(url.host)
+      || (url.host === 'img2.animatetimes.com' && url.pathname.startsWith('/2026/10/'))
+      || (url.host === 'nama-anaru.com' && (/^\/teaser_assets\/img\/(episode|chara)\//.test(url.pathname) || /^\/episode\/SYS\/CONTENTS\/story_\d+_photo_\d+$/.test(url.pathname)))
       || (url.host === 'lookback-anime.com' && url.pathname.startsWith('/assets/img/'))
       || (url.host === 'www.tbs.co.jp' && url.pathname.startsWith('/anime/takopi_project/series/')))
   )

@@ -2,6 +2,7 @@ import { siteName, siteTitle } from '../site'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { readFeed } from '../features/workbench/feed'
+import { ProductionReport } from '../features/workbench/production-report'
 import { ScopeReport } from '../features/workbench/scope-report'
 import { MediaGallery } from '../features/workbench/media-gallery'
 import { ResearchHistory } from '../features/workbench/research-history'
@@ -155,6 +156,7 @@ function Board({ feed }: { feed: Awaited<ReturnType<typeof readFeed>> }) {
       <MediaGallery items={feed.media} batch="bebop" />
       <MediaGallery items={feed.media} batch="mio" />
       <ResearchHistory runs={feed.research} />
+      <ProductionReport works={feed.usage} />
       <ScopeReport scopes={feed.scopes} />
       <WorldInventory worlds={feed.worlds} scopes={feed.scopes} />
       <div className="wb-grid">

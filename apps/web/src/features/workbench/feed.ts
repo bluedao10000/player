@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
-import type { ScopeAcceptance, MediaCandidate, ResearchRun, WorkKnowledgeStatus } from "@anime/shared/knowledge";
+import type { ScopeAcceptance, MediaCandidate, ResearchRun, WorkKnowledgeStatus, ProductionUsage } from "@anime/shared/knowledge";
 
 type Status = "running" | "pending" | "success" | "failed";
 type Sync = {
@@ -28,12 +28,12 @@ type Quality = {
   } | null;
 };
 
-async function get<T>(path: string): Promise<T[] | null> {
+async function get<T>(path: string, adminToken?: string): Promise<T[] | null> {
   try {
     const base = process.env.KNOWLEDGE_API_URL ?? "http://127.0.0.1:4321";
     const res = await fetch(
-      new URL("/api/v1/knowledge/" + path + "?limit=30", base),
-      { signal: AbortSignal.timeout(5000), cache: "no-store" },
+      new URL("/api/v1/" + (adminToken ? "admin/" : "") + "knowledge/" + path + "?limit=30", base),
+      { signal: AbortSignal.timeout(5000), cache: "no-store", headers: adminToken ? {Authorization: "Bearer " + adminToken} : {} },
     );
     if (res.ok) return (await res.json()) as T[];
   } catch {
@@ -43,13 +43,15 @@ async function get<T>(path: string): Promise<T[] | null> {
 }
 export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
   if (process.env.PLAYER_PUBLIC_ONLY === 'true') throw new Error('工作台限内部访问')
-  const [sync, quality, worlds, research, media, scopes] = await Promise.all([
+  const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
+  const [sync, quality, worlds, research, media, scopes, usage] = await Promise.all([
     get<Sync>("sync-runs"),
     get<Quality>("quality-runs"),
     get<WorkKnowledgeStatus>("world-statuses"),
     get<ResearchRun>("research-runs"),
     get<MediaCandidate>("media-candidates"),
     get<ScopeAcceptance>("scope-acceptances"),
+    admin ? get<ProductionUsage>("production-usage", admin) : Promise.resolve(null),
   ]);
   const runs = [
     ...(sync ?? []).map((r) => ({
@@ -88,6 +90,7 @@ export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
     worlds,
     research,
     scopes,
+    usage,
     media,
     syncOnline: sync !== null,
     qualityOnline: quality !== null,

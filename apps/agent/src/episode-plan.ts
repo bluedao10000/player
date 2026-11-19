@@ -5,6 +5,7 @@ import type { CheerioAPI } from 'cheerio'
 
 export interface EpisodePlan {
   number: number
+  sourceNumber?: number
   official: string
   guide: string
   officialTitle: string
@@ -36,7 +37,7 @@ export function episodeSources(
 export async function readEpisodeDocuments(
   p: Pick<
     EpisodePlan,
-    'official' | 'guide' | 'number' | 'officialTitle' | 'guideTitle'
+    'official' | 'guide' | 'number' | 'sourceNumber' | 'officialTitle' | 'guideTitle'
   >,
   page: (url: string) => Promise<CheerioAPI>,
 ) {
@@ -46,9 +47,23 @@ export async function readEpisodeDocuments(
   ])
   const fromTbs = new URL(p.official).hostname === 'www.tbs.co.jp'
   const film = p.official === 'https://lookback-anime.com/'
-  const japanese = fromTbs || film
+  const apothecary = p.official === 'https://www.animatetimes.com/news/details.php?id=1790842934'
+  const council = p.official === 'https://nama-anaru.com/episode/?id=1'
+  const sourceNumber = p.sourceNumber ?? p.number
+  const japanese = fromTbs || film || apothecary || council
+  const paragraphText = ($: CheerioAPI, selector: string) =>
+    $(selector).toArray().map((x) => $(x).text().trim()).join(' ')
+  const apTitle = site('.news-content h2').filter((_, el) => site(el).text() === '第49話「蝗」')
   const box = site('.storypage-wrap')
-  const item = film ? {
+  const item = apothecary ? {
+    number: Number(apTitle.text().match(/第(\d+)話/)?.[1]),
+    title: apTitle.text(),
+    text: apTitle.next('h3').nextUntil('h2,h3','p').toArray().map((x) => site(x).text()).join(' '),
+  } : council ? {
+    number: Number(site('.p-episode__head-number').text().match(/第(\d+)話/)?.[1]),
+    title: site('.p-episode__head-ttl').text().replace(/\s+/g, ' ').trim(),
+    text: paragraphText(site, '.p-episode__story-inner'),
+  } : film ? {
     number: 1,
     title: site('title').text().trim(),
     text: site('.p-story .p-intro__content-detail p').toArray().map((x) => site(x).text()).join(' '),
@@ -60,14 +75,18 @@ export async function readEpisodeDocuments(
     const entry = JSON.parse(site('#__NEXT_DATA__').text()).props.pageProps.animeData
     return {number: Number(entry.anime.story_no), title: entry.title, text: entry.anime.text}
   })()
-  const row = wiki('#ep' + p.number).closest('tr')
+  const row = wiki('#ep' + sourceNumber).closest('tr')
   const plot = wiki('#Plot')
-  const guideTitle = film ? plot.text().trim() : row.find('.summary').text()
+  const guideTitle = film ? plot.text().trim() : council ? wiki('h1').text() : row.find('.summary').text()
+  const councilParagraphs = wiki('.entry-content p.wp-block-paragraph').toArray().map((x) => wiki(x).text())
+  const schoolSynopsis = councilParagraphs.filter((text) =>
+    ['主人公の水之江梅は', '1本目では、梅が', '仕事の説明でも', '2本目は、朝のあいさつ運動', 'そして全校集会での生徒会の発表', 'ところが発表の最後に映像のトラブルが起き'].some((start) => text.startsWith(start)),
+  ).join(' ')
   const paragraphs = plot.closest('section').children('p')
   const filmText = paragraphs.length ? paragraphs : plot.parent().nextUntil('h2,.mw-heading','p')
   filmText.find('sup').remove()
   if (
-    item.number !== p.number ||
+    item.number !== sourceNumber ||
     item.title !== p.officialTitle ||
     !guideTitle.includes(p.guideTitle)
   )
@@ -76,24 +95,25 @@ export async function readEpisodeDocuments(
     [p.official, item.text, 'official', item.title],
     [
       p.guide,
-      film ? filmText.toArray().map((x) => wiki(x).text()).join(' ') : row.next('tr').find('.shortSummaryText').text(),
+      film ? filmText.toArray().map((x) => wiki(x).text()).join(' ') : council ? schoolSynopsis : row.next('tr').find('.shortSummaryText').text(),
       'guide',
       p.guideTitle,
     ],
   ].map(([url, raw, key, title]) => {
-    const text = String(raw || '')
+    const original = String(raw || '')
+    const text = (apothecary || council ? original.normalize('NFKC') : original)
       .replace(/\s+/g, ' ')
       .trim()
     if (Buffer.byteLength(text) < 60 || text.length > 6000) throw Error('分集原文不完整')
     const sentences = Array.from(
-      new Intl.Segmenter(key === 'official' && japanese ? 'ja' : 'en', { granularity: 'sentence' }).segment(text),
+      new Intl.Segmenter((key === 'official' && japanese) || council ? 'ja' : 'en', { granularity: 'sentence' }).segment(text),
       (x) => x.segment.trim(),
     ).filter(Boolean)
     return {
       id: key + '-' + p.number,
       episode: p.number,
       url,
-      locator: title + (film ? ' · 2024 电影版' : ' · Episode ' + p.number),
+      locator: title + (film ? ' · 2024 电影版' : ' · Episode ' + sourceNumber),
       text,
       sentences,
       fetched_at: new Date().toISOString(),
