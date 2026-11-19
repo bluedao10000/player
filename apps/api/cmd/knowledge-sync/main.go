@@ -1,6 +1,7 @@
 package main
 
 import (
+	"anime-agent/api/internal/billing"
 	"anime-agent/api/internal/knowledge"
 	"anime-agent/api/internal/modelusage"
 	"context"
@@ -49,6 +50,9 @@ func main() {
 					if e := modelusage.Pull(ctx, db, base); e != nil && ctx.Err() == nil {
 						log.Printf("model usage sync: %v", e)
 					}
+				}
+				if e := billing.RecoverPreviews(ctx, db); e != nil && ctx.Err() == nil {
+					log.Printf("billing delivery recovery: %v", e)
 				}
 				select {
 				case <-ctx.Done():

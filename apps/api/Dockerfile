@@ -3,7 +3,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -o /out/api . && CGO_ENABLED=0 go build -trimpath -o /out/knowledge-sync ./cmd/knowledge-sync && CGO_ENABLED=0 go build -trimpath -o /out/knowledge ./cmd/knowledge
+RUN CGO_ENABLED=0 go build -trimpath -o /out/api . && CGO_ENABLED=0 go build -trimpath -o /out/knowledge-sync ./cmd/knowledge-sync && CGO_ENABLED=0 go build -trimpath -o /out/knowledge ./cmd/knowledge && CGO_ENABLED=0 go build -trimpath -o /out/media ./cmd/media
 
 FROM alpine:3.22
 RUN apk add --no-cache ca-certificates

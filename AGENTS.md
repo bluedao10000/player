@@ -9,7 +9,7 @@
 | 接数据源、改匹配或数据质量 | [知识库与治理](docs/knowledge-base.md) | [来源适配](apps/api/internal/knowledge/upstream.go)、[归并事务](apps/api/internal/knowledge/merge.sql) |
 | 给《火影忍者》新增集数 | [分集配置](data/episode-plans/README.md)、[构建流程](docs/知识库构建流程.md) | [选题清单](data/episode-plans/naruto-tv-2002.json) |
 | 改取证、自动验图或发布 | [知识库构建流程](docs/知识库构建流程.md) | [数据服务](apps/api/cmd/knowledge-sync/main.go)、[Agent 入口](apps/agent/src/server.ts) |
-| 改模型接入、查 token 或设计计费 | [模型用量与计费](docs/模型用量与计费.md) | [调用回执](apps/api/internal/modelusage)、[用量查询](apps/api/internal/knowledge/usage.go) |
+| 改模型接入、查 token、扣费或对账 | [模型用量与计费](docs/模型用量与计费.md) | [调用回执](apps/api/internal/modelusage)、[余额与结算](apps/api/internal/billing)、[账务集成测试](apps/api/internal/knowledge/billing_test.go) |
 | 启动、定位故障、备份或规划双云 | [运维手册](docs/运维手册.md)、[网络与部署](docs/部署架构.md) | [Compose](compose.yaml)、[配置模板](.env.example) |
 | 准备提交或更新文档 | [开发规范](docs/开发规范.md)、[实现核验](docs/架构实现核验.md) | [检查命令](package.json)、[文档目录](docs/README.md) |
 

@@ -18,8 +18,10 @@ import (
 	"time"
 
 	"anime-agent/api/internal/aiprovider"
+	"anime-agent/api/internal/billing"
 	"anime-agent/api/internal/knowledge"
 	"anime-agent/api/internal/modelusage"
+	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -140,14 +142,23 @@ func main() {
 	path := f.String("brief", "", "original creative brief JSON")
 	size := f.String("size", "1024x1536", "PNG dimensions")
 	reference := f.String("reference", "", "reference character artwork for image edits")
+	order := f.String("order", "", "reserved private preview billing order UUID")
 	f.Parse(os.Args[2:])
-	data, e := os.ReadFile(*path)
-	if e != nil {
-		log.Fatal(e)
-	}
 	var b brief
-	if len(data) > 16384 || json.Unmarshal(data, &b) != nil {
-		log.Fatal("invalid brief")
+	if *order == "" {
+		data, err := os.ReadFile(*path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if len(data) > 16384 || json.Unmarshal(data, &b) != nil {
+			log.Fatal("invalid brief")
+		}
+	} else {
+		f.Visit(func(flag *flag.Flag) {
+			if flag.Name != "order" {
+				log.Fatal("--order uses only the buyer's stored brief and size")
+			}
+		})
 	}
 	c, e := aiprovider.Config("MEDIA_AI")
 	if e != nil {
@@ -161,6 +172,9 @@ func main() {
 	defer cancel()
 	var db *pgxpool.Pool
 	spool := filepath.Join(root, "tidepost", "model-usage-outbox")
+	if *order != "" {
+		spool = modelusage.RecoveryDir()
+	}
 	if os.Getenv("DATABASE_URL") != "" {
 		db, e = knowledge.Open(ctx)
 		if e != nil {
@@ -178,9 +192,45 @@ func main() {
 		c.Quality = "medium"
 	}
 	c.Record = func(ctx context.Context, e modelusage.Event) error { return modelusage.Deliver(ctx, db, spool, e) }
+	if *order != "" {
+		if db == nil {
+			log.Fatal("--order requires PostgreSQL")
+		}
+		id, req, err := billing.ReadRequest(ctx, db, *order)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.Size = req.Size
+		if e = fulfill(ctx, db, id, c, brief(req.Brief), req.Size, root); e != nil {
+			log.Fatal(e)
+		}
+		fmt.Println("Processed private preview order", id)
+		return
+	}
 	dir, e := render(ctx, c, b, *size, filepath.Join(root, "tidepost", "art-previews"), *reference)
 	if e != nil {
 		log.Fatal(e)
 	}
 	fmt.Println(dir)
+}
+
+func fulfill(ctx context.Context, db *pgxpool.Pool, id string, c aiprovider.Client, b brief, size, root string) error {
+	if err := billing.Claim(ctx, db, id, c.Base, c.Account, c.Model); err != nil {
+		if errors.Is(err, billing.ErrConflict) {
+			return billing.FinalizePreview(ctx, db, id, "media-preview")
+		}
+		return err
+	}
+	c.Subject = "order:" + id
+	dir, err := render(ctx, c, b, size, filepath.Join(root, "tidepost", "art-previews"), "")
+	if err != nil {
+		finish, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		return errors.Join(err, billing.Change(finish, db, id, "", "cancel", "media-preview", "preview generation failed"))
+	}
+	defer os.RemoveAll(dir)
+	if err = billing.StorePreview(id, filepath.Join(dir, "candidate.png")); err != nil {
+		return err
+	}
+	return billing.FinalizePreview(ctx, db, id, "media-preview")
 }

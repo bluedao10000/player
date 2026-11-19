@@ -47,6 +47,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  media-preview:
+    profiles: ["billing-tools"]
+    build: ./apps/api
+    entrypoint: ["media", "generate-preview"]
+    environment:
+      <<: *database
+      MEDIA_AI_API_KEY: ${MEDIA_AI_API_KEY:-}
+      MEDIA_AI_BASE_URL: ${MEDIA_AI_BASE_URL:-}
+      MEDIA_AI_MODEL: ${MEDIA_AI_MODEL:-}
+      MEDIA_AI_ACCOUNT: ${MEDIA_AI_ACCOUNT:-default}
+      XDG_CACHE_HOME: /var/lib/knowledge/archive/preview-cache
+    volumes:
+      - knowledge-archive:/var/lib/knowledge/archive
   research-agent:
     build:
       context: .
