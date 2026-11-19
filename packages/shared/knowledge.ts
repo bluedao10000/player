@@ -204,6 +204,8 @@ function worldKey(key: string) {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(key)) throw new KnowledgeError(404)
   return key
 }
+export type DiscoveryWork = WorldCard & { chapters: ChapterCard[]; characters: CharacterCard[]; scene: SceneCard | null }
+export const discoveryCatalog = () => request<{ items: DiscoveryWork[] }>('discovery')
 export const homeWorlds = () =>
   request<{ items: HomeWorld[] }>('worlds?placement=home')
 export const getWorld = (work: string) =>

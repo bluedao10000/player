@@ -1,11 +1,11 @@
 import { siteName, siteOrigin } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
-import { Home } from '../features/post/editorial'
+import { DiscoverHome } from '../features/worlds/discover-pages'
 
-import { discovery } from '../features/worlds/api'
+import { discoverHome } from '../features/worlds/discover'
 
 export const Route = createFileRoute('/')({
-  loader: () => discovery(),
+  loader: () => discoverHome(),
   head: () => ({
     links: [{ rel: 'canonical', href: siteOrigin + '/' }],
     meta: [
@@ -13,9 +13,9 @@ export const Route = createFileRoute('/')({
       {
         name: 'description',
         content:
-          '从《潮汐邮局》《星际牛仔》和《火影忍者》进入作品世界，认识角色，阅读章节，重访故事里的场景。',
+          '发现动画与原创作品，翻开角色图鉴，阅读每部作品的故事和场景。',
       },
     ],
   }),
-  component: () => <Home works={Route.useLoaderData().items} />,
+  component: () => <DiscoverHome page={Route.useLoaderData()} />,
 })

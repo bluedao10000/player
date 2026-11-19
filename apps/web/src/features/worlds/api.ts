@@ -1,7 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
 import {
-  homeWorlds,
   getWorld,
   worldCharacter,
   worldChapter,
@@ -20,9 +19,6 @@ async function read<T>(fn: () => Promise<T>) {
 }
 type Child = { work: string; slug: string }
 const child = (data: Child) => data
-export const discovery = createServerFn({ method: 'GET' }).handler(() =>
-  homeWorlds(),
-)
 export const overview = createServerFn({ method: 'GET' })
   .validator((slug: string) => slug)
   .handler(({ data }) => read(() => getWorld(data)))

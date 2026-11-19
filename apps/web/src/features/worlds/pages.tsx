@@ -12,6 +12,7 @@ import type {
   WorldCard,
   WorldOverview,
 } from '@anime/shared/knowledge'
+import { ReadingProgress } from '../post/progress'
 import { Fragment } from 'react'
 
 export function WorldTrail({ work }: { work: WorldCard }) {
@@ -181,7 +182,7 @@ export function WorkPage({
 }: WorldOverview) {
   const film = isFeatureFilm(work)
   return (
-    <Layout active="发现">
+    <Layout active="作品">
       <WorldTrail work={work} />
       <Hero
         work={work}
@@ -362,6 +363,7 @@ export function ChapterPage({
   return (
     <Layout active="故事">
       <WorldTrail work={work} />
+      <ReadingProgress slug={chapter.href} href={chapter.href} title={chapter.title} work={work.title} containerId="chapter-body" />
       {accepted_art?.length ? (
         <header className="column episode-heading">
           <small className="world-kicker">
@@ -388,7 +390,7 @@ export function ChapterPage({
           image={chapter.image}
         />
       )}
-      <article className="column world-reading">
+      <article className="column world-reading" id="chapter-body">
         {reader_passages && (
           <ReadingBlocks
             blocks={reader_passages}

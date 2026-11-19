@@ -8,7 +8,8 @@ import type { IconName } from './icons'
 
 const nav = [
   ['发现', '/', 'compass'],
-  ['角色', '/character/mio', 'people'],
+  ['作品', '/works', 'map'],
+  ['角色', '/characters', 'people'],
   ['故事', '/stories', 'book'],
   ['我的', '/shelf', 'user'],
 ] as const
@@ -57,7 +58,7 @@ export function Layout({
             <b>{siteName}</b>
           </a>
           <nav className="top-nav" aria-label="主导航">
-            {nav.slice(0, 3).map((item) => (
+            {nav.slice(0, -1).map((item) => (
               <NavLink key={item[0]} item={item} active={active} />
             ))}
           </nav>

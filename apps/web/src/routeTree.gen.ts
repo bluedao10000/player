@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CharactersRouteImport } from './routes/characters'
 import { Route as CommissionsRouteImport } from './routes/commissions'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -17,6 +18,7 @@ import { Route as ShelfRouteImport } from './routes/shelf'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as WorkbenchRouteImport } from './routes/workbench'
+import { Route as WorksRouteImport } from './routes/works'
 import { Route as CharacterMioRouteImport } from './routes/character.mio'
 import { Route as EditorApiSplatRouteImport } from './routes/editor-api.$'
 import { Route as EditorPreviewIdRouteImport } from './routes/editor-preview.$id'
@@ -36,6 +38,11 @@ import { Route as WorkWorkKindSlugRouteImport } from './routes/work.$work.$kind.
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CharactersRoute = CharactersRouteImport.update({
+  id: '/characters',
+  path: '/characters',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommissionsRoute = CommissionsRouteImport.update({
@@ -71,6 +78,11 @@ const StoriesRoute = StoriesRouteImport.update({
 const WorkbenchRoute = WorkbenchRouteImport.update({
   id: '/workbench',
   path: '/workbench',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorksRoute = WorksRouteImport.update({
+  id: '/works',
+  path: '/works',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CharacterMioRoute = CharacterMioRouteImport.update({
@@ -151,6 +163,7 @@ const WorkWorkKindSlugRoute = WorkWorkKindSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -158,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
+  '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
   '/editor-preview/$id': typeof EditorPreviewIdRoute
@@ -176,6 +190,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -183,6 +198,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
+  '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
   '/editor-preview/$id': typeof EditorPreviewIdRoute
@@ -202,6 +218,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -209,6 +226,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
+  '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
   '/editor-preview/$id': typeof EditorPreviewIdRoute
@@ -229,6 +247,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/characters'
     | '/commissions'
     | '/healthz'
     | '/robots.txt'
@@ -236,6 +255,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/stories'
     | '/workbench'
+    | '/works'
     | '/character/mio'
     | '/editor-api/$'
     | '/editor-preview/$id'
@@ -254,6 +274,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/characters'
     | '/commissions'
     | '/healthz'
     | '/robots.txt'
@@ -261,6 +282,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/stories'
     | '/workbench'
+    | '/works'
     | '/character/mio'
     | '/editor-api/$'
     | '/editor-preview/$id'
@@ -279,6 +301,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/characters'
     | '/commissions'
     | '/healthz'
     | '/robots.txt'
@@ -286,6 +309,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/stories'
     | '/workbench'
+    | '/works'
     | '/character/mio'
     | '/editor-api/$'
     | '/editor-preview/$id'
@@ -305,6 +329,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CharactersRoute: typeof CharactersRoute
   CommissionsRoute: typeof CommissionsRoute
   HealthzRoute: typeof HealthzRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -312,6 +337,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoriesRoute: typeof StoriesRoute
   WorkbenchRoute: typeof WorkbenchRoute
+  WorksRoute: typeof WorksRoute
   CharacterMioRoute: typeof CharacterMioRoute
   EditorApiSplatRoute: typeof EditorApiSplatRoute
   EditorPreviewIdRoute: typeof EditorPreviewIdRoute
@@ -336,6 +362,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/characters': {
+      id: '/characters'
+      path: '/characters'
+      fullPath: '/characters'
+      preLoaderRoute: typeof CharactersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/commissions': {
@@ -385,6 +418,13 @@ declare module '@tanstack/react-router' {
       path: '/workbench'
       fullPath: '/workbench'
       preLoaderRoute: typeof WorkbenchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/works': {
+      id: '/works'
+      path: '/works'
+      fullPath: '/works'
+      preLoaderRoute: typeof WorksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/character/mio': {
@@ -497,6 +537,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CharactersRoute: CharactersRoute,
   CommissionsRoute: CommissionsRoute,
   HealthzRoute: HealthzRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
@@ -504,6 +545,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoriesRoute: StoriesRoute,
   WorkbenchRoute: WorkbenchRoute,
+  WorksRoute: WorksRoute,
   CharacterMioRoute: CharacterMioRoute,
   EditorApiSplatRoute: EditorApiSplatRoute,
   EditorPreviewIdRoute: EditorPreviewIdRoute,

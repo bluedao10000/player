@@ -1,43 +1,10 @@
 import { Dialogue, Narration, RoleplayComposer } from './roleplay-controls'
 import { useEffect, useState } from 'react'
 import { Icon } from './icons'
-import { artUrl, catalog, feature, stories, storyUrl } from './catalog'
+import { artUrl, catalog, storyUrl } from './catalog'
 import type { Story } from './catalog'
 import { Layout, StoryPreview } from './design'
 import { readLocal, writeLocal, shelfKey } from './storage'
-export function Library() {
-  const [filter, setFilter] = useState('全部')
-  return (
-    <Layout active="故事">
-      <div className="page-intro">
-        <div className="kicker">
-          <Icon name="mail" />
-          白帆港档案
-        </div>
-        <h1>故事来信</h1>
-        <p>从一封信、一趟船，读进港口的日常。</p>
-      </div>
-      <div className="filters" aria-label="按体裁筛选">
-        {['全部', '短篇故事', '角色手记', '剧情片段'].map((c) => (
-          <button
-            key={c}
-            aria-pressed={c === filter}
-            onClick={() => setFilter(c)}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
-      <div className="grid">
-        {[...stories, feature]
-          .filter((x) => filter === '全部' || x.category === filter)
-          .map((story) => (
-            <StoryPreview key={story.slug} story={story} />
-          ))}
-      </div>
-    </Layout>
-  )
-}
 export function Play({ story }: { story: Story }) {
   const key = 'tidepost.turn.v1.' + story.slug
   const [choice, setChoice] = useState<number | null>(null),

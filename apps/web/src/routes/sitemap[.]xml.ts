@@ -14,7 +14,7 @@ async function sitemap() {
       ...scenes.map(({ href }) => href),
       ...storylines.flatMap(({ chapters }) => chapters.map(({ href }) => href)),
     ]).filter((path) => publicWorkPath.test(path)))
-    const entries = ['/', ...Array.from(paths).sort()]
+    const entries = ['/', '/works', '/characters', '/stories', ...Array.from(paths).sort()]
       .map((path) => '  <url><loc>' + siteOrigin + path + '</loc></url>')
       .join('\n')
     return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`, {

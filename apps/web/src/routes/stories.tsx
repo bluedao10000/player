@@ -1,16 +1,25 @@
-import { siteTitle } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
-import { Library } from '../features/post/ui'
+import { siteOrigin, siteTitle } from '../site'
+import { DirectoryPage } from '../features/worlds/discover-pages'
+import { discoverDirectory, discoverySearch } from '../features/worlds/discover'
 
 export const Route = createFileRoute('/stories')({
+  validateSearch: discoverySearch,
+  loaderDeps: ({ search }) => search,
+  loader: ({ deps }) =>
+    discoverDirectory({ data: { ...deps, kind: 'stories' } }),
   head: () => ({
+    links: [{ rel: 'canonical', href: siteOrigin + '/stories' }],
     meta: [
-      { title: siteTitle('故事来信') },
-      {
-        name: 'description',
-        content: '阅读白帆港的短篇故事、角色手记和独立剧情片段。',
-      },
+      { title: siteTitle('故事书库') },
+      { name: 'description', content: '按作品浏览公开章节、短篇与分集故事。' },
     ],
   }),
-  component: Library,
+  component: () => (
+    <DirectoryPage
+      kind="stories"
+      page={Route.useLoaderData()}
+      search={Route.useSearch()}
+    />
+  ),
 })
