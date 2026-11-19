@@ -70,6 +70,7 @@ export function Character({
   work,
   character,
   appearances,
+  intro,
   scene_previews,
 }: CharacterDetail) {
   return (
@@ -80,9 +81,7 @@ export function Character({
         <div className="mio-trail">
           <section aria-label="出场章节">
             <h2>出场章节</h2>
-            <p className="mio-intro">
-              阿澪熟悉港口的每一盏航灯。她的制服口袋里总装着潮汐表和一枚铜哨，偶尔还有一封舍不得退回的信。
-            </p>
+            {intro && <p id="character-intro" className="mio-intro">{intro}</p>}
             <div className="mio-stories">
               {appearances.map((story) => (
                 <a key={story.slug} href={story.href}>

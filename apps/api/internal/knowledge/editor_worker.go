@@ -31,6 +31,14 @@ func editorialSources(ctx context.Context, db *pgxpool.Pool, j editorJob, endpoi
 		add := func(id, locator, text string) {
 			result = append(result, editSource{id, "local:worlddata/tidepost.json", locator, text, fmt.Sprintf("%x", sha256.Sum256([]byte(text)))})
 		}
+		if j.Base.ProfileFields != nil {
+			add("work-intro", m.Name+" / 作品简介", m.Intro)
+			for _, p := range m.People {
+				if _, ok := j.Base.ProfileFields["person/"+p.Slug]; ok {
+					add("cast-"+p.Slug, "人物设定 / "+p.Name, p.Name+" · "+p.Role)
+				}
+			}
+		}
 		for _, ch := range m.Chapters {
 			if ch.Slug != j.Chapter {
 				continue
@@ -73,7 +81,11 @@ func editorialSources(ctx context.Context, db *pgxpool.Pool, j editorJob, endpoi
 			}
 		} else {
 			label = "联网暂不可用，使用已核验快照"
-			if err := db.QueryRow(ctx, `SELECT documents FROM research_runs WHERE id=$1`, j.Base.Chapter.Research.Run).Scan(&docs); err != nil {
+			run := j.Base.Chapter.Research.Run
+			if j.Base.ResearchRun != "" {
+				run = j.Base.ResearchRun
+			}
+			if err := db.QueryRow(ctx, `SELECT documents FROM research_runs WHERE id=$1`, run).Scan(&docs); err != nil {
 				return nil, err
 			}
 		}
@@ -118,6 +130,23 @@ func checkChanges(j editorJob, changes []editChange) error {
 }
 func editorModel(ctx context.Context, endpoint string, j editorJob) (json.RawMessage, error) {
 	input := map[string]any{"instruction": j.Instruction, "feedback": j.Feedback, "issue": j.Issue, "work": j.World, "chapter": j.Chapter, "fields": j.Base.fields(), "sources": j.Sources, "draft": j.Draft}
+	if j.Status == "checking" {
+		// Pair the exact proposed text with its previous version. Unrelated live fields are outside the review.
+		fields := j.Base.fields()
+		type comparison struct {
+			editChange
+			Before string `json:"previous_published_text"`
+		}
+		rows := make([]comparison, 0, len(j.Draft))
+		for _, d := range j.Draft {
+			rows = append(rows, comparison{d, fields[d.Key]})
+		}
+		delete(input, "fields")
+		input["draft"] = rows
+	}
+	if j.Base.ProfileFields != nil {
+		input["scope"] = "人物介绍与世界观。person/<slug> 是本章登场人物的介绍，world/setting 是作品页世界观。只修改意见要求的字段；用本次取证范围内的事实，不提前透露后续剧情。"
+	}
 	body, err := json.Marshal(input)
 	if err != nil {
 		return nil, err

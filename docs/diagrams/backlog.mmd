@@ -10,14 +10,14 @@ config:
       top: 5
       bottom: 10
 ---
-%% 2026-11-19 · main，以 9f4a937 后的编辑工作台工作树及本地作品目录为基线。各行独立，箭头连接已有能力及其缺口。
+%% 2026-11-19 · main，以 bfabb4d 后的人物与世界观工作树及本地作品目录为基线。各行独立，箭头连接已有能力及其缺口。
 flowchart LR
     subgraph current["已实现"]
         metering["H5 预付约稿与模型计费<br/>支付宝充值、自动交付与余额扣退<br/>供应商日账单核对与同币种毛利"]
         play["角色互动<br/>预设剧情选项，本机书架与进度"]
         kb["知识库<br/>目录同步、分集取证、五维验收与发布"]
         picks["热门作品选题<br/>20 部已匹配目录，已发布作品世界 0 部"]
-        edit["AI 编辑工作台<br/>两个样板的章节与场景修订<br/>自动取证校对、手机预览、整项审发"]
+        edit["AI 编辑工作台<br/>两个样板的章节、场景、人物与世界观修订<br/>自动取证校对、手机预览、整项审发"]
         desk["工作台与作品判同<br/>工作台可查看取证、验图与返工<br/>Jev 判同已接入 Gin 管理接口"]
         seo["搜索引流<br/>公开内容 SSR、页面标题与描述"]
         app["移动端<br/>可在手机浏览器阅读和探索"]
@@ -28,7 +28,7 @@ flowchart LR
         rp["自由角色扮演<br/>用户登录、自由输入、角色状态推进<br/>服务端持久会话与跨设备续玩"]
         expand["扩展到更多作品<br/>接入不同结构的分集来源与校验规则<br/>支持按剧情语义检索知识库"]
         pilot["首批 2 部各做前 2 集<br/>《药屋》第三季、《学生会也有洞！》TV 版<br/>另有 1 部需先核对 TV 与 ONA 版本"]
-        cms["编辑范围扩展<br/>人物、世界观、互动片段成稿<br/>更多作品与首页推荐配置"]
+        cms["编辑范围扩展<br/>将互动片段整理为公开稿<br/>更多作品与首页推荐配置"]
         console["工作台用量与后台治理<br/>按任务看 token、缺失及冲突回执<br/>判同、重算等管理操作交给数据服务执行"]
         growth["全站 SEO / GEO<br/>自动 sitemap、结构化数据 JSON-LD<br/>补齐分享摘要与可引用的页面信息"]
         ios["iOS App<br/>接入原生壳并完成真机验收"]
@@ -55,8 +55,8 @@ flowchart LR
 %% expand | episodeSources 依赖 Naruto 官网页面结构及维基分集表；目录 API 按标题与别名查作品，接入另一种来源和剧情向量检索仍需开发。 | apps/agent/src/episode-plan.ts
 %% picks | 热度榜 20 项按 Bangumi ID 命中本地目录，其中 19 项符合现有 TV 与年份校验。 | docs/热门作品建库计划-2026-11-19.md
 %% pilot | 计划先验证续季集号与集内短篇，四集验收后用真实模型回执核算成本。《黑暗召唤师在地下恋爱中》的 TV/ONA 归属待核。 | docs/热门作品建库计划-2026-11-19.md
-%% edit | 审稿人提交一句话，在同一任务对照来源、手机预览并批准发布章节和场景。 | apps/web/src/features/workbench/editor-desk.tsx
-%% cms | 已跑通两个章节的修订；人物、世界观、互动片段与首页推荐仍待开发。 | docs/产品架构.md
+%% edit | 审稿人提交一句话，在同一任务对照来源、手机预览并按任务发布章节、场景、人物介绍或世界观。 | apps/web/src/features/workbench/editor-desk.tsx
+%% cms | 两个样板已支持人物与世界观修订；更多作品、互动片段与首页推荐待开发。 | docs/产品架构.md
 %% desk | 工作台 feed 汇集同步、质检、作品、研究、图片与范围记录，暂未消费管理端用量接口。 | apps/web/src/features/workbench/feed.ts
 %% console | 当前由已授权的 Gin 请求触发判同、部分质检和重算；跨云时数据服务需要异步命令和结果协议。 | apps/api/internal/knowledge/curation.go
 %% seo | H5 内容可 SSR，若干路由已有 head 元信息。 | apps/web/src/routes

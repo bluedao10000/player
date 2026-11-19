@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { ChapterDetail, SceneDetail } from '@anime/shared/knowledge'
+import { editedField, type EditorPages } from './editor-pages'
 
 type Scope = { World: string; Chapter: string; Name: string }
 type Task = {
   id: string
   world: string
   chapter: string
+  kind: 'chapter' | 'profiles'
   instruction: string
   status: string
   round: number
@@ -20,7 +21,7 @@ type Source = {
   sha256: string
 }
 type Detail = Task & {
-  base: { chapter: ChapterDetail; scenes: Record<string, SceneDetail> }
+  base: EditorPages
   issue: string
   reviewer: string
   feedback: string
@@ -96,6 +97,7 @@ export function EditorDesk() {
     [selected, select] = useState(''),
     [task, setTask] = useState<Detail | null>(null)
   const [scope, setScope] = useState('naruto-tv-2002'),
+    [kind, setKind] = useState<Task['kind']>('chapter'),
     [input, setInput] = useState(''),
     [note, setNote] = useState(''),
     [error, setError] = useState(''),
@@ -154,12 +156,13 @@ export function EditorDesk() {
     void act(async () => {
       const target = list?.scopes.find((s) => s.World === scope)
       if (!target || !input.trim()) return
-      const fingerprint = JSON.stringify([scope, input.trim()])
+      const fingerprint = JSON.stringify([scope, kind, input.trim()])
       if (request.current?.fingerprint !== fingerprint)
         request.current = { fingerprint, id: crypto.randomUUID() }
       const { id } = await api<{ id: string }>('tasks', {
         world: target.World,
         chapter: target.Chapter,
+        kind,
         instruction: input.trim(),
         request_id: request.current.id,
       })
@@ -189,7 +192,10 @@ export function EditorDesk() {
       '?round=' +
       task.round +
       '&attempt=' +
-      task.attempt
+      task.attempt +
+      (task.kind === 'profiles' && task.draft[0]
+        ? '&page=' + encodeURIComponent(task.draft[0].key)
+        : '')
     : ''
   const name = (w: string) => list?.scopes.find((s) => s.World === w)?.Name ?? w
   return (
@@ -272,6 +278,17 @@ export function EditorDesk() {
               </select>
             </label>
             <label>
+              <span id="editor-kind-label">编辑内容</span>
+              <select
+                aria-labelledby="editor-kind-label"
+                value={kind}
+                onChange={(e) => setKind(e.target.value as Task['kind'])}
+              >
+                <option value="chapter">章节与场景</option>
+                <option value="profiles">人物介绍与世界观</option>
+              </select>
+            </label>
+            <label>
               修改意见
               <textarea
                 required
@@ -295,12 +312,15 @@ export function EditorDesk() {
                   onClick={() => {
                     select(t.id)
                     setScope(t.world)
+                    setKind(t.kind)
                     setTask(null)
                     setNote('')
                   }}
                 >
                   <small>
-                    {name(t.world)} · {status[t.status]}
+                    {name(t.world)} ·{' '}
+                    {t.kind === 'profiles' ? '人物与世界观' : '章节与场景'} ·{' '}
+                    {status[t.status]}
                   </small>
                   {t.instruction}
                 </button>
@@ -320,28 +340,15 @@ export function EditorDesk() {
                     <>
                       <h3>本轮修订</h3>
                       {task.draft.map((d) => {
-                        const chapter = task.base.chapter,
-                          field = d.key.split('/')[1],
-                          blocks = chapter.reader_passages ?? chapter.blocks,
-                          blockIndex = blocks.findIndex((b) => b.key === field),
-                          block = blocks[blockIndex],
-                          scene = task.base.scenes[field],
+                        const { label, before } = editedField(task.base, d.key),
                           source = task.sources.find((s) => s.id === d.source)
                         return (
                           <article key={d.key} className="ed-change">
-                            <small>
-                              {d.key.startsWith('scene/')
-                                ? '场景 · ' + scene?.scene.title
-                                : '章节 · 第 ' + (blockIndex + 1) + ' 段'}
-                            </small>
+                            <small>{label}</small>
                             <p>{d.text}</p>
                             <details>
                               <summary>对照原稿与出处</summary>
-                              <p>
-                                {d.key.startsWith('scene/')
-                                  ? scene?.scene.text
-                                  : block?.text}
-                              </p>
+                              <p>{before}</p>
                               <blockquote>{d.quote}</blockquote>
                               {source?.uri.startsWith('https://') ? (
                                 <a
@@ -408,7 +415,20 @@ export function EditorDesk() {
                 {task.status === 'published' && (
                   <p>
                     {task.reviewer} 已审核 ·{' '}
-                    <a href={task.base.chapter.chapter.href}>查看公开章节 ↗</a>
+                    {'profile_pages' in task.base ? (
+                      task.draft.map((d) => {
+                        const field = editedField(task.base, d.key)
+                        return (
+                          <a key={d.key} href={field.href}>
+                            {field.label} ↗　
+                          </a>
+                        )
+                      })
+                    ) : (
+                      <a href={task.base.chapter.chapter.href}>
+                        查看公开章节 ↗
+                      </a>
+                    )}
                   </p>
                 )}
                 <h3>执行记录</h3>

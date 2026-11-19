@@ -127,3 +127,80 @@ func TestEditorialReviewAndPublication(t *testing.T) {
 	call("POST", "editor/logout", session, nil, 204)
 	call("GET", "editor/tasks", session, nil, 401)
 }
+
+func TestEditorialProfilesShareAWorkHead(t *testing.T) {
+	ctx := context.Background()
+	db := testStore(t)
+	if err := Sweep(ctx, db, "tidepost-original", true, false); err != nil {
+		t.Fatal(err)
+	}
+	const world = "tidepost"
+	const chapter = "night-courier"
+	var snapshot editSnapshot
+	if err := db.QueryRow(ctx, "select editor_task_snapshot($1,$2,'profiles')", world, chapter).Scan(&snapshot); err != nil {
+		t.Fatal(err)
+	}
+	fields := snapshot.fields()
+	if _, ok := fields["person/captain"]; ok || len(fields) != 2 || fields["person/mio"] == "" || fields["world/setting"] != "" {
+		t.Fatalf("incorrect chapter scope: %v", fields)
+	}
+	sources := []editSource{{ID: "src", Text: "阿澪打开了红邮筒。"}}
+	job := editorJob{Base: snapshot, Sources: sources}
+	if err := checkChanges(job, []editChange{{"person/captain", "船长出现", "src", "阿澪打开了红邮筒"}}); err == nil {
+		t.Fatal("unrelated character admitted")
+	}
+	const bio = "阿澪上夜班时先打开红邮筒。"
+	const setting = "潮水漫过白帆港栈桥时，末班船正在解缆。"
+	both := []editChange{{"person/mio", bio, "src", "阿澪打开了红邮筒"}, {"world/setting", setting, "src", "阿澪打开了红邮筒"}}
+	if err := checkChanges(job, both); err != nil {
+		t.Fatal(err)
+	}
+	create := func(draft []editChange) string {
+		t.Helper()
+		var id string
+		err := db.QueryRow(ctx, `INSERT INTO editor_tasks(request_id,world,chapter,kind,instruction,author,base,base_head,status,draft)
+ SELECT gen_random_uuid(),$1,$2,'profiles','修改介绍','tester',editor_task_snapshot($1,$2,'profiles'),(SELECT task FROM editor_heads WHERE world=$1 AND chapter IS NULL),'review',$3 RETURNING id`, world, chapter, draft).Scan(&id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	current := func() (string, string) {
+		t.Helper()
+		var b, s string
+		if err := db.QueryRow(ctx, `SELECT editor_profile_text(editor_public_profile(editor_raw_person($1,'mio'),$1,'person/mio'),'person/mio'),
+ editor_profile_text(editor_public_profile(editor_raw_overview($1),$1,'world/setting'),'world/setting')`, world).Scan(&b, &s); err != nil {
+			t.Fatal(err)
+		}
+		return b, s
+	}
+	first, stale := create(both), create(both)
+	if b, s := current(); b != fields["person/mio"] || s != "" {
+		t.Fatal("draft is public")
+	}
+	var preview string
+	if err := db.QueryRow(ctx, `select (editor_profile_preview(base,draft)#>>'{profile_pages,world/setting,world_setting}') from editor_tasks where id=$1`, first).Scan(&preview); err != nil || preview != setting {
+		t.Fatal("missing world preview", err)
+	}
+	approve := func(id string) error { return editorDecision(ctx, db, id, "approve", "tester", "", 1, 1) }
+	if err := approve(first); err != nil {
+		t.Fatal(err)
+	}
+	if err := approve(stale); err != errEditStale {
+		t.Fatalf("stale publish: %v", err)
+	}
+	if b, s := current(); b != bio || s != setting {
+		t.Fatal("partial publication", b, s)
+	}
+	both[1].Text = "白帆港的末班船正在解缆。"
+	if err := approve(create(both[1:])); err != nil {
+		t.Fatal(err)
+	}
+	if b, s := current(); b != bio || s != both[1].Text {
+		t.Fatal("world-only edit lost previous bio", b, s)
+	}
+	var count int
+	if err := db.QueryRow(ctx, "SELECT count(*) FROM editor_heads WHERE world=$1 AND chapter IS NOT NULL", world).Scan(&count); err != nil || count != 0 {
+		t.Fatal("chapter publication was affected", err)
+	}
+}

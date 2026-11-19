@@ -14,7 +14,7 @@ export const Route = createFileRoute('/work/$work/$kind/$slug')({
           kind: 'character' as const,
           page,
           title: page.character.name,
-          summary: page.character.role,
+          summary: page.intro ?? page.character.role,
         }
       }
       case 'chapter': {

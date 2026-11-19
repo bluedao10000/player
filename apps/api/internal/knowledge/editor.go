@@ -20,7 +20,9 @@ var editorScopes = []editorScope{{"naruto-tv-2002", "enter-naruto", "火影忍�
 
 type editBlock struct{ Key, Text string }
 type editSnapshot struct {
-	Chapter struct {
+	ProfileFields map[string]string `json:"fields"`
+	ResearchRun   string            `json:"research_run"`
+	Chapter       struct {
 		Blocks   []editBlock
 		Passages []editBlock `json:"reader_passages"`
 		Research struct {
@@ -31,6 +33,9 @@ type editSnapshot struct {
 }
 
 func (s editSnapshot) fields() map[string]string {
+	if s.ProfileFields != nil {
+		return s.ProfileFields
+	}
 	out := map[string]string{}
 	blocks := s.Chapter.Passages
 	if blocks == nil {
@@ -128,13 +133,13 @@ func editorRoutes(r *gin.Engine, admin *gin.RouterGroup, db *pgxpool.Pool) {
 	})
 	g.GET("/tasks", func(c *gin.Context) {
 		queryJSON(c, db, `SELECT jsonb_build_object('tasks',coalesce(jsonb_agg(to_jsonb(t) ORDER BY created_at DESC),'[]'),'scopes',$1::jsonb)
- FROM (SELECT id,world,chapter,instruction,status,round,attempt,created_at FROM editor_tasks ORDER BY created_at DESC LIMIT 100)t`, editorScopes)
+ FROM (SELECT id,world,chapter,kind,instruction,status,round,attempt,created_at FROM editor_tasks ORDER BY created_at DESC LIMIT 100)t`, editorScopes)
 	})
 	g.POST("/tasks", func(c *gin.Context) {
 		var v struct {
-			World, Chapter string
-			Instruction    string `binding:"required,max=1400"`
-			RequestID      string `json:"request_id" binding:"uuid,required"`
+			World, Chapter, Kind string
+			Instruction          string `binding:"required,max=1400"`
+			RequestID            string `json:"request_id" binding:"uuid,required"`
 		}
 		if !editorRequest(c, &v) {
 			return
@@ -146,20 +151,23 @@ func editorRoutes(r *gin.Engine, admin *gin.RouterGroup, db *pgxpool.Pool) {
 				allowed = true
 			}
 		}
-		if !allowed || v.Instruction == "" {
+		if v.Kind == "" {
+			v.Kind = "chapter"
+		}
+		if !allowed || v.Instruction == "" || (v.Kind != "chapter" && v.Kind != "profiles") {
 			c.Status(400)
 			return
 		}
 		var id string
 		err := pgx.BeginFunc(c.Request.Context(), db, func(tx pgx.Tx) error {
-			err := tx.QueryRow(c.Request.Context(), `INSERT INTO editor_tasks(request_id,world,chapter,instruction,author,base,base_head)
- SELECT $1,$2,$3,$4,$5,base,(SELECT task FROM editor_heads WHERE world=$2 AND chapter=$3) FROM editor_snapshot($2,$3) base WHERE base IS NOT NULL
- ON CONFLICT(request_id) DO NOTHING RETURNING id`, v.RequestID, v.World, v.Chapter, v.Instruction, c.GetString("operator")).Scan(&id)
+			err := tx.QueryRow(c.Request.Context(), `INSERT INTO editor_tasks(request_id,world,chapter,instruction,author,base,base_head,kind)
+ SELECT $1,$2,$3,$4,$5,base,(SELECT task FROM editor_heads WHERE world=$2 AND chapter IS NOT DISTINCT FROM (CASE WHEN $6='chapter' THEN $3::text END)),$6 FROM editor_task_snapshot($2,$3,$6) base WHERE base IS NOT NULL
+ ON CONFLICT(request_id) DO NOTHING RETURNING id`, v.RequestID, v.World, v.Chapter, v.Instruction, c.GetString("operator"), v.Kind).Scan(&id)
 			if errors.Is(err, pgx.ErrNoRows) {
-				return tx.QueryRow(c.Request.Context(), "SELECT id FROM editor_tasks WHERE request_id=$1 AND world=$2 AND chapter=$3 AND instruction=$4 AND author=$5", v.RequestID, v.World, v.Chapter, v.Instruction, c.GetString("operator")).Scan(&id)
+				return tx.QueryRow(c.Request.Context(), "SELECT id FROM editor_tasks WHERE request_id=$1 AND world=$2 AND chapter=$3 AND instruction=$4 AND author=$5 AND kind=$6", v.RequestID, v.World, v.Chapter, v.Instruction, c.GetString("operator"), v.Kind).Scan(&id)
 			}
 			if err == nil {
-				return editorEvent(c.Request.Context(), tx, id, "created", "已保存编辑意见与当时公开的章节、场景", nil)
+				return editorEvent(c.Request.Context(), tx, id, "created", "已保存编辑意见与对应页面的公开底稿", nil)
 			}
 			return err
 		})
@@ -189,7 +197,7 @@ func editorRoutes(r *gin.Engine, admin *gin.RouterGroup, db *pgxpool.Pool) {
           WHERE 'block/'||(b->>'key')=d->>'key'
           UNION ALL SELECT s.value#>>'{scene,text}' FROM jsonb_each(t.base->'scenes') s WHERE 'scene/'||s.key=d->>'key'
         ) o ON true)
-        SELECT jsonb_build_object('chapter',editor_render(t.base->'chapter',patch),'scenes',coalesce((SELECT jsonb_object_agg(key,editor_render(value,patch)) FROM jsonb_each(t.base->'scenes')),'{}')) FROM t,edits`, c.Param("id"), c.Query("round"), c.Query("attempt"))
+        SELECT CASE WHEN t.kind='profiles' THEN editor_profile_preview(t.base,t.draft) ELSE jsonb_build_object('chapter',editor_render(t.base->'chapter',patch),'scenes',coalesce((SELECT jsonb_object_agg(key,editor_render(value,patch)) FROM jsonb_each(t.base->'scenes')),'{}')) END FROM t,edits`, c.Param("id"), c.Query("round"), c.Query("attempt"))
 	})
 	g.POST("/tasks/:id/:action", func(c *gin.Context) {
 		var v struct {
@@ -234,11 +242,11 @@ var errEditStale = errors.New("此稿已变化，请刷新并核对最新版本"
 func editorDecision(ctx context.Context, db *pgxpool.Pool, id, action, operator, note string, round, attempt int) error {
 	stale := false
 	err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
-		var world, chapter, status string
+		var world, chapter, status, kind string
 		var r, a int
 		var draft []editChange
 		var base editSnapshot
-		err := tx.QueryRow(ctx, "SELECT world,chapter,status,round,attempt,draft,base FROM editor_tasks WHERE id=$1 FOR UPDATE", id).Scan(&world, &chapter, &status, &r, &a, &draft, &base)
+		err := tx.QueryRow(ctx, "SELECT world,chapter,kind,status,round,attempt,draft,base FROM editor_tasks WHERE id=$1 FOR UPDATE", id).Scan(&world, &chapter, &kind, &status, &r, &a, &draft, &base)
 		if err != nil {
 			return err
 		}
@@ -261,12 +269,18 @@ func editorDecision(ctx context.Context, db *pgxpool.Pool, id, action, operator,
 		if status != "review" {
 			return errEditStale
 		}
-		if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1,33))", world+"/"+chapter); err != nil {
+		var headChapter *string
+		lockKey := world + "/profiles"
+		if kind == "chapter" {
+			headChapter = &chapter
+			lockKey = world + "/chapter/" + chapter
+		}
+		if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1,33))", lockKey); err != nil {
 			return err
 		}
 		var same bool
 		var patch map[string]copyField
-		err = tx.QueryRow(ctx, `SELECT t.base=editor_snapshot(t.world,t.chapter) AND t.base_head IS NOT DISTINCT FROM h.task,coalesce(h.patch,'{}') FROM editor_tasks t LEFT JOIN editor_heads h USING(world,chapter) WHERE t.id=$1`, id).Scan(&same, &patch)
+		err = tx.QueryRow(ctx, `SELECT t.base=editor_task_snapshot(t.world,t.chapter,t.kind) AND t.base_head IS NOT DISTINCT FROM h.task,coalesce(h.patch,'{}') FROM editor_tasks t LEFT JOIN editor_heads h ON h.world=t.world AND h.chapter IS NOT DISTINCT FROM $2::text WHERE t.id=$1`, id, headChapter).Scan(&same, &patch)
 		if err != nil {
 			return err
 		}
@@ -286,7 +300,7 @@ func editorDecision(ctx context.Context, db *pgxpool.Pool, id, action, operator,
 			}
 			patch[d.Key] = copyField{original, d.Text}
 		}
-		if _, err = tx.Exec(ctx, `INSERT INTO editor_heads(world,chapter,task,patch) VALUES($1,$2,$3,$4) ON CONFLICT(world,chapter) DO UPDATE SET task=excluded.task,patch=excluded.patch`, world, chapter, id, patch); err != nil {
+		if _, err = tx.Exec(ctx, `INSERT INTO editor_heads(world,chapter,task,patch) VALUES($1,$2,$3,$4) ON CONFLICT(world,chapter) DO UPDATE SET task=excluded.task,patch=excluded.patch`, world, headChapter, id, patch); err != nil {
 			return err
 		}
 		if _, err = tx.Exec(ctx, "UPDATE editor_tasks SET status='published',reviewer=$2,published_at=now() WHERE id=$1", id, operator); err != nil {

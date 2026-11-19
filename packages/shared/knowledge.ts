@@ -103,6 +103,7 @@ export type ScopeAcceptance = {
   checks: {name: string; items: {label: string; evidence?: string; source?: string; gap?: string}[]}[]
 }
 export type WorldOverview = {
+  world_setting?: string
   completed_scope: {first: number; last: number; picks: EpisodeIllustration[]} | null
   reader_intro: { premise: string; setting: string } | null
   work: WorldCard

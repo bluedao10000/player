@@ -173,6 +173,7 @@ export function WorkPage({
   characters,
   storylines,
   reader_intro,
+  world_setting,
   completed_scope,
   scenes,
 }: WorldOverview) {
@@ -224,10 +225,10 @@ export function WorkPage({
           <SectionHeader>{work.cast_title}</SectionHeader>
           <PeopleList people={characters} />
         </section>
-        {reader_intro && (
-          <section className="world-section">
+        {(reader_intro?.setting || world_setting) && (
+          <section className="world-section" id="world-setting">
             <SectionHeader>世界观</SectionHeader>
-            <p>{reader_intro.setting}</p>
+            <p>{reader_intro?.setting || world_setting}</p>
           </section>
         )}
         {storylines.map((line) => (
@@ -273,7 +274,7 @@ export function PersonPage({
           <small className="world-kicker">{work.title} · 人物</small>
           <h1>{character.name}</h1>
           <p className="person-role">{character.role}</p>
-          {intro && <p>{intro}</p>}
+          {intro && <p id="character-intro">{intro}</p>}
         </div>
       </header>
       <div className="world-body">

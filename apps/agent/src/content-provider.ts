@@ -19,7 +19,9 @@ export function contentProvider(run: string, phase: string, scope = 'research') 
   const model = {
     ...(template ?? {
       input: ['text'] as 'text'[],
-      reasoning: false,
+      // Pi emits the DeepSeek thinking switch only for reasoning-capable models.
+      reasoning: scope === 'editor' && protocol === 'chat-completions' &&
+        new URL(p.base).hostname === 'api.deepseek.com' && p.model === 'deepseek-flash',
       contextWindow: 32000,
       maxTokens: 4096,
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },

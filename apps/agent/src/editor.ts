@@ -16,7 +16,7 @@ const rules =
 const writer =
   '依据意见和自检问题做最小改动。只返回 JSON 数组，每项 {"key":"被改字段原键","text":"修订后完整正文","source":"材料 id","quote":"该材料 text 中连续、逐字一致的原文摘录"}。至少修改一个字段，每个字段只出现一次。若需修两处，在同一批次给出。引用英文材料时保留英文原文。缺乏依据时不要补造。'
 const critic =
-  '独立审稿，逐项对照 sources、原文、读者意见核对 draft。检查事实、前后因果、文风、任务是否完成和证据能否支撑新增事实。不要因没有修改无关段落而退回。只返回 JSON 对象 {"pass":true或false,"note":"明确中文理由或可执行的返工要求"}。'
+  '独立审稿，逐项检查 draft 中每条 text（将要发布的正文），previous_published_text 是修改前的旧文。只评价新正文是否落实编辑意见，对照来源和引文核验事实。检查事实、前后因果、文风、任务是否完成和证据能否支撑新增事实。不要因没有修改无关段落而退回。只返回 JSON 对象 {"pass":true或false,"note":"明确中文理由或可执行的返工要求"}。'
 
 export async function editText(
   dir: string,
@@ -46,6 +46,7 @@ export async function editText(
       const root = await harness.root(ctx, {
         agent: {
           model: { provider: 'openai', modelId: profile('content').model },
+          thinkingLevel: 'off',
           tools: [],
           maxTurns: 1,
         },
@@ -83,6 +84,8 @@ export async function editText(
         .flatMap((p) => (p.type === 'text' ? [p.text] : []))
         .join('')
         .trim()
+      if (!text || msg.stopReason === 'length')
+        throw Error('内容模型未返回完整修订，终止原因：' + msg.stopReason)
       return JSON.parse(text.replace(/^`{3}(?:json)?\s*|\s*`{3}$/g, ''))
     } finally {
       await harness.close(ctx)
