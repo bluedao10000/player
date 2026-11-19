@@ -51,6 +51,16 @@
         "sourceSHA": "97809531453daf5275b2b210ca8f0fdb8f88ab67803076db66f90ca4b904dd41",
         "brief": "参考图中薄荷绿短发的尾鸟丹，制作单人普通校刊头像，保持脸部、发色与制服，背景干净。"
       }
+    },
+    {
+      "slug": "komaro",
+      "name": "陆奥小麻吕",
+      "role": "水之江梅的同班同学，担任学生会庶务",
+      "portrait": {
+        "referenceURL": "https://nama-anaru.com/teaser_assets/img/chara/face/chara_03_face_A.png",
+        "sourceSHA": "0ffc43610d02344cdb517609b7c9a7934af41047dc3d647bc3df567a00f607ac",
+        "brief": "绘制陆奥小麻吕的单人校刊头像。参考图中橙粉色短发、蓝眼与齐刘海。制服整齐，柔和表情，简洁纯色背景。"
+      }
     }
   ],
   "episodes": [
@@ -130,6 +140,89 @@
         "referenceURL": "https://nama-anaru.com/episode/SYS/CONTENTS/story_4714_photo_1790228019234428432",
         "sourceSHA": "3349ed88ab43a3fdb360535fc2d029fb40ba38d001ba25ce10f3666b69a86cf7",
         "brief": "为校园日常导读绘制学生会室内新任书记第一次工作的横向插画。以参考中的棕发眼镜男生水之江梅为唯一人物，校服整齐，居中坐在木桌前看工作笔记，神情略紧张。窗光、纸张和一本空白笔记即可。无文字、无其他人物。"
+      }
+    },
+    {
+      "number": 2,
+      "slug": "night-patrol-and-komaro",
+      "title": "救场的丹、夜巡与小麻吕",
+      "intro": "合宿手册临时告急，学生会还要在夜里巡视校园。清晨，水之江梅又遇见了新同伴。",
+      "official": "https://nama-anaru.com/episode/?id=2",
+      "officialTitle": "「メシアたん」 「七不思議と夜のお仕事」 「こまろ現る！！」",
+      "guide": "https://2jigen-otaku.com/seitokai-ana-2wa/",
+      "guideTitle": "アニメ【生徒会にも穴はある】2話",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "1本目「メシアたん」は",
+          "question": "第一则短篇开场。交代尾鸟丹更新校园宣传和照井有栖的互动，只写分工与日常相处。省去肢体玩笑。"
+        },
+        {
+          "kind": "turn",
+          "needle": "本題はここからでした",
+          "question": "写水泳部的疏漏怎样让合宿手册急需补做，古都吹寿子为什么一个人扛下任务，尾鸟丹怎样用电脑救场。省去私密情节。"
+        },
+        {
+          "kind": "cause",
+          "needle": "2本目は、夜の校舎の見回り",
+          "question": "明确进入第二则短篇，写水之江梅和照井有栖在夜里巡校，讲到七不思议的反差，只写有依据的情节。使用夜巡一词。"
+        },
+        {
+          "kind": "turn",
+          "needle": "3本目で、ついにこまろが登場",
+          "officialSentence": 1,
+          "question": "明确进入第三则短篇，写水之江梅清晨来到学生会室，发现出了交通意外仍到校的陆奥小麻吕。写清她是同班同学和学生会成员，略去受伤细节。"
+        },
+        {
+          "kind": "cause",
+          "needle": "そして会長は、先生が梅を",
+          "question": "用全名古都吹寿子、陆奥小麻吕和水之江梅，讲清会长把老师的安排误解成给小麻吕寻找搭档。这是人物想法，不确定老师真实意图。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "tan",
+          "name": "尾鸟丹",
+          "role": "为文化祭宣传的学生会宣传委员",
+          "beat": 2
+        },
+        {
+          "slug": "hisako",
+          "name": "古都吹寿子",
+          "role": "学生会会长",
+          "beat": 2
+        },
+        {
+          "slug": "ume",
+          "name": "水之江梅",
+          "role": "为免留级加入学生会的新任书记",
+          "beat": 4
+        },
+        {
+          "slug": "arisu",
+          "name": "照井有栖",
+          "role": "负责社团预算的学生会会计",
+          "beat": 3
+        },
+        {
+          "slug": "komaro",
+          "name": "陆奥小麻吕",
+          "role": "水之江梅的同班同学，担任学生会庶务",
+          "beat": 4
+        }
+      ],
+      "setting": [
+        "夜巡",
+        3
+      ],
+      "sceneSlug": "school-night-patrol",
+      "sceneName": "校园夜巡",
+      "place": "藤成学园 · 夜间走廊",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://nama-anaru.com/episode/SYS/CONTENTS/story_4751_photo_1791532631923383088",
+        "sourceSHA": "6246a451a2680b3a6b1adc4125320f84f575f2da4b42206efff5b10d1a3a432d",
+        "brief": "藤成学园校园夜巡的横向插画。以参考中黑色长直发齐刘海的照井有栖为唯一人物，整齐的水手校服，沿着晚间走廊巡视，隐约可见窗和室外蓝色月光。人物在画面中间，面部清楚，略显警觉但无惊吓动作，无文字或标志。"
       }
     }
   ]

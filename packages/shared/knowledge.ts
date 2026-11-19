@@ -105,7 +105,15 @@ export type ProductionUsage = {
   published_at: string | null
   last_media_at: string | null
   failed_research: number
+  episodes?: {
+    number: number
+    source_number: number | null
+    started_at: string | null
+    published_at: string | null
+    failed_research: number
+  }[]
   operations: {
+    number?: number | null
     purpose: string
     operation: string
     model: string

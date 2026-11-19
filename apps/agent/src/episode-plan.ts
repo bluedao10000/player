@@ -47,13 +47,13 @@ export async function readEpisodeDocuments(
   ])
   const fromTbs = new URL(p.official).hostname === 'www.tbs.co.jp'
   const film = p.official === 'https://lookback-anime.com/'
-  const apothecary = p.official === 'https://www.animatetimes.com/news/details.php?id=1790842934'
-  const council = p.official === 'https://nama-anaru.com/episode/?id=1'
+  const apothecary = /^https:\/\/www\.animatetimes\.com\/news\/details\.php\?id=(1790842934|1791440404)$/.test(p.official)
+  const council = p.number <= 2 && p.official === 'https://nama-anaru.com/episode/?id=' + p.number
   const sourceNumber = p.sourceNumber ?? p.number
   const japanese = fromTbs || film || apothecary || council
   const paragraphText = ($: CheerioAPI, selector: string) =>
     $(selector).toArray().map((x) => $(x).text().trim()).join(' ')
-  const apTitle = site('.news-content h2').filter((_, el) => site(el).text() === '第49話「蝗」')
+  const apTitle = site('.news-content h2').filter((_, el) => site(el).text() === p.officialTitle)
   const box = site('.storypage-wrap')
   const item = apothecary ? {
     number: Number(apTitle.text().match(/第(\d+)話/)?.[1]),
@@ -79,9 +79,10 @@ export async function readEpisodeDocuments(
   const plot = wiki('#Plot')
   const guideTitle = film ? plot.text().trim() : council ? wiki('h1').text() : row.find('.summary').text()
   const councilParagraphs = wiki('.entry-content p.wp-block-paragraph').toArray().map((x) => wiki(x).text())
-  const schoolSynopsis = councilParagraphs.filter((text) =>
-    ['主人公の水之江梅は', '1本目では、梅が', '仕事の説明でも', '2本目は、朝のあいさつ運動', 'そして全校集会での生徒会の発表', 'ところが発表の最後に映像のトラブルが起き'].some((start) => text.startsWith(start)),
-  ).join(' ')
+  const councilEpisodeOne = ['主人公の水之江梅は', '1本目では、梅が', '仕事の説明でも', '2本目は、朝のあいさつ運動', 'そして全校集会での生徒会の発表', 'ところが発表の最後に映像のトラブルが起き']
+  const councilEpisodeTwo = ['1本目「メシアたん」は', '本題はここからでした', '2本目は、夜の校舎の見回り', '青く沈んだ夜の校舎', '3本目で、ついにこまろが登場', 'そして会長は、先生が梅を']
+  const councilSections = p.number === 2 ? councilEpisodeTwo : councilEpisodeOne
+  const schoolSynopsis = councilParagraphs.filter((text) => councilSections.some((start) => text.startsWith(start))).join(' ')
   const paragraphs = plot.closest('section').children('p')
   const filmText = paragraphs.length ? paragraphs : plot.parent().nextUntil('h2,.mw-heading','p')
   filmText.find('sup').remove()

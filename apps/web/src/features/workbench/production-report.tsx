@@ -29,21 +29,47 @@ export function ProductionReport({ works }: { works: ProductionUsage[] | null })
             {' · 末次验图到发布 '}{duration(work.last_media_at, work.published_at)}
             {' · 取证返工 '}{work.failed_research} 次
           </p>
-          <ul>
-            {work.operations.map((step) => (
-              <li key={step.purpose + ':' + step.operation + ':' + step.model}>
-                <strong>{labels[step.purpose + ':' + step.operation] ?? step.operation}</strong>
-                {' · '}{step.model}{' · '}{step.calls} 次
-                {' · '}{step.tokens === null ? '用量未报告' : number.format(step.tokens) + ' token'}
-                {' · '}{step.seconds === null ? '耗时未报告' : number.format(step.seconds) + ' 秒'}
-                {step.images ? ' · ' + step.images + ' 张' : ''}
-                {step.errors ? ' · ' + step.errors + ' 次失败' : ''}
-                {step.unmetered ? ' · ' + step.unmetered + ' 条未计量' : ''}
-              </li>
-            ))}
-          </ul>
+          {work.episodes?.map((episode) => (
+            <details key={episode.number} open={episode.number === work.episodes?.at(-1)?.number}>
+              <summary>
+                第 {episode.number} 集
+                {episode.source_number ? ' · 全剧第 ' + episode.source_number + ' 话' : ''}
+                {' · '}{episode.published_at ? '已发布' : episode.started_at ? '制作中' : '待调度'}
+                {' · 调度到发布 '}{duration(episode.started_at, episode.published_at)}
+                {episode.failed_research ? ' · 取证返工 ' + episode.failed_research + ' 次' : ''}
+              </summary>
+              <Operations operations={work.operations.filter((step) => step.number === episode.number)} />
+            </details>
+          ))}
+          {work.episodes ? (
+            <details>
+              <summary>作品共享肖像</summary>
+              <Operations operations={work.operations.filter((step) => step.number == null)} />
+            </details>
+          ) : (
+            <Operations operations={work.operations} />
+          )}
         </article>
       ))}
     </section>
+  )
+}
+
+function Operations({ operations }: { operations: ProductionUsage['operations'] }) {
+  if (!operations.length) return <p>暂无模型回执。</p>
+  return (
+    <ul>
+      {operations.map((step) => (
+        <li key={step.purpose + ':' + step.operation + ':' + step.model}>
+          <strong>{labels[step.purpose + ':' + step.operation] ?? step.operation}</strong>
+          {' · '}{step.model}{' · '}{step.calls} 次
+          {' · '}{step.tokens === null ? '用量未报告' : number.format(step.tokens) + ' token'}
+          {' · '}{step.seconds === null ? '耗时未报告' : number.format(step.seconds) + ' 秒'}
+          {step.images ? ' · ' + step.images + ' 张' : ''}
+          {step.errors ? ' · ' + step.errors + ' 次失败' : ''}
+          {step.unmetered ? ' · ' + step.unmetered + ' 条未计量' : ''}
+        </li>
+      ))}
+    </ul>
   )
 }

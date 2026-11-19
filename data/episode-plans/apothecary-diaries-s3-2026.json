@@ -116,6 +116,73 @@
         "sourceSHA": "4e09cd76ddf0985b583c0243b59dd9bb118b66e120c13c131748cbad9458883c",
         "brief": "绘制绿青馆室内早餐的导读插画。以参考中的绿发紫眼药师猫猫为中心，她持筷在木桌边观察盘中的蝗虫食物，表情若有所思。镜头呈现古代室内和桌上餐具，人物与盘子居中、无文字。"
       }
+    },
+    {
+      "number": 2,
+      "sourceNumber": 50,
+      "slug": "fire-rat-cloak",
+      "title": "火鼠的皮衣 · 全剧第 50 话",
+      "intro": "猫猫带赵迂去买冬衣。古衣店一件织着奇怪纹样的白衣，让她重新思考西部的传说。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1791440404",
+      "officialTitle": "第50話「火鼠の皮衣」",
+      "guide": "https://en.wikipedia.org/wiki/List_of_The_Apothecary_Diaries_episodes#ep50",
+      "guideTitle": "The Fire-Rat Cloak",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "Jinshi ignores publications",
+          "question": "承接上集。写壬氏看到针对楼兰的刊物时的反应，以及猫猫的消息怎样接上此前的蝗灾线索。原文未说明消息具体内容时不要推断。"
+        },
+        {
+          "kind": "turn",
+          "needle": "While shopping with Chou-u",
+          "officialSentence": 2,
+          "question": "交代猫猫为何和赵迂去市集，赵迂在古衣店注意到什么，店主如何以“火鼠的皮衣”讲出天女传说。区分传说与猫猫检视布料的结论。"
+        },
+        {
+          "kind": "cause",
+          "needle": "Connecting the tale",
+          "question": "写猫猫如何从技艺与各方接触推断天女可能是探子；这是她的推测。"
+        },
+        {
+          "kind": "cause",
+          "needle": "Jinshi visits Maomao",
+          "question": "写壬氏与猫猫如何讨论可能发生的蝗灾，为什么要找另一卷昆虫笔记，以及两人谈完之后发生了什么。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "jinshi",
+          "name": "壬氏",
+          "role": "公开皇弟身份、忧心灾害预兆的朝廷成员",
+          "beat": 1
+        },
+        {
+          "slug": "maomao",
+          "name": "猫猫",
+          "role": "回到花街的药师",
+          "beat": 2
+        },
+        {
+          "slug": "chou-u",
+          "name": "赵迂",
+          "role": "留意到收成变化的孩子",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "古衣店",
+        2
+      ],
+      "sceneSlug": "secondhand-clothing-shop",
+      "sceneName": "古衣店里的白衣",
+      "place": "大街市集 · 古衣店",
+      "sceneBeat": 2,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/10/379d516edefcaa07323b32ec262dbef36ac738d707ffe4_79420680_3502b016a8e0cbbf10b58dc4f73762528f51229d.jpg",
+        "sourceSHA": "a1e8083d71cefd8618affd88430f290117868fa0964a3579790a268d1d053a3c",
+        "brief": "古衣店内，两位顾客在挂着白色长外衣的木墙前停下，猫猫保留绿色服装、深绿发与紫眼，短棕发的赵迂站在她身旁看向白衣。白衣袖子有藤蔓纹样。按参考识别人物和衣料，另构新的中景。人物、衣服都在画面中部并适合手机裁切，衣服只出现纹样，无可读文字。"
+      }
     }
   ]
 }

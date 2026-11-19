@@ -56,8 +56,10 @@ func (e episodeSpec) validate() error {
 	naruto := official.Host == "naruto-official.com" && strings.HasPrefix(official.Path, "/en/anime/")
 	takopi := official.Host == "www.tbs.co.jp" && official.Path == tbsPath && e.Number <= 6 && official.RawQuery == "" && official.Fragment == ""
 	lookBack := e.Number == 1 && e.Official == "https://lookback-anime.com/"
-	apothecary := e.Number == 1 && e.SourceNumber == 49 && e.Official == "https://www.animatetimes.com/news/details.php?id=1790842934"
-	council := e.Number == 1 && e.Official == "https://nama-anaru.com/episode/?id=1"
+	apothecaryReleases := map[int]string{49: "1790842934", 50: "1791440404"}
+	release, found := apothecaryReleases[e.SourceNumber]
+	apothecary := found && e.SourceNumber == e.Number+48 && e.Official == "https://www.animatetimes.com/news/details.php?id="+release
+	council := e.Number <= 2 && e.Official == fmt.Sprintf("https://nama-anaru.com/episode/?id=%d", e.Number)
 	if !naruto && !takopi && !lookBack && !apothecary && !council {
 		return errors.New("官方来源或标题无效")
 	}
@@ -70,14 +72,14 @@ func (e episodeSpec) validate() error {
 		}
 	}
 	if apothecary {
-		guideAnchor = "ep49"
-		if e.Guide != "https://en.wikipedia.org/wiki/List_of_The_Apothecary_Diaries_episodes#ep49" {
-			return errors.New("第49话分集表来源不匹配")
+		guideAnchor = fmt.Sprintf("ep%d", e.SourceNumber)
+		if e.Guide != "https://en.wikipedia.org/wiki/List_of_The_Apothecary_Diaries_episodes#"+guideAnchor {
+			return errors.New("《药屋》分集表来源不匹配")
 		}
 	}
 	if council {
-		if e.Guide != "https://2jigen-otaku.com/seitokai-ana-1wa/" {
-			return errors.New("TV第1话补充来源不匹配")
+		if e.Guide != fmt.Sprintf("https://2jigen-otaku.com/seitokai-ana-%dwa/", e.Number) {
+			return errors.New("TV 版分集补充来源不匹配")
 		}
 	} else if err != nil || guide.Scheme != "https" || guide.Host != "en.wikipedia.org" || !strings.HasPrefix(guide.Path, "/wiki/") || guide.Fragment != guideAnchor {
 		return errors.New("分集指南与集号不一致")
