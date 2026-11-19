@@ -32,10 +32,11 @@ type episodeSpec struct {
 	Setting []json.RawMessage
 }
 type editionPlan struct {
-	World, Title, Edition, Provider, ExternalID, Intro string
-	Year                                               int
-	People                                             []planCast
-	Episodes                                           []json.RawMessage
+	World, Title, Edition, Provider, ExternalID, Intro, Type string
+	Complete                                                 bool
+	Year                                                     int
+	People                                                   []planCast
+	Episodes                                                 []json.RawMessage
 }
 
 var planSlug = regexp.MustCompile("^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -45,11 +46,28 @@ func (e episodeSpec) validate() error {
 		return errors.New("缺少集号、稳定路由、标题或场景")
 	}
 	official, err := url.Parse(e.Official)
-	if err != nil || official.Scheme != "https" || official.Host != "naruto-official.com" || !strings.HasPrefix(official.Path, "/en/anime/") || e.OfficialTitle == "" {
+	tbsPath := fmt.Sprintf("/anime/takopi_project/series/story/story%02d.html", e.Number)
+	if e.Number == 6 {
+		tbsPath = "/anime/takopi_project/series/story/index.html"
+	}
+	if err != nil || official.User != nil || official.Scheme != "https" || e.OfficialTitle == "" {
+		return errors.New("官方来源或标题无效")
+	}
+	naruto := official.Host == "naruto-official.com" && strings.HasPrefix(official.Path, "/en/anime/")
+	takopi := official.Host == "www.tbs.co.jp" && official.Path == tbsPath && e.Number <= 6 && official.RawQuery == "" && official.Fragment == ""
+	lookBack := e.Number == 1 && e.Official == "https://lookback-anime.com/"
+	if !naruto && !takopi && !lookBack {
 		return errors.New("官方来源或标题无效")
 	}
 	guide, err := url.Parse(e.Guide)
-	if err != nil || guide.Scheme != "https" || guide.Host != "en.wikipedia.org" || !strings.HasPrefix(guide.Path, "/wiki/") || guide.Fragment != fmt.Sprintf("ep%d", e.Number) || e.GuideTitle == "" {
+	guideAnchor := fmt.Sprintf("ep%d", e.Number)
+	if lookBack {
+		guideAnchor = "Plot"
+		if e.Guide != "https://en.wikipedia.org/wiki/Look_Back_(2024_film)#Plot" {
+			return errors.New("电影版剧情来源不匹配")
+		}
+	}
+	if err != nil || guide.Scheme != "https" || guide.Host != "en.wikipedia.org" || !strings.HasPrefix(guide.Path, "/wiki/") || guide.Fragment != guideAnchor || e.GuideTitle == "" {
 		return errors.New("分集指南与集号不一致")
 	}
 	if len(e.Beats) < 4 || len(e.Beats) > 6 || e.SceneBeat < 1 || e.SceneBeat > len(e.Beats) || len(e.People) == 0 {
@@ -101,13 +119,36 @@ func registerEdition(ctx context.Context, tx pgx.Tx, w editionPlan) error {
 	if !planSlug.MatchString(w.World) || len(w.Episodes) == 0 || w.Edition == "" {
 		return fmt.Errorf("无效作品选题")
 	}
+	kind := w.Type
+	if kind == "" {
+		kind = "TV"
+	}
+	if kind != "TV" && kind != "ONA" && kind != "MOVIE" {
+		return errors.New("不支持的作品类型")
+	}
+	if w.Complete {
+		var count int
+		err := tx.QueryRow(ctx, `SELECT k.episodes FROM work_sources s JOIN works k ON k.id=s.work_id WHERE s.provider=$1 AND s.external_id=$2 AND k.active AND k.type=$3 AND k.season_year=$4 AND k.status='FINISHED'`, w.Provider, w.ExternalID, kind, w.Year).Scan(&count)
+		if err != nil {
+			return fmt.Errorf("核对已完结 canonical 作品的总集数: %w", err)
+		}
+		if count != len(w.Episodes) {
+			return fmt.Errorf("全作品集数与目录不一致：目录 %d，选题 %d", count, len(w.Episodes))
+		}
+		for i, raw := range w.Episodes {
+			var e episodeSpec
+			if json.Unmarshal(raw, &e) != nil || e.Number != i+1 {
+				return errors.New("整部选题必须从第 1 集连续排列")
+			}
+		}
+	}
 	var v int64
 	err := tx.QueryRow(ctx, "SELECT version_id FROM work_worlds WHERE slug=$1", w.World).Scan(&v)
 	if errors.Is(err, pgx.ErrNoRows) {
 		var work string
-		err = tx.QueryRow(ctx, `SELECT (SELECT DISTINCT k.id FROM work_sources s JOIN works k ON k.id=s.work_id WHERE s.provider=$1 AND s.external_id=$2 AND k.active AND k.type='TV' AND k.season_year=$3)::text`, w.Provider, w.ExternalID, w.Year).Scan(&work)
+		err = tx.QueryRow(ctx, `SELECT (SELECT DISTINCT k.id FROM work_sources s JOIN works k ON k.id=s.work_id WHERE s.provider=$1 AND s.external_id=$2 AND k.active AND k.type=$4 AND k.season_year=$3)::text`, w.Provider, w.ExternalID, w.Year, kind).Scan(&work)
 		if err != nil {
-			return fmt.Errorf("对照 canonical 作品与 TV 年份: %w", err)
+			return fmt.Errorf("对照 canonical 作品、类型与年份: %w", err)
 		}
 		meta, _ := json.Marshal([]string{w.World, w.Title, w.Edition, work, w.Intro})
 		sha := digest(meta)

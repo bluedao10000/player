@@ -90,3 +90,69 @@ func TestAppendEpisodeConfiguration(t *testing.T) {
 		t.Fatalf("pending acceptance heads=%d published=%d err=%v", heads, public, err)
 	}
 }
+
+func TestCompleteONARequiresEveryEpisode(t *testing.T) {
+	db := testStore(t)
+	dir := t.TempDir()
+	t.Setenv("EPISODE_PLAN_DIR", dir)
+	ctx := context.Background()
+	raw, err := os.ReadFile("../../../../data/episode-plans/takopi-ona-2025.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var plan editionPlan
+	if err = json.Unmarshal(raw, &plan); err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(ctx, `WITH k AS (INSERT INTO works(canonical_title,type,season_year,status,episodes) VALUES('fixture','ONA',2025,'FINISHED',6) RETURNING id) INSERT INTO work_sources SELECT id,'bangumi','527620','https://bgm.tv/subject/527620' FROM k`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "whole.json")
+	put := func(b []byte) {
+		t.Helper()
+		if err := os.WriteFile(path, b, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	missing := plan
+	missing.Episodes = missing.Episodes[:5]
+	gap, err := json.Marshal(missing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	put(gap)
+	if LoadEpisodePlans(ctx, db) == nil {
+		t.Fatal("accepted partial manifest as complete")
+	}
+	put(raw)
+	if err = LoadEpisodePlans(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	if err = LoadEpisodePlans(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	var episodes, published int
+	err = db.QueryRow(ctx, `SELECT (SELECT count(*) FROM episode_plans WHERE world_slug=$1),(SELECT count(*) FROM published_episode_scopes WHERE world_slug=$1)`, plan.World).Scan(&episodes, &published)
+	if err != nil || episodes != 6 || published != 0 {
+		t.Fatalf("episodes=%d published=%d err=%v", episodes, published, err)
+	}
+	// Two failed HTTP dispatches exhaust the normal automatic retries. Repairing
+	// the upstream should reopen only the failed generation, preserving both receipts.
+	if _, err = db.Exec(ctx, `UPDATE media_candidates SET art_job=(SELECT min(id) FROM episode_art_jobs),stage='failed',reason='模型服务 HTTP 403' WHERE slot IN (1,2);
+		INSERT INTO media_steps(slot,round,step,attempt,error,finished_at) VALUES
+		(1,1,'generate',1,'模型服务 HTTP 502',now()),(1,1,'generate',2,'模型服务 HTTP 403',now()),
+		(2,1,'review',1,'模型服务 HTTP 403',now())`); err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []int64{1, 0} {
+		n, err := ResumeImageProviderFailures(ctx, db, plan.World)
+		if err != nil || n != expected {
+			t.Fatalf("resumed %d expected %d: %v", n, expected, err)
+		}
+	}
+	var attempt, receipts int
+	if err = db.QueryRow(ctx, `SELECT attempt,(SELECT count(*) FROM media_steps WHERE slot=1) FROM media_candidates WHERE slot=1 AND stage='generate'`).Scan(&attempt, &receipts); err != nil || attempt != 3 || receipts != 2 {
+		t.Fatalf("attempt=%d receipts=%d err=%v", attempt, receipts, err)
+	}
+}

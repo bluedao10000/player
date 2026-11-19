@@ -195,6 +195,7 @@ export async function research(
         )
       ).wait(ctx)
       if (draft.status !== 'done') throw Error('Pi 剧情串联未完成')
+      models.setProvider(contentProvider(run, 'review'))
       const review = await (
         await root.submit(
           {

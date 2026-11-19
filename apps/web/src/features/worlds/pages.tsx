@@ -168,6 +168,8 @@ function IllustratedOpening({
   )
 }
 
+const isFeatureFilm = (work: WorldCard) => work.edition_label?.endsWith(' · 全片')
+
 export function WorkPage({
   work,
   characters,
@@ -177,6 +179,7 @@ export function WorkPage({
   completed_scope,
   scenes,
 }: WorldOverview) {
+  const film = isFeatureFilm(work)
   return (
     <Layout active="发现">
       <WorldTrail work={work} />
@@ -191,7 +194,7 @@ export function WorkPage({
         {completed_scope && (
           <section className="world-section">
             <SectionHeader>
-              第 {completed_scope.first}–{completed_scope.last} 集 · 已完成
+              {film ? '全片 · 已完成' : `第 ${completed_scope.first}–${completed_scope.last} 集 · 已完成`}
             </SectionHeader>
             <div className="episode-illustrations">
               {completed_scope.picks.map((pic) => (
@@ -234,7 +237,7 @@ export function WorkPage({
         {storylines.map((line) => (
           <section key={line.slug} className="world-section">
             <small className="world-kicker">
-              {reader_intro ? '分集故事' : '故事线'}
+              {film ? '全片导读' : reader_intro ? '分集故事' : '故事线'}
             </small>
             <SectionHeader>{line.title}</SectionHeader>
             <p>{line.intro}</p>
@@ -362,7 +365,7 @@ export function ChapterPage({
       {accepted_art?.length ? (
         <header className="column episode-heading">
           <small className="world-kicker">
-            {work.title} · {chapter.label} · 本集已完成
+            {work.title} · {isFeatureFilm(work) ? '全片已完成' : `${chapter.label} · 本集已完成`}
           </small>
           <h1>{chapter.title}</h1>
           <p>{chapter.intro}</p>

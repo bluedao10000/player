@@ -169,3 +169,72 @@ test('Pi transports and image/vision calls retain independent, replayable provid
   acknowledgeUsage(records.map((r) => r.event_id))
   assert.equal(pendingUsage().length, 0)
 })
+
+test('Magpie content and image use their gateway routes independently of direct vision', async (t) => {
+  const values = {
+    CONTENT_AI_MODE: 'magpie',
+    CONTENT_AI_API_KEY: 'direct-only',
+    CONTENT_AI_MODEL: 'direct-model',
+    MEDIA_AI_MODE: 'magpie',
+    MAGPIE_IMAGE_MODEL: 'google/gemini-3.1-flash-image',
+    MEDIA_AI_API_KEY: 'direct-image',
+    VISION_AI_API_KEY: 'direct-vision',
+    ORIGINAL_MEDIA_AI_MODE: 'magpie',
+    MAGPIE_ORIGINAL_IMAGE_MODEL: 'volcengine/doubao-seedream-5-0-pro',
+    MAGPIE_CONTENT_MODEL: 'vendor/suite/model',
+    MAGPIE_API_KEY: 'gateway-only',
+    MAGPIE_ACCOUNT: 'gateway-account',
+    MAGPIE_BASE_URL: 'https://gateway.example/v1',
+  }
+  for (const [name, value] of Object.entries(values)) {
+    const previous = process.env[name]
+    t.after(() => previous === undefined ? delete process.env[name] : process.env[name] = previous)
+    process.env[name] = value
+  }
+  const p = profile('content')
+  assert.equal(p.model, values.MAGPIE_CONTENT_MODEL)
+  assert.equal(p.key, 'gateway-only')
+  assert.equal(p.account, 'gateway-account')
+  assert.equal(profile('image').model, values.MAGPIE_IMAGE_MODEL)
+  assert.equal(profile('image').key, 'gateway-only')
+  assert.equal(profile('vision').key, 'direct-vision')
+  process.env.MEDIA_AI_MODE = 'direct'
+  assert.equal(profile('image').key, 'direct-image')
+  assert.equal(profile('image', true).model, values.MAGPIE_ORIGINAL_IMAGE_MODEL)
+  assert.equal(profile('image', true).key, 'gateway-only')
+  assert.equal(contentProvider('test', 'research').getModels()[0].api, 'openai-completions')
+  delete process.env.MAGPIE_API_KEY
+  assert.throws(() => profile('content'), /MAGPIE_API_KEY/)
+  process.env.MAGPIE_BASE_URL = 'http://host.docker.internal:3425/v1'
+  assert.equal(profile('content').key, 'magpie')
+  process.env.MAGPIE_BASE_URL = 'http://example.com/v1'
+  assert.throws(() => profile('content'), /BASE_URL/)
+  process.env.CONTENT_AI_MODE = 'direct'
+  assert.equal(profile('content').key, 'direct-only')
+  assert.equal(profile('content').model, 'direct-model')
+})
+
+test('Magpie image receipts retain the image count when the upstream omits token usage', async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), 'gateway-image-receipts-'))
+  t.after(() => rm(dir, { recursive: true, force: true }))
+  openUsage(dir)
+  const server = createServer((req, res) => {
+    const input = req.url === '/known' ? 8 : 0
+    res.end(JSON.stringify({model: 'google/gemini-3.1-flash-image', data: [{b64_json: 'pixels'}],
+      usage: {input_tokens: input, output_tokens: input, total_tokens: input * 2}}))
+  })
+  server.listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  t.after(() => server.close())
+  const previous = process.env.MEDIA_AI_MODE
+  t.after(() => previous === undefined ? delete process.env.MEDIA_AI_MODE : process.env.MEDIA_AI_MODE = previous)
+  process.env.MEDIA_AI_MODE = 'magpie'
+  const base = 'http://127.0.0.1:' + server.address().port
+  const meta = {purpose: 'image', gateway: true, model: 'google/gemini-3.1-flash-image', account: 'magpie', base, subject: 'media:fixture', operation: 'edit'}
+  for (const path of ['/unknown', '/known']) await modelJSON(meta, base + path, {method: 'POST'})
+  const [unknown, known] = pendingUsage().map(r => r.event).filter(e => e.finished)
+  assert.equal(unknown.images, 1)
+  assert.equal(unknown.usage, undefined)
+  assert.equal(known.usage.total_tokens, 16)
+  assert.equal(known.resolved, meta.model)
+})

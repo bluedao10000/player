@@ -1,3 +1,5 @@
+import type { StreamOptions } from '@earendil-works/pi-ai'
+
 import { createProvider } from '@earendil-works/pi-ai/models'
 import { openaiProvider } from '@earendil-works/pi-ai/providers/openai'
 import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.lazy'
@@ -6,7 +8,8 @@ import { profile, streamFetch } from './model-api.ts'
 
 export function contentProvider(run: string, phase: string, scope = 'research') {
   const p = profile('content')
-  const protocol = process.env.CONTENT_AI_PROTOCOL || 'responses'
+  const arkKimi = p.gateway && p.model === 'volcengine/kimi-k3.1-pro'
+  const protocol = p.gateway ? 'chat-completions' : process.env.CONTENT_AI_PROTOCOL || 'responses'
   if (protocol !== 'responses' && protocol !== 'chat-completions')
     throw Error('CONTENT_AI_PROTOCOL 无效')
   const streams =
@@ -31,11 +34,25 @@ export function contentProvider(run: string, phase: string, scope = 'research') 
     provider: 'openai',
     baseUrl: p.base,
     api,
+    ...(protocol === 'chat-completions' && p.gateway
+      ? { compat: { supportsUsageInStreaming: true } } : {}),
   } as const
   const fetch = streamFetch({
     ...p,
     subject: scope + ':' + run,
     operation: phase,
+  })
+  // Ark Kimi defaults to thinking and can spend the entire output budget before
+  // emitting the structured draft. These tasks already carry a sourced outline.
+  const transport = <T extends StreamOptions>(options?: T) => ({
+    ...options,
+    fetch,
+    ...(arkKimi ? {
+      onPayload: async (payload: unknown, selected: Parameters<NonNullable<StreamOptions['onPayload']>>[1]) => ({
+        ...((await options?.onPayload?.(payload, selected) ?? payload) as Record<string, unknown>),
+        thinking: { type: 'disabled' },
+      }),
+    } : {}),
   })
   return createProvider({
     id: 'openai',
@@ -48,8 +65,8 @@ export function contentProvider(run: string, phase: string, scope = 'research') 
     },
     models: [model],
     api: {
-      stream: (m, c, o) => streams.stream(m, c, { ...o, fetch }),
-      streamSimple: (m, c, o) => streams.streamSimple(m, c, { ...o, fetch }),
+      stream: (m, c, o) => streams.stream(m, c, transport(o)),
+      streamSimple: (m, c, o) => streams.streamSimple(m, c, transport(o)),
     },
   })
 }

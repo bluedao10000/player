@@ -161,6 +161,24 @@ func advanceMedia(ctx context.Context, conn *pgx.Conn, j mediaJob, reply mediaRe
 	})
 }
 
+// ResumeImageProviderFailures retries generation only when an earlier provider
+// request failed. Finished images and quality decisions keep their identities.
+func ResumeImageProviderFailures(ctx context.Context, db *pgxpool.Pool, world string) (int64, error) {
+	if !planSlug.MatchString(world) {
+		return 0, fmt.Errorf("无效作品标识")
+	}
+	result, err := db.Exec(ctx, `UPDATE media_candidates c SET stage='generate',
+	    attempt=(SELECT max(s.attempt)+1 FROM media_steps s WHERE s.slot=c.slot AND s.round=c.round AND s.step='generate'),
+	    reason=coalesce((SELECT s.result->>'reason' FROM media_steps s WHERE s.slot=c.slot AND s.round=c.round-1
+	        AND s.step IN ('review','recheck') AND s.result->>'decision' IN ('redraw','recrop')
+	        ORDER BY s.finished_at DESC LIMIT 1),''),updated_at=now()
+	  FROM episode_art_jobs a WHERE c.art_job=a.id AND a.world_slug=$1 AND c.stage='failed'
+	    AND c.reason ~ '^模型服务 HTTP (401|403|429|5[0-9]{2})$'
+	    AND EXISTS(SELECT FROM media_steps s WHERE s.slot=c.slot AND s.round=c.round AND s.step='generate' AND s.error=c.reason)
+	    AND NOT EXISTS(SELECT FROM media_steps s WHERE s.slot=c.slot AND s.round=c.round AND s.step='generate' AND s.error IS NULL)`, world)
+	return result.RowsAffected(), err
+}
+
 // The advisory lock serializes admission across worker replicas. Polling reuses
 // the Pi task identity even if the worker exits before committing its result.
 func SyncMedia(ctx context.Context, db *pgxpool.Pool, base string) error {

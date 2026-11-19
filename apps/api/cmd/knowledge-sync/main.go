@@ -19,6 +19,7 @@ func main() {
 	once := flag.Bool("once", false, "probe enabled sources once and exit")
 	source := flag.String("source", "", "optional source name")
 	refresh := flag.Bool("refresh", false, "with -once: revalidate and reconcile the current snapshot")
+	resumeImages := flag.String("resume-image-work", "", "requeue failed image provider requests for one work after upstream recovery")
 	flag.Parse()
 	if *refresh && !*once {
 		log.Fatal("-refresh requires -once")
@@ -30,6 +31,14 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	if *resumeImages != "" {
+		count, err := knowledge.ResumeImageProviderFailures(ctx, db, *resumeImages)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("requeued %d image tasks for %s", count, *resumeImages)
+		return
+	}
 	if *accept {
 		if err := knowledge.AcceptEpisodeScope(ctx, db); err != nil {
 			log.Fatal(err)

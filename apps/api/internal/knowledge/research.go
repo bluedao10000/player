@@ -136,7 +136,8 @@ func callResearch(ctx context.Context, base, id, phase string, catalog []byte) (
 		return out, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := (&http.Client{Timeout: 4 * time.Minute}).Do(req)
+	// One write request waits for both drafting and review in the durable session.
+	res, err := (&http.Client{Timeout: 8 * time.Minute}).Do(req)
 	if err != nil {
 		return out, err
 	}

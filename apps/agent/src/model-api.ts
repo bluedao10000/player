@@ -3,27 +3,37 @@ import { DatabaseSync } from 'node:sqlite'
 import { join } from 'node:path'
 
 type Purpose = 'content' | 'image' | 'vision'
-export function profile(purpose: Purpose) {
+export function profile(purpose: Purpose, originalImage = false) {
   const prefix = {
     content: 'CONTENT_AI',
     image: 'MEDIA_AI',
     vision: 'VISION_AI',
   }[purpose]
-  const base = new URL(
-    process.env[prefix + '_BASE_URL'] || 'https://api.openai.com/v1',
-  )
+  const originalMode = purpose === 'image' && originalImage ? process.env.ORIGINAL_MEDIA_AI_MODE : undefined
+  const mode = purpose === 'vision' ? 'direct' : originalMode || process.env[prefix + '_MODE'] || 'direct'
+  if (mode !== 'direct' && mode !== 'magpie') throw Error(prefix + '_MODE 无效')
+  const gateway = mode === 'magpie'
+  const base = new URL(gateway
+    ? process.env.MAGPIE_BASE_URL || 'http://127.0.0.1:3425/v1'
+    : process.env[prefix + '_BASE_URL'] || 'https://api.openai.com/v1')
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)
+    || (gateway && base.hostname === 'host.docker.internal')
   if (
     base.username ||
     base.password ||
     base.search ||
     base.hash ||
-    (base.protocol !== 'https:' &&
-      !(
-        base.protocol === 'http:' &&
-        ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)
-      ))
+    (base.protocol !== 'https:' && !(base.protocol === 'http:' && local))
   )
     throw Error(prefix + '_BASE_URL 无效')
+  if (gateway) {
+    const route = originalMode ? 'MAGPIE_ORIGINAL_IMAGE_MODEL' : 'MAGPIE_' + purpose.toUpperCase() + '_MODEL'
+    const model = process.env[route]?.trim()
+    if (!model || !/^[^/\s]+\/\S+$/.test(model)) throw Error('需要配置 ' + route + ' 完整路由')
+    const key = process.env.MAGPIE_API_KEY || (local ? 'magpie' : '')
+    if (!key) throw Error('远程网关需要 MAGPIE_API_KEY')
+    return { purpose, gateway, account: process.env.MAGPIE_ACCOUNT || 'magpie', base: base.href.replace(/\/$/, ''), key, model }
+  }
   const key =
     process.env[prefix + '_API_KEY'] ||
     (purpose !== 'image' && !process.env[prefix + '_BASE_URL']
@@ -40,6 +50,7 @@ export function profile(purpose: Purpose) {
     (purpose === 'image' ? 'gpt-image-2' : 'gpt-4.1-mini')
   return {
     purpose,
+    gateway,
     account: process.env[prefix + '_ACCOUNT'] || 'default',
     base: base.href.replace(/\/$/, ''),
     key,
@@ -47,6 +58,7 @@ export function profile(purpose: Purpose) {
   }
 }
 type Meta = {
+  gateway?: boolean
   account: string
   size?: string
   quality?: string
@@ -173,7 +185,12 @@ export async function modelJSON(
       throw Error('模型服务 HTTP ' + res.status)
     }
     const result: Receipt = await res.json()
-    body = result
+    // Magpie Images synthesizes three zero counters when its upstream omitted usage.
+    // Keep the image count, without treating that unknown cost as measured zero.
+    const u = result.usage
+    const unknownImageUsage = meta.purpose === 'image' && meta.gateway
+      && result.data?.length && u?.input_tokens === 0 && u?.output_tokens === 0 && u?.total_tokens === 0
+    body = unknownImageUsage ? { ...result, usage: undefined } : result
     complete = true
     return result
   } finally {

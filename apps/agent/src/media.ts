@@ -120,7 +120,8 @@ async function ref(j: Job) {
     throw Error('参考图版本变化，请核对图像指纹')
   return data
 }
-const imageModel = () => profile('image').model
+const imageProfile = (j: Job) =>
+  profile('image', !j.art && (!j.batch || j.batch === 'mio'))
 function mediaSubject(j: Job) {
   return (
     'media:' + j.slot + ':r' + j.round + ':' + j.step + ':a' + (j.attempt ?? 1)
@@ -130,11 +131,17 @@ async function decodeImage(
   body: { data?: { b64_json?: string }[] },
   width: number,
   height: number,
+  gateway = false,
 ) {
   if (body.data?.length !== 1 || !body.data[0].b64_json)
     throw Error('生成服务未返回单张图片')
   const bytes = Buffer.from(body.data[0].b64_json, 'base64')
   const meta = await sharp(bytes).metadata()
+  if (gateway && meta.width && meta.height && ['png', 'jpeg', 'webp'].includes(meta.format ?? '') &&
+      Math.min(meta.width, meta.height) >= 768 && Math.abs(meta.width / meta.height - width / height) < 0.055) {
+    // Gemini chooses native pixel dimensions for an aspect ratio. Preserve them for review.
+    return sharp(bytes).png().toBuffer()
+  }
   if (meta.format !== 'png' || meta.width !== width || meta.height !== height)
     throw Error('原图格式或尺寸不符合任务要求')
   await sharp(bytes).stats()
@@ -145,9 +152,10 @@ async function configuredReference(j: Job): Promise<Result> {
     url = new URL(a.referenceURL)
   if (
     url.protocol !== 'https:' ||
-    !['cmsapi-frontend.naruto-official.com', 'lain.bgm.tv'].includes(
-      url.hostname,
-    )
+    url.username || url.password ||
+    !(['cmsapi-frontend.naruto-official.com', 'lain.bgm.tv'].includes(url.host)
+      || (url.host === 'lookback-anime.com' && url.pathname.startsWith('/assets/img/'))
+      || (url.host === 'www.tbs.co.jp' && url.pathname.startsWith('/anime/takopi_project/series/')))
   )
     throw Error('参考图来源无效')
   const reference = j.batch + '-reference.png'
@@ -200,8 +208,8 @@ async function preparePortrait(j: Job): Promise<Result> {
 async function prepareReference(j: Job): Promise<Result> {
   await access(dir, constants.W_OK)
   const path = join(dir, spikeReference)
+  const p = imageProfile(j)
   if (!(await cached(path))) {
-    const p = profile('image')
     const response = await modelJSON(
       {
         ...p,
@@ -220,7 +228,7 @@ async function prepareReference(j: Job): Promise<Result> {
         },
         signal: AbortSignal.timeout(300000),
         body: JSON.stringify({
-          model: imageModel(),
+          model: imageProfile(j).model,
           prompt:
             spikeTraits +
             '为非官方故事导读创作角色视觉研究。3/4 正面从头到腰的单人设定，五官清晰、姿态放松，素净背景，复古手绘赛璐璐科幻动画质感。无文字、无标志、无拼贴。',
@@ -228,15 +236,18 @@ async function prepareReference(j: Job): Promise<Result> {
           n: 1,
           quality: 'medium',
           output_format: 'png',
+          ...(p.gateway ? { response_format: 'b64_json' } : {}),
         }),
       },
     )
-    await save(spikeReference, await decodeImage(response, 1024, 1536))
+    if (p.gateway && response.model !== p.model)
+      throw Error('网关返回的出图模型与指定路由不一致')
+    await save(spikeReference, await decodeImage(response, 1024, 1536, p.gateway))
   }
   return {
     reference: spikeReference,
     reference_sha: hash(await readFile(path)),
-    model: imageModel(),
+    model: imageProfile(j).model,
   }
 }
 async function generate(j: Job) {
@@ -267,9 +278,10 @@ async function generate(j: Job) {
           : '以随附原创立绘为唯一人物设定，保持阿澪的脸型、棕色短发、深蓝邮差帽与圆形徽章、制服和棕色邮包。保留原画笔触和人物年龄。新场景独立构图。竖幅，脸在上方三分之一，手与关键动作位于中上部；下方供角色页排字，图片本身不要文字、水印、分格。',
         j.round > 1 ? '上一版本的返工意见：' + j.reason : '',
       ].join('\n')
+  const p = imageProfile(j)
   const form = new FormData()
   for (const [k, v] of Object.entries({
-    model: imageModel(),
+    model: imageProfile(j).model,
     prompt,
     size: isPortrait(j)
       ? '1024x1024'
@@ -298,7 +310,7 @@ async function generate(j: Job) {
         ? spikeReference
         : 'mio-reference.webp',
   )
-  const p = profile('image')
+  if (p.gateway) form.set('response_format', 'b64_json')
   const response = await modelJSON(
     {
       ...p,
@@ -318,10 +330,13 @@ async function generate(j: Job) {
       signal: AbortSignal.timeout(300000),
     },
   )
+  if (p.gateway && response.model !== p.model)
+    throw Error('网关返回的出图模型与指定路由不一致')
   const bytes = await decodeImage(
     response,
     isBebopScene(j) ? 1536 : 1024,
     isPortrait(j) || isBebopScene(j) ? 1024 : 1536,
+    p.gateway,
   )
   await save(name, bytes)
   return name
@@ -549,7 +564,7 @@ const task = defineTask<Job, { phase: 'run' }, Result>({
             sha: hash(await readFile(join(dir, image))),
             reference_sha:
               isPortrait(j) || isBebopScene(j) ? j.referenceSHA : refHash,
-            model: imageModel(),
+            model: imageProfile(j).model,
           }
         } else if (j.step === 'recrop') {
           result = { phone: await crop(j), focus: j.focus }

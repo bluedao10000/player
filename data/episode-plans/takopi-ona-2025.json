@@ -1,0 +1,524 @@
+{
+  "world": "takopi-ona-2025",
+  "title": "章鱼哔的原罪",
+  "edition": "2025 网络动画 · 全6集",
+  "provider": "bangumi",
+  "externalID": "527620",
+  "year": 2025,
+  "type": "ONA",
+  "complete": true,
+  "intro": "2016 年，一个相信道具能带来快乐的外星人遇见了久世静。一次次回到过去，章鱼哔才发现，同一件事在静、真理奈和直树眼中，有着全然不同的模样。",
+  "people": [
+    {
+      "slug": "takopi",
+      "name": "章鱼哔",
+      "role": "想把快乐带到地球的外星来客",
+      "portrait": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/character/img/chara_stand_01@2x.png",
+        "sourceSHA": "95ef2ab1e7481f7ed2e39a59b7d728fa0f94a5bafa7761b6e0a2ada06eb30b5c",
+        "brief": "依据参考图绘制章鱼哔的单人肖像，保留原作外形比例、发色或体色，留白干净，无文字。"
+      }
+    },
+    {
+      "slug": "shizuka",
+      "name": "久世静",
+      "role": "把小狗恰比当作依靠的小学生",
+      "portrait": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/character/img/chara_stand_02@2x.png",
+        "sourceSHA": "3a6be4300cfeb70ae6c2c99f6194a32fb59471986516d4c5ee120c2b03134f24",
+        "brief": "依据参考图绘制久世静的单人肖像，保留原作外形比例、发色或体色，留白干净，无文字。"
+      }
+    },
+    {
+      "slug": "marina",
+      "name": "云母坂真理奈",
+      "role": "与静同班、也深陷家庭矛盾的女孩",
+      "portrait": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/character/img/chara_stand_03@2x.png",
+        "sourceSHA": "116445df385ff1b45d0fc1053fca52e296f3b631f8c8efcf778ce42e3a20087b",
+        "brief": "依据参考图绘制云母坂真理奈的单人肖像，保留原作外形比例、发色或体色，留白干净，无文字。"
+      }
+    },
+    {
+      "slug": "naoki",
+      "name": "东直树",
+      "role": "在学校留意静、在家渴望被肯定的同学",
+      "portrait": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/character/img/chara_stand_04@2x.png",
+        "sourceSHA": "51349eda72d4452cd80038d5fa9862ae0f5f46ba0c92fc05d569af29a783f0a8",
+        "brief": "依据参考图绘制东直树的单人肖像，保留原作外形比例、发色或体色，留白干净，无文字。"
+      }
+    },
+    {
+      "slug": "chappy",
+      "name": "恰比",
+      "role": "陪伴静的宠物犬",
+      "portrait": {
+        "referenceURL": "https://lain.bgm.tv/pic/crt/l/4e/af/178416_crt_v3ZzZ.jpg",
+        "sourceSHA": "b27465bdc2acbd69944630b62ddc2e51d36ef20228c5527dc08ec2ecd8bbac75",
+        "brief": "依据参考图绘制恰比的单人肖像，保留原作外形比例、发色或体色，留白干净，无文字。"
+      }
+    },
+    {
+      "slug": "junya",
+      "name": "东润也",
+      "role": "愿意听直树倾诉的哥哥",
+      "portrait": {
+        "referenceURL": "https://lain.bgm.tv/pic/crt/l/ab/e6/179353_crt_YJJ2O.jpg",
+        "sourceSHA": "868c5d5fced4e3e654d3d1f9ab82d01c4441b490fe3cc7cf302742398d2acd64",
+        "brief": "依据参考图绘制东润也的单人肖像，保留原作外形比例、发色或体色，留白干净，无文字。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "to-you-in-2016",
+      "title": "致2016年的你",
+      "intro": "每件道具都被章鱼哔寄予厚望，可静在学校过着怎样的日子，它还一无所知。",
+      "official": "https://www.tbs.co.jp/anime/takopi_project/series/story/story01.html",
+      "officialTitle": "2016年のきみへ",
+      "guide": "https://en.wikipedia.org/wiki/Takopi%27s_Original_Sin#ep1",
+      "guideTitle": "\"To You in 2016\"",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "In 2016",
+          "question": "久世静如何遇见章鱼哔，它想用什么帮助她？",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "He visits her home",
+          "question": "得知静的遭遇后，章鱼哔怎样使用快乐相机，又在学校见到了谁？"
+        },
+        {
+          "kind": "cause",
+          "needle": "Learning the full extent",
+          "question": "久世静在对方帮忙后说了什么，这对章鱼哔意味着什么？"
+        },
+        {
+          "kind": "turn",
+          "needle": "Marina grows angered",
+          "question": "云母坂真理奈回家后经历了什么？"
+        }
+      ],
+      "people": [
+        {
+          "slug": "takopi",
+          "name": "章鱼哔",
+          "role": "想把快乐带到地球的外星来客",
+          "beat": 1
+        },
+        {
+          "slug": "shizuka",
+          "name": "久世静",
+          "role": "把小狗恰比当作依靠的小学生",
+          "beat": 1
+        },
+        {
+          "slug": "marina",
+          "name": "云母坂真理奈",
+          "role": "与静同班、也深陷家庭矛盾的女孩",
+          "beat": 4
+        }
+      ],
+      "setting": [
+        "快乐相机",
+        2
+      ],
+      "sceneSlug": "first-thanks",
+      "sceneName": "体育仓库外的道谢",
+      "place": "学校",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/story/img/story_01/01.jpg",
+        "sourceSHA": "5a5239bb82af77d3c6a912b1f53520b9630aa8441e37af858d6c67be2711973c",
+        "brief": "为《章鱼哔的原罪》重绘独立的章节场景插画：体育仓库外的道谢，地点是学校。参考图仅用于画风与人物设计。用环境和表情表现这段剧情：久世静在对方帮忙后说了什么，这对章鱼哔意味着什么？ 避免受伤细节、文字或拼贴。"
+      }
+    },
+    {
+      "number": 2,
+      "slug": "takopis-salvation",
+      "title": "章鱼哔的救赎",
+      "intro": "一次遛狗让恰比离开了静，章鱼哔不断重来，却没能把一切带回原样。",
+      "official": "https://www.tbs.co.jp/anime/takopi_project/series/story/story02.html",
+      "officialTitle": "タコピーの救済",
+      "guide": "https://en.wikipedia.org/wiki/Takopi%27s_Original_Sin#ep2",
+      "guideTitle": "\"Takopi's Salvation\"",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "Shizuka takes her pet dog",
+          "question": "久世静带恰比散步时发生了什么？",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "Realizing the altercation",
+          "question": "章鱼哔尝试改变结果时，静听到了关于父亲的什么消息？东直树做了什么？"
+        },
+        {
+          "kind": "cause",
+          "needle": "After school",
+          "question": "林间约见为何与章鱼哔想象的和好不同？说清云母坂真理奈的责怪。"
+        },
+        {
+          "kind": "turn",
+          "needle": "Unable to handle",
+          "question": "快乐相机出了什么事，章鱼哔为何无法撤回自己的选择？"
+        }
+      ],
+      "people": [
+        {
+          "slug": "shizuka",
+          "name": "久世静",
+          "role": "把小狗恰比当作依靠的小学生",
+          "beat": 1
+        },
+        {
+          "slug": "chappy",
+          "name": "恰比",
+          "role": "陪伴静的宠物犬",
+          "beat": 1
+        },
+        {
+          "slug": "takopi",
+          "name": "章鱼哔",
+          "role": "想把快乐带到地球的外星来客",
+          "beat": 2
+        },
+        {
+          "slug": "naoki",
+          "name": "东直树",
+          "role": "在学校留意静、在家渴望被肯定的同学",
+          "beat": 2
+        },
+        {
+          "slug": "marina",
+          "name": "云母坂真理奈",
+          "role": "与静同班、也深陷家庭矛盾的女孩",
+          "beat": 3
+        }
+      ],
+      "setting": [
+        "快乐相机",
+        4
+      ],
+      "sceneSlug": "forest-meeting",
+      "sceneName": "林间的约定",
+      "place": "树林",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/story/img/story_02/01.jpg",
+        "sourceSHA": "442ab0ff2b6d91ff2581885f6fd8f2da4258e3cb4c8690c65c14871b85ceb371",
+        "brief": "为《章鱼哔的原罪》重绘独立的章节场景插画：林间的约定，地点是树林。参考图仅用于画风与人物设计。用环境和表情表现这段剧情：林间约见为何与章鱼哔想象的和好不同？说清云母坂真理奈的责怪。 避免受伤细节、文字或拼贴。"
+      }
+    },
+    {
+      "number": 3,
+      "slug": "takopis-confession",
+      "title": "章鱼哔的告解",
+      "intro": "直树循着担心找到静，也看见了她与章鱼哔藏着的秘密。",
+      "official": "https://www.tbs.co.jp/anime/takopi_project/series/story/story03.html",
+      "officialTitle": "タコピーの告解",
+      "guide": "https://en.wikipedia.org/wiki/Takopi%27s_Original_Sin#ep3",
+      "guideTitle": "\"Takopi's Confession\"",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "Naoki, worried",
+          "question": "东直树看到静和章鱼哔后，为何从要求自首转向帮忙？",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "The trio bonds",
+          "question": "去东京的计划和哥哥东润也的戒指，让直树想起了什么？"
+        },
+        {
+          "kind": "cause",
+          "needle": "Takopi is also tasked",
+          "question": "章鱼哔变身为云母坂真理奈后，见到怎样的一家人？"
+        },
+        {
+          "kind": "turn",
+          "needle": "Marina's mother later",
+          "question": "章鱼哔为何后悔，而秘密又怎样被发现？"
+        }
+      ],
+      "people": [
+        {
+          "slug": "naoki",
+          "name": "东直树",
+          "role": "在学校留意静、在家渴望被肯定的同学",
+          "beat": 1
+        },
+        {
+          "slug": "shizuka",
+          "name": "久世静",
+          "role": "把小狗恰比当作依靠的小学生",
+          "beat": 1
+        },
+        {
+          "slug": "takopi",
+          "name": "章鱼哔",
+          "role": "想把快乐带到地球的外星来客",
+          "beat": 3
+        },
+        {
+          "slug": "marina",
+          "name": "云母坂真理奈",
+          "role": "与静同班、也深陷家庭矛盾的女孩",
+          "beat": 3
+        },
+        {
+          "slug": "junya",
+          "name": "东润也",
+          "role": "愿意听直树倾诉的哥哥",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "变身",
+        3
+      ],
+      "sceneSlug": "borrowed-place",
+      "sceneName": "替真理奈回家的晚上",
+      "place": "真理奈家",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/story/img/story_03/01.jpg",
+        "sourceSHA": "1b59b2418151e9f10e304f6a4fba38171c3e4a38e3ccc0e0df632229b99d2898",
+        "brief": "为《章鱼哔的原罪》重绘独立的章节场景插画：替真理奈回家的晚上，地点是真理奈家。参考图仅用于画风与人物设计。用环境和表情表现这段剧情：章鱼哔变身为云母坂真理奈后，见到怎样的一家人？ 避免受伤细节、文字或拼贴。"
+      }
+    },
+    {
+      "number": 4,
+      "slug": "azumas-salvation",
+      "title": "东同学的救赎",
+      "intro": "事情败露后，直树把越来越重的负担藏在心里。先看出不对劲的人是哥哥。",
+      "official": "https://www.tbs.co.jp/anime/takopi_project/series/story/story04.html",
+      "officialTitle": "東くんの救済",
+      "guide": "https://en.wikipedia.org/wiki/Takopi%27s_Original_Sin#ep4",
+      "guideTitle": "\"Azuma-kun's Salvation\"",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "With Marina",
+          "question": "事件公开后东直树为何急着去东京？",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "Naoki recounts",
+          "question": "家庭里的比较和久世静对他的关注，对他意味着什么？"
+        },
+        {
+          "kind": "cause",
+          "needle": "Shizuka later tells",
+          "question": "面对静的自首要求，东润也如何让东直树说出真相？"
+        },
+        {
+          "kind": "turn",
+          "needle": "The police assume",
+          "question": "警方的判断怎样改变了静和章鱼哔的打算？"
+        }
+      ],
+      "people": [
+        {
+          "slug": "naoki",
+          "name": "东直树",
+          "role": "在学校留意静、在家渴望被肯定的同学",
+          "beat": 1
+        },
+        {
+          "slug": "shizuka",
+          "name": "久世静",
+          "role": "把小狗恰比当作依靠的小学生",
+          "beat": 2
+        },
+        {
+          "slug": "junya",
+          "name": "东润也",
+          "role": "愿意听直树倾诉的哥哥",
+          "beat": 3
+        },
+        {
+          "slug": "takopi",
+          "name": "章鱼哔",
+          "role": "想把快乐带到地球的外星来客",
+          "beat": 4
+        }
+      ],
+      "setting": [
+        "自首",
+        3
+      ],
+      "sceneSlug": "brothers-talk",
+      "sceneName": "哥哥停下来听他说",
+      "place": "东家",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/story/img/story_04/01.jpg",
+        "sourceSHA": "c75a95b322d1c2eeddb23cba48ee361b840c7756f5cf51e7c4873ac1c967b1bf",
+        "brief": "为《章鱼哔的原罪》重绘独立的章节场景插画：哥哥停下来听他说，地点是东家。参考图仅用于画风与人物设计。用环境和表情表现这段剧情：面对静的自首要求，东润也如何让东直树说出真相？ 避免受伤细节、文字或拼贴。"
+      }
+    },
+    {
+      "number": 5,
+      "slug": "to-you-in-2022",
+      "title": "致2022年的你",
+      "intro": "东京之行没有给静想要的答案，章鱼哔却在这里想起了另一年的真理奈。",
+      "official": "https://www.tbs.co.jp/anime/takopi_project/series/story/story05.html",
+      "officialTitle": "2022年のきみへ",
+      "guide": "https://en.wikipedia.org/wiki/Takopi%27s_Original_Sin#ep5",
+      "guideTitle": "\"To You in 2022\"",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "Takopi and Shizuka arrive",
+          "question": "久世静和章鱼哔到东京后发现关于恰比的什么事实，二人为何产生冲突？",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "As Takopi is unconscious",
+          "question": "章鱼哔想起2022年的云母坂真理奈，她与东直树的关系怎样改变？"
+        },
+        {
+          "kind": "cause",
+          "needle": "When Naoki did not",
+          "question": "家中的冲突怎样把真理奈推向绝望？不要描绘伤害细节。"
+        },
+        {
+          "kind": "turn",
+          "needle": "To fix things",
+          "question": "章鱼哔为何从快乐星回到过去，为什么曾经想不起这些事？"
+        }
+      ],
+      "people": [
+        {
+          "slug": "shizuka",
+          "name": "久世静",
+          "role": "把小狗恰比当作依靠的小学生",
+          "beat": 1
+        },
+        {
+          "slug": "chappy",
+          "name": "恰比",
+          "role": "陪伴静的宠物犬",
+          "beat": 1
+        },
+        {
+          "slug": "takopi",
+          "name": "章鱼哔",
+          "role": "想把快乐带到地球的外星来客",
+          "beat": 1
+        },
+        {
+          "slug": "marina",
+          "name": "云母坂真理奈",
+          "role": "与静同班、也深陷家庭矛盾的女孩",
+          "beat": 2
+        },
+        {
+          "slug": "naoki",
+          "name": "东直树",
+          "role": "在学校留意静、在家渴望被肯定的同学",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "快乐星",
+        4
+      ],
+      "sceneSlug": "tokyo-door",
+      "sceneName": "父亲家门前",
+      "place": "东京",
+      "sceneBeat": 1,
+      "art": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/story/img/story_05/01.jpg",
+        "sourceSHA": "9504a82b392d720b30fac20e054d05774b0e9af91a0c86b7c874068a8279e17a",
+        "brief": "为《章鱼哔的原罪》重绘独立的章节场景插画：父亲家门前，地点是东京。参考图仅用于画风与人物设计。用环境和表情表现这段剧情：久世静和章鱼哔到东京后发现关于恰比的什么事实，二人为何产生冲突？ 避免受伤细节、文字或拼贴。"
+      }
+    },
+    {
+      "number": 6,
+      "slug": "to-all-of-you",
+      "title": "致2016年的你们",
+      "intro": "最后，章鱼哔想把话听完。等时间再次向前走，那些被倾听过的孩子有了新的选择。",
+      "official": "https://www.tbs.co.jp/anime/takopi_project/series/story/index.html",
+      "officialTitle": "2016年のきみたちへ",
+      "guide": "https://en.wikipedia.org/wiki/Takopi%27s_Original_Sin#ep6",
+      "guideTitle": "\"To All of You in 2016\"",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "Takopi tells Naoki",
+          "question": "东直树没有答应同行，却把什么交还给章鱼哔？"
+        },
+        {
+          "kind": "turn",
+          "needle": "Several months later",
+          "question": "再见久世静时，章鱼哔道歉的是什么？",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "Comforting her",
+          "question": "章鱼哔怎样作出最后的选择，快乐相机又一次启动意味着什么？"
+        },
+        {
+          "kind": "turn",
+          "needle": "The timeline rewinds",
+          "question": "章鱼哔留下的画让久世静和云母坂真理奈怎样看待对方？"
+        },
+        {
+          "kind": "cause",
+          "needle": "Six years later",
+          "question": "六年后文具店里的久世静和云母坂真理奈相处得怎样？"
+        }
+      ],
+      "people": [
+        {
+          "slug": "naoki",
+          "name": "东直树",
+          "role": "在学校留意静、在家渴望被肯定的同学",
+          "beat": 1
+        },
+        {
+          "slug": "takopi",
+          "name": "章鱼哔",
+          "role": "想把快乐带到地球的外星来客",
+          "beat": 3
+        },
+        {
+          "slug": "shizuka",
+          "name": "久世静",
+          "role": "把小狗恰比当作依靠的小学生",
+          "beat": 2
+        },
+        {
+          "slug": "marina",
+          "name": "云母坂真理奈",
+          "role": "与静同班、也深陷家庭矛盾的女孩",
+          "beat": 4
+        }
+      ],
+      "setting": [
+        "快乐相机",
+        3
+      ],
+      "sceneSlug": "stationery-shop",
+      "sceneName": "六年后的文具店",
+      "place": "文具店",
+      "sceneBeat": 5,
+      "art": {
+        "referenceURL": "https://www.tbs.co.jp/anime/takopi_project/series/story/img/story_06/01.jpg",
+        "sourceSHA": "5e0c4a57f335016cd276d9d09001a354d3ed23649f5cb0ef40fdde6f4f3af254",
+        "brief": "为《章鱼哔的原罪》重绘独立的章节场景插画：六年后的文具店，地点是文具店。参考图仅用于画风与人物设计。用环境和表情表现这段剧情：六年后文具店里的久世静和云母坂真理奈相处得怎样？ 避免受伤细节、文字或拼贴。"
+      }
+    }
+  ]
+}

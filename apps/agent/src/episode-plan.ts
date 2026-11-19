@@ -44,20 +44,39 @@ export async function readEpisodeDocuments(
     page(p.official),
     page(p.guide.split('#')[0]),
   ])
-  const item = JSON.parse(site('#__NEXT_DATA__').text()).props.pageProps
-    .animeData
+  const fromTbs = new URL(p.official).hostname === 'www.tbs.co.jp'
+  const film = p.official === 'https://lookback-anime.com/'
+  const japanese = fromTbs || film
+  const box = site('.storypage-wrap')
+  const item = film ? {
+    number: 1,
+    title: site('title').text().trim(),
+    text: site('.p-story .p-intro__content-detail p').toArray().map((x) => site(x).text()).join(' '),
+  } : fromTbs ? {
+    number: Number(box.find('.story-number span').text()),
+    title: box.find('.story-subtitle').text().trim(),
+    text: box.find('.story-text').text(),
+  } : (() => {
+    const entry = JSON.parse(site('#__NEXT_DATA__').text()).props.pageProps.animeData
+    return {number: Number(entry.anime.story_no), title: entry.title, text: entry.anime.text}
+  })()
   const row = wiki('#ep' + p.number).closest('tr')
+  const plot = wiki('#Plot')
+  const guideTitle = film ? plot.text().trim() : row.find('.summary').text()
+  const paragraphs = plot.closest('section').children('p')
+  const filmText = paragraphs.length ? paragraphs : plot.parent().nextUntil('h2,.mw-heading','p')
+  filmText.find('sup').remove()
   if (
-    Number(item.anime.story_no) !== p.number ||
+    item.number !== p.number ||
     item.title !== p.officialTitle ||
-    !row.find('.summary').text().includes(p.guideTitle)
+    !guideTitle.includes(p.guideTitle)
   )
     throw Error('分集编号或标题与配置不一致')
   return [
-    [p.official, item.anime.text, 'official', item.title],
+    [p.official, item.text, 'official', item.title],
     [
       p.guide,
-      row.next('tr').find('.shortSummaryText').text(),
+      film ? filmText.toArray().map((x) => wiki(x).text()).join(' ') : row.next('tr').find('.shortSummaryText').text(),
       'guide',
       p.guideTitle,
     ],
@@ -65,16 +84,16 @@ export async function readEpisodeDocuments(
     const text = String(raw || '')
       .replace(/\s+/g, ' ')
       .trim()
-    if (text.length < 60 || text.length > 6000) throw Error('分集原文不完整')
+    if (Buffer.byteLength(text) < 60 || text.length > 6000) throw Error('分集原文不完整')
     const sentences = Array.from(
-      new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text),
+      new Intl.Segmenter(key === 'official' && japanese ? 'ja' : 'en', { granularity: 'sentence' }).segment(text),
       (x) => x.segment.trim(),
     ).filter(Boolean)
     return {
       id: key + '-' + p.number,
       episode: p.number,
       url,
-      locator: title + ' · Episode ' + p.number,
+      locator: title + (film ? ' · 2024 电影版' : ' · Episode ' + p.number),
       text,
       sentences,
       fetched_at: new Date().toISOString(),

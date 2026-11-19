@@ -1,0 +1,106 @@
+{
+  "world": "look-back-film-2024",
+  "title": "蓦然回首",
+  "edition": "2024 剧场动画 · 全片",
+  "provider": "bangumi",
+  "externalID": "480441",
+  "year": 2024,
+  "type": "MOVIE",
+  "complete": true,
+  "intro": "学年报上的四格漫画，把藤野和京本带进了彼此的生活。她们一起画画，也各自选择了不同的路。多年后，藤野再次走到京本的房门前。",
+  "people": [
+    {
+      "slug": "fujino",
+      "name": "藤野",
+      "role": "在学年报连载四格漫画的少女",
+      "portrait": {
+        "referenceURL": "https://lookback-anime.com/assets/img/img_chara_fujino.jpg",
+        "sourceSHA": "4751e84cd8106c61117bd8bb1317e9efee41f06ee7e1853e39611d27c82fe7f4",
+        "brief": "独立绘制藤野的单人胸像。按参考图核对发型、神态与服装。背景干净，无文字。"
+      }
+    },
+    {
+      "slug": "kyomoto",
+      "name": "京本",
+      "role": "擅长绘制背景、一直读藤野漫画的同学",
+      "portrait": {
+        "referenceURL": "https://lookback-anime.com/assets/img/img_chara_kyomoto.jpg",
+        "sourceSHA": "11d13a1fbc04ca755dd202d4f2b282a9247570fb256aa6be51b73b9d51df3395",
+        "brief": "独立绘制京本的单人胸像。按参考图核对发型、神态与服装。背景干净，无文字。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "full-film",
+      "title": "蓦然回首 · 全片导读",
+      "intro": "从学年报上两格画风迥异的漫画，到多年后重新坐回画桌。",
+      "official": "https://lookback-anime.com/",
+      "officialTitle": "劇場アニメ「ルックバック」",
+      "guide": "https://en.wikipedia.org/wiki/Look_Back_(2024_film)#Plot",
+      "guideTitle": "Plot",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "is an elementary schooler",
+          "officialSentence": 1,
+          "question": "说明藤野与京本的四格漫画如何在学年报相遇，以及藤野为何一度停笔。"
+        },
+        {
+          "kind": "turn",
+          "needle": "is tasked with delivering",
+          "officialSentence": 4,
+          "question": "以小学毕业日为准。写藤野送毕业证书、四格漫画滑进房门，以及京本为何开门，藤野为何重新提笔。"
+        },
+        {
+          "kind": "cause",
+          "needle": "Through high school years",
+          "question": "写藤野与京本合作获奖以及京本为何选择就读美术大学，两人就此走上不同道路。"
+        },
+        {
+          "kind": "turn",
+          "needle": "On January 10, 2016",
+          "question": "写京本在美术大学遇袭离世，藤野回到京本房门前自责并撕掉旧四格。避免血腥细节。"
+        },
+        {
+          "kind": "cause",
+          "needle": "This time, Kyomoto",
+          "question": "将门下纸片引出的另一种可能和现实区分开，说明那张画怎样带藤野重新理解京本一直在读她的漫画。"
+        },
+        {
+          "kind": "turn",
+          "needle": "Still despairing",
+          "question": "以藤野把四格漫画贴在画桌前、重新开始绘画收束全片。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "fujino",
+          "name": "藤野",
+          "role": "画四格漫画的少女",
+          "beat": 1
+        },
+        {
+          "slug": "kyomoto",
+          "name": "京本",
+          "role": "藤野的同学与创作搭档",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "学年报",
+        1
+      ],
+      "sceneSlug": "back-at-the-desk",
+      "sceneName": "回到画桌",
+      "place": "藤野的工作室",
+      "sceneBeat": 6,
+      "art": {
+        "referenceURL": "https://lookback-anime.com/assets/img/img_top01.jpg",
+        "sourceSHA": "48a76ebc3ea9039093e43b793f245c10490ba17cb469f6e2e83712bf299fce21",
+        "brief": "为动画电影《蓦然回首》的全片导读独立创作一幅插画。成年藤野坐在工作室画桌前重新提笔，桌上有画稿，前方贴着一张小小的无字四格画。仅绘制藤野一人，人物位于中部，手、画纸与铅笔可见。参考图用于确认人物和室内气氛。去掉可读文字，无标志、边框或拼贴。"
+      }
+    }
+  ]
+}
