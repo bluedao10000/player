@@ -42,6 +42,7 @@ async function get<T>(path: string): Promise<T[] | null> {
   return null;
 }
 export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
+  if (process.env.PLAYER_PUBLIC_ONLY === 'true') throw new Error('工作台限内部访问')
   const [sync, quality, worlds, research, media, scopes] = await Promise.all([
     get<Sync>("sync-runs"),
     get<Quality>("quality-runs"),
