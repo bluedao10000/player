@@ -110,7 +110,7 @@ export function DiscoverHome({
         <h1>发现作品</h1>
       )}
       <ContinueReading />
-      <section className="folio-section">
+      <section className="folio-section" id="world">
         <SectionHeader href="/works" link={'全部 ' + page.total + ' 部作品'}>
           探索作品
         </SectionHeader>
