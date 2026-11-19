@@ -1,0 +1,86 @@
+{
+  "world": "nia-liston-tv-2026",
+  "title": "乱世千金倪亚·利斯顿",
+  "edition": "2026 · TV 动画",
+  "provider": "bangumi",
+  "externalID": "624085",
+  "year": 2026,
+  "type": "TV",
+  "intro": "一名武人的灵魂在病弱的倪亚身上醒来。身体好转后，她还要面对家人，以及把她的消息传向全国的魔法影像。",
+  "people": [
+    {
+      "slug": "nia",
+      "name": "倪亚·利斯顿",
+      "role": "原本病弱，靠前世武技逐渐恢复的少女",
+      "portrait": {
+        "referenceURL": "https://img2.animatetimes.com/2026/10/14bb985a8f2b8abdcf2d17365f1681526abf54df80fea1_39592798_734e85810d92ae2f7596dff0c7009caf0a70ea80.jpg",
+        "sourceSHA": "19003e132519025bdf38b368ce384543552f079fdbc8ab06ad607d1f3a9ffa28",
+        "brief": "以银白发、浅蓝眼的倪亚为唯一人物，绘制普通单人头像，软色纯色背景。不要画参考画框。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "out-of-the-dark",
+      "title": "从黑暗中苏醒",
+      "intro": "倪亚恢复身体、试着重新练武，却先成了家族魔法影像节目里的新面孔。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1790922600",
+      "officialTitle": "第1話「闇より浮かびて」",
+      "guide": "https://anime-no-mikata.com/archives/8965",
+      "guideTitle": "『凶乱令嬢ニア・リストン』第1話",
+      "guideParagraphs": [
+        "物語は、自分より強い相手",
+        "回復したニアは木剣を",
+        "ニアの両親は、治療法を国中",
+        "「異世界にテレビっぽい魔法があります」"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "物語は、自分より強い相手",
+          "question": "写倪亚·利斯顿为何能从重病中恢复，区分武人的前世和现在的身体。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "回復したニアは木剣を",
+          "question": "写恢复后如何显露武技与家人的反差，只写木剑一事。"
+        },
+        {
+          "kind": "cause",
+          "needle": "ニアの両親は、治療法を国中",
+          "question": "说明家人如何用魔法影像寻找疗法，以及为什么让康复的倪亚出镜。使用魔法影像一词。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "「異世界にテレビっぽい魔法があります」",
+          "question": "说明出镜热度怎样让倪亚开始帮忙推广家业，写清节目和她后续工作的关系，不预测之后战斗。",
+          "officialSentence": 4
+        }
+      ],
+      "people": [
+        {
+          "slug": "nia",
+          "name": "倪亚·利斯顿",
+          "role": "原本病弱，靠前世武技逐渐恢复的少女",
+          "beat": 1
+        }
+      ],
+      "setting": [
+        "魔法影像",
+        3
+      ],
+      "sceneSlug": "magic-vision-report",
+      "sceneName": "镜头前的康复消息",
+      "place": "利斯顿家 · 魔法影像录制现场",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/10/e52713814348c8528defb59c9c17f0856abf54dc5dd337_66654584_25534afd5122d030d1efafda7337b9a9bd773826.jpg",
+        "sourceSHA": "ffa7d91f3dfcffde34094bc3b1b39a6d2494ad4bd948260cf597e576cd351d33",
+        "brief": "画银白发蓝眼的倪亚在家族魔法影像录制间，面对装在木框中的魔法镜，平静向镜头致意。可有模糊背景人物，画面以倪亚和木框为主体，保持蓝色衣服及参考脸型。无文字和标志。"
+      }
+    }
+  ]
+}

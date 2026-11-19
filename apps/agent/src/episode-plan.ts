@@ -10,6 +10,7 @@ export interface EpisodePlan {
   guide: string
   officialTitle: string
   guideTitle: string
+  guideParagraphs?: string[]
   beats: {
     kind: string
     needle: string
@@ -37,7 +38,7 @@ export function episodeSources(
 export async function readEpisodeDocuments(
   p: Pick<
     EpisodePlan,
-    'official' | 'guide' | 'number' | 'sourceNumber' | 'officialTitle' | 'guideTitle'
+    'official' | 'guide' | 'number' | 'sourceNumber' | 'officialTitle' | 'guideTitle' | 'guideParagraphs'
   >,
   page: (url: string) => Promise<CheerioAPI>,
 ) {
@@ -50,12 +51,13 @@ export async function readEpisodeDocuments(
   const apothecary = /^https:\/\/www\.animatetimes\.com\/news\/details\.php\?id=(1790842934|1791440404)$/.test(p.official)
   const council = p.number <= 2 && p.official === 'https://nama-anaru.com/episode/?id=' + p.number
   const sourceNumber = p.sourceNumber ?? p.number
-  const japanese = fromTbs || film || apothecary || council
+  const press = Boolean(p.guideParagraphs?.length)
+  const japanese = fromTbs || film || apothecary || council || press
   const paragraphText = ($: CheerioAPI, selector: string) =>
     $(selector).toArray().map((x) => $(x).text().trim()).join(' ')
   const apTitle = site('.news-content h2').filter((_, el) => site(el).text() === p.officialTitle)
   const box = site('.storypage-wrap')
-  const item = apothecary ? {
+  const item = press ? readPressSynopsis(site, p.officialTitle) : apothecary ? {
     number: Number(apTitle.text().match(/第(\d+)話/)?.[1]),
     title: apTitle.text(),
     text: apTitle.next('h3').nextUntil('h2,h3','p').toArray().map((x) => site(x).text()).join(' '),
@@ -77,7 +79,7 @@ export async function readEpisodeDocuments(
   })()
   const row = wiki('#ep' + sourceNumber).closest('tr')
   const plot = wiki('#Plot')
-  const guideTitle = film ? plot.text().trim() : council ? wiki('h1').text() : row.find('.summary').text()
+  const guideTitle = film ? plot.text().trim() : (council || press) ? wiki('h1').text() : row.find('.summary').text()
   const councilParagraphs = wiki('.entry-content p.wp-block-paragraph').toArray().map((x) => wiki(x).text())
   const councilEpisodeOne = ['主人公の水之江梅は', '1本目では、梅が', '仕事の説明でも', '2本目は、朝のあいさつ運動', 'そして全校集会での生徒会の発表', 'ところが発表の最後に映像のトラブルが起き']
   const councilEpisodeTwo = ['1本目「メシアたん」は', '本題はここからでした', '2本目は、夜の校舎の見回り', '青く沈んだ夜の校舎', '3本目で、ついにこまろが登場', 'そして会長は、先生が梅を']
@@ -96,18 +98,18 @@ export async function readEpisodeDocuments(
     [p.official, item.text, 'official', item.title],
     [
       p.guide,
-      film ? filmText.toArray().map((x) => wiki(x).text()).join(' ') : council ? schoolSynopsis : row.next('tr').find('.shortSummaryText').text(),
+      film ? filmText.toArray().map((x) => wiki(x).text()).join(' ') : press ? readGuideParagraphs(wiki, p.guideParagraphs!) : council ? schoolSynopsis : row.next('tr').find('.shortSummaryText').text(),
       'guide',
       p.guideTitle,
     ],
   ].map(([url, raw, key, title]) => {
     const original = String(raw || '')
-    const text = (apothecary || council ? original.normalize('NFKC') : original)
+    const text = (apothecary || council || press ? original.normalize('NFKC') : original)
       .replace(/\s+/g, ' ')
       .trim()
     if (Buffer.byteLength(text) < 60 || text.length > 6000) throw Error('分集原文不完整')
     const sentences = Array.from(
-      new Intl.Segmenter((key === 'official' && japanese) || council ? 'ja' : 'en', { granularity: 'sentence' }).segment(text),
+      new Intl.Segmenter((key === 'official' && japanese) || council || press ? 'ja' : 'en', { granularity: 'sentence' }).segment(text),
       (x) => x.segment.trim(),
     ).filter(Boolean)
     return {
@@ -122,12 +124,43 @@ export async function readEpisodeDocuments(
     }
   })
 }
+function readPressSynopsis(site: CheerioAPI, expected: string) {
+  const item = site('#cms_block .line_00 .epHead b')
+  if (item.length === 1) return {
+    number: Number(item.text()),
+    title: site('#cms_block .line_00 .articleHead').text().trim(),
+    text: site('#cms_block .line_02 .read').text().trim(),
+  }
+  const heading = site('.news-content h2, .news-content h3')
+    .filter((_, node) => site(node).text().trim() === expected)
+    .first()
+  const title = heading.text().trim()
+  const label = title.match(/第([0-9０-９一二三]+)[話回]/)?.[1]
+  const japaneseNumbers: Record<string, number> = { 一: 1, 二: 2, 三: 3 }
+  const number = label ? japaneseNumbers[label] ?? Number(label.normalize('NFKC')) : NaN
+  const synopsis = heading.next('h3').text().trim() === 'あらすじ' ? heading.next('h3') : heading
+  const text = synopsis.nextUntil('h2,h3','p').toArray().map((x) => site(x).text().trim()).join(' ')
+  return { number, title, text }
+}
+
+function readGuideParagraphs(page: CheerioAPI, starts: string[]) {
+  const paragraphs = page('.entry-content p, article p, main p').toArray()
+    .map((x) => page(x).text().trim().replace(/\s+/g, ' '))
+  const matches = starts.map((start) => paragraphs.find((text) => text.startsWith(start)))
+  if (matches.some((text) => !text)) throw Error('分集补充资料缺少指定原文段落')
+  return matches.join(' ')
+}
+
 export function episodeOutline(p: EpisodePlan, docs: Doc[]) {
   const guide = docs.find((d) => d.id === 'guide-' + p.number)!
   const official = docs.find((d) => d.id === 'official-' + p.number)!
-  const starts = p.beats.map((b) =>
-    guide.sentences.findIndex((s) => s.includes(b.needle)),
-  )
+  const starts: number[] = []
+  for (const beat of p.beats) {
+    const previous = starts.at(-1) ?? -1
+    const found = guide.sentences.findIndex((sentence, i) => i > previous && sentence.includes(beat.needle))
+    if (found < 0) throw Error('剧情出处需更新：' + beat.needle)
+    starts.push(found)
+  }
   return p.beats.map((b, i) => {
     const start = starts[i],
       end = starts[i + 1] ?? guide.sentences.length

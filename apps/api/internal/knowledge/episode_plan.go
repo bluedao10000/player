@@ -29,7 +29,8 @@ type episodeSpec struct {
 		Kind, Needle, Question string
 		OfficialSentence       int
 	}
-	Setting []json.RawMessage
+	GuideParagraphs []string
+	Setting         []json.RawMessage
 }
 type editionPlan struct {
 	World, Title, Edition, Provider, ExternalID, Intro, Type string
@@ -39,7 +40,13 @@ type editionPlan struct {
 	Episodes                                                 []json.RawMessage
 }
 
-var planSlug = regexp.MustCompile("^[a-z0-9]+(-[a-z0-9]+)*$")
+var (
+	planSlug           = regexp.MustCompile("^[a-z0-9]+(-[a-z0-9]+)*$")
+	pressID            = regexp.MustCompile("^id=[0-9]{10}$")
+	pressGuidePath     = regexp.MustCompile("^/[a-z0-9-]+/$")
+	numericArchivePath = regexp.MustCompile("^/archives/[0-9]+/?$")
+	tvTimesEpisodePath = regexp.MustCompile("^/dramas/[a-z0-9]+/[0-9]+/?$")
+)
 
 func (e episodeSpec) validate() error {
 	if e.Number < 1 || !planSlug.MatchString(e.Slug) || !planSlug.MatchString(e.SceneSlug) || e.Title == "" || e.SceneName == "" || e.Place == "" || e.Intro == "" {
@@ -60,7 +67,10 @@ func (e episodeSpec) validate() error {
 	release, found := apothecaryReleases[e.SourceNumber]
 	apothecary := found && e.SourceNumber == e.Number+48 && e.Official == "https://www.animatetimes.com/news/details.php?id="+release
 	council := e.Number <= 2 && e.Official == fmt.Sprintf("https://nama-anaru.com/episode/?id=%d", e.Number)
-	if !naruto && !takopi && !lookBack && !apothecary && !council {
+	pressRelease := official.Host == "www.animatetimes.com" && official.Path == "/news/details.php" && pressID.MatchString(official.RawQuery)
+	itemPremiere := e.Number == 1 && e.Official == "https://toaru-project.com/item/story/01.html"
+	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere) && official.Fragment == ""
+	if !naruto && !takopi && !lookBack && !apothecary && !council && !press {
 		return errors.New("官方来源或标题无效")
 	}
 	guide, err := url.Parse(e.Guide)
@@ -77,7 +87,23 @@ func (e episodeSpec) validate() error {
 			return errors.New("《药屋》分集表来源不匹配")
 		}
 	}
-	if council {
+	if press {
+		if err != nil || guide.User != nil || guide.Scheme != "https" || guide.RawQuery != "" || guide.Fragment != "" ||
+			!((guide.Host == "2jigen-otaku.com" && pressGuidePath.MatchString(guide.Path)) ||
+				(guide.Host == "tv-times.jp" && tvTimesEpisodePath.MatchString(guide.Path)) ||
+				((guide.Host == "saisokustory.com" || guide.Host == "animenoyakata.com") && pressGuidePath.MatchString(guide.Path)) ||
+				(guide.Host == "anime-no-mikata.com" && numericArchivePath.MatchString(guide.Path))) {
+			return errors.New("新闻稿分集补充来源不匹配")
+		}
+		if len(e.GuideParagraphs) < 3 || len(e.GuideParagraphs) > 18 {
+			return errors.New("补充分集需要 3–18 个原文段落定位")
+		}
+		for _, start := range e.GuideParagraphs {
+			if strings.TrimSpace(start) != start || len(start) < 8 || len(start) > 320 {
+				return errors.New("分集资料段落定位无效")
+			}
+		}
+	} else if council {
 		if e.Guide != fmt.Sprintf("https://2jigen-otaku.com/seitokai-ana-%dwa/", e.Number) {
 			return errors.New("TV 版分集补充来源不匹配")
 		}

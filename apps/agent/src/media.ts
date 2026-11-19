@@ -154,8 +154,10 @@ async function configuredReference(j: Job): Promise<Result> {
     url.protocol !== 'https:' ||
     url.username || url.password ||
     !(['cmsapi-frontend.naruto-official.com', 'lain.bgm.tv'].includes(url.host)
-      || (url.host === 'img2.animatetimes.com' && url.pathname.startsWith('/2026/10/'))
+      || (url.host === 'img2.animatetimes.com' && /^\/2026\/(09|10|11)\//.test(url.pathname))
       || (url.host === 'nama-anaru.com' && (/^\/teaser_assets\/img\/(episode|chara)\//.test(url.pathname) || /^\/episode\/SYS\/CONTENTS\/story_\d+_photo_\d+$/.test(url.pathname)))
+      || (url.host === 'toaru-project.com' && /^\/item\/core_sys\/images\/contents\/\d+\/block\/\d+\/\d+\.jpg$/.test(url.pathname))
+      || (url.host === 'korinojoheki-pr.com' && /^\/wp\/wp-content\/themes\/[0-9a-f]+\/static\/assets\/character\/0[1-4]\/main\.webp$/.test(url.pathname))
       || (url.host === 'lookback-anime.com' && url.pathname.startsWith('/assets/img/'))
       || (url.host === 'www.tbs.co.jp' && url.pathname.startsWith('/anime/takopi_project/series/')))
   )

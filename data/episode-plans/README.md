@@ -8,6 +8,7 @@
 | `sourceNumber` | 官方和独立资料的集号与季内 `number` 不同才填写。《药屋少女的呢喃》第三季 `number: 1` 对应全剧 `sourceNumber: 49`，归档与 H5 仍按季编号。 |
 | `official / officialTitle` | 官方分集 URL 和页面完整标题。联网时再次核对实际标题和集号。 |
 | `guide / guideTitle` | 分集资料 URL，含对应的 `#epN` 锚点；标题按原大小写填写。 |
+| `guideParagraphs` | B 批新闻稿取证使用。这一字段按剧情顺序列出独立分集资料的段落开头。Pi 先核对发布方的集号与标题，再从指定段落定位剧情句子。摘要与正文有重复表述时，每个后续节点从上一个节点之后匹配。 |
 | `beats` | 依剧情顺序配置 4–6 个节点，覆盖 motive、turn、cause。每个 needle 选取不同原文句子中的独特短语，question 写明该段应交代什么。至少一个节点用 officialSentence 指向支持该结论的官方原文句号（从 1 开始）。 |
 | `people` | 填写本集主要人物的 slug、中文名、身份及出场段号 beat。新人物也要在作品的 people 中配置一次肖像参考。 |
 | `setting` | 数组第一个值是要讲清的设定用词，第二个值是有出处的段号，从 1 起。 |

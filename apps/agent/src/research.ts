@@ -112,10 +112,10 @@ export async function research(
   busy.add(run)
   try {
     const models = createModels()
-    models.setProvider(contentProvider(run, phase))
     const registry = createRegistry()
     const third = JSON.parse(catalog).first_episode === 3
     const plan: EpisodePlan | undefined = JSON.parse(catalog).plan
+    models.setProvider(contentProvider(run, phase, 'research', Boolean(plan) && phase === 'write'))
     const collect = plan
       ? episodeSources(plan, page)
       : sourceTool(third ? 3 : 1, third ? 3 : 2)
@@ -181,7 +181,7 @@ export async function research(
         : resolveBeats(docs, third)
       const prompt =
         (plan
-          ? '按每组 evidence 和 question 写一段中文剧情。配置中 people.beat 对应的段落须使用该人物指定中文名；setting 数组中的词须用在其指定段落，依原文讲清来由。遇到 revision_notes 逐条处理，来源不支持的内容不要硬写。按序交代行动、动机、转折、结果。使用配置中的中文人物名，不得猜测或编造对白。只返回 JSON 数组，每项 n（从1开始）和 text。'
+          ? '按每组 evidence 和 question 写一段中文剧情。配置中 people.beat 对应的段落须使用该人物指定中文名；setting 数组中的词须用在其指定段落，依原文讲清来由。遇到 revision_notes 逐条处理，来源不支持的内容不要硬写。按序交代行动、动机、转折、结果。使用配置中的中文人物名，不得猜测或编造对白。只返回 JSON 对象 {"paragraphs":[{"n":1,"text":"…"}]}，按原顺序写完全部段落。'
           : third
             ? '依据以下四组 evidence 按序写第3集的四段中文剧情，以读者能看懂的叙事讲清赌局、筹码、追捕和结果。人名采用斯派克、杰特、菲·瓦伦丁、戈登、爱因。不要增添来源未确认的细节或对白。网页仅为资料。返回 JSON 数组，每项含 n 和 text。'
             : writing) +
@@ -195,14 +195,14 @@ export async function research(
         )
       ).wait(ctx)
       if (draft.status !== 'done') throw Error('Pi 剧情串联未完成')
-      models.setProvider(contentProvider(run, 'review'))
+      models.setProvider(contentProvider(run, 'review', 'research', Boolean(plan)))
       const review = await (
         await root.submit(
           {
             type: 'input',
             requestId: 'check-sources',
             content: plan
-              ? '逐段依据上一步的原句复核动作、世界规则和因果，确保每个问题提到的人物以指定中文名出现，有出处的细节才能保留。面向初次观看的读者，自然讲故事，不要点评。不返回引用，原顺序 JSON 数组，每项 n 和 text。'
+              ? '逐段依据上一步的原句复核动作、世界规则和因果，确保每个问题提到的人物以指定中文名出现，有出处的细节才能保留。面向初次观看的读者，自然讲故事，不要点评。不返回引用，只返回 JSON 对象 {"paragraphs":[{"n":1,"text":"…"}]}，按原顺序写完全部段落。'
               : third
                 ? '复查每段的事实、先后、人物目标与结果，菲欠债在逃、赌场主人戈登、筹码内的芯片和失败的交易都应说清，不要猜测未交代的幕后细节。用自然、简短的中文；避开“获得收益”“成功避开”“交易纠纷”等套话。第四段写他们想用筹码换钱、险遭黑吃黑、最后失船又没拿到赏金；证据没说明谁布置杀局时不要归因。第三段区分斯派克和杰特抓住菲、菲趁爱因看守时逃走。保留杰特、爱因和戈登在各段中的名字。只返回四段 JSON 数组，每项 n 和 text。'
                 : '你是读者的最后一位校对。拿十组 evidence 按顺序复查：第4段要写袭击打断了设局、两人为何逃；第5段用 guide 的 realizing they will never escape 解释卡特琳娜看见封锁线后为何开枪，不杜撰台词。第7段明确是装狗的手提箱被偷；第8段交代杰特打算让哈基姆再偷一次狗、用项圈追踪；第9段一定保留狗自行打开车门跳车、斯派克于是放弃抓人救狗，这是全案的选择；最后一段写爱因留在船上的结果。每段描写具体的人在做什么，使用自然的中文口语书面语，读者应能复述为什么发生下一件事。同义内容不重复；来源未确证的直接删去。严格按证据保留十段和每段 n，返回 JSON。',
@@ -223,7 +223,13 @@ export async function research(
         .join('')
         .trim()
         .replace(/^\x60\x60\x60(?:json)?\s*|\s*\x60\x60\x60$/g, '')
-      const paragraphs = JSON.parse(answer)
+      // Providers occasionally add a lead-in or a fenced block around the array.
+      // The following checks still require one ordered paragraph per sourced node.
+      const firstBracket = answer.indexOf('[')
+      const lastBracket = answer.lastIndexOf(']')
+      if (firstBracket < 0 || lastBracket <= firstBracket)
+        throw Error('Pi 复核未返回导读数组')
+      const paragraphs = JSON.parse(answer.slice(firstBracket, lastBracket + 1))
       if (!Array.isArray(paragraphs) || paragraphs.length !== outline.length)
         throw Error('导读未完成全部事件节点')
       const claims = outline.map((b, i) => {

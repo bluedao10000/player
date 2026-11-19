@@ -1,0 +1,147 @@
+{
+  "world": "toaru-item-tv-2026",
+  "title": "某暗部的少女共栖",
+  "edition": "2026 · TV 动画",
+  "provider": "bangumi",
+  "externalID": "537738",
+  "year": 2026,
+  "type": "TV",
+  "intro": "学园都市的另一面由暗部处理。「道具」的四名成员接到新的委托，她们各自不同的能力在这次行动中发挥作用。",
+  "people": [
+    {
+      "slug": "mugino",
+      "name": "麦野沈利",
+      "role": "暗部四人小队「道具」的领队",
+      "portrait": {
+        "referenceURL": "https://toaru-project.com/item/core_sys/images/contents/00000006/block/00000019/00000031.jpg?1794613718",
+        "sourceSHA": "2daf2fd23c6255e82cbeefa77c4f228ae0d80285f47d55cda3788523c883eb65",
+        "brief": "以左侧褐色长发和白衬衫的麦野沈利为唯一人物。普通肖像，保留发色、脸型和服装，简洁背景。",
+        "box": [
+          0.09,
+          0.02,
+          0.46,
+          0.88
+        ]
+      }
+    },
+    {
+      "slug": "takitsubo",
+      "name": "滝壶理后",
+      "role": "擅长追踪的「道具」成员",
+      "portrait": {
+        "referenceURL": "https://toaru-project.com/item/core_sys/images/contents/00000006/block/00000019/00000034.jpg?1794613718",
+        "sourceSHA": "d89c3190e199bcd15116f9018b3c961adcb35869d294a47b3c48f10ac975ea2b",
+        "brief": "参考中的黑色短发、粉色运动外套和淡然神情，独立绘制滝壶理后的头肩肖像，纯色背景。"
+      }
+    },
+    {
+      "slug": "kinuhata",
+      "name": "绢旗最爱",
+      "role": "为团队提供防御的「道具」成员",
+      "portrait": {
+        "referenceURL": "https://toaru-project.com/item/core_sys/images/contents/00000006/block/00000019/00000032.jpg?1794613718",
+        "sourceSHA": "3d1a37561c5afb97eb5438ac267d0129879e29df644739f5607963b2528e2ecb",
+        "brief": "参考中的棕色短发、橙色连帽上衣，独立绘制绢旗最爱的普通人物肖像，姿态放松，简洁背景。"
+      }
+    },
+    {
+      "slug": "frenda",
+      "name": "芙兰达",
+      "role": "依靠技能承担前卫工作的「道具」成员",
+      "portrait": {
+        "referenceURL": "https://toaru-project.com/item/core_sys/images/contents/00000006/block/00000019/00000030.jpg?1794613718",
+        "sourceSHA": "23ad37b4f48cfb179d692be208b8f9973fafcf8db6fa35b7626b8d410bbcf21b",
+        "brief": "参考左侧金色长发、蓝色眼睛、白帽和蓝衣的芙兰达，绘制正面单人头肩像，干净背景。",
+        "box": [
+          0.04,
+          0.01,
+          0.53,
+          0.98
+        ]
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "item",
+      "title": "道具",
+      "intro": "刚完成一项委托，「道具」又被电话里的声音指派调查一家非营利组织。",
+      "official": "https://toaru-project.com/item/story/01.html",
+      "officialTitle": "アイテム",
+      "guide": "https://anime-no-mikata.com/archives/8981",
+      "guideTitle": "『とある暗部の少女共棲』第1話",
+      "guideParagraphs": [
+        "公式あらすじでは、4人が",
+        "ここで面白いのは、レベル5の麦野",
+        "麦野は学園都市第四位",
+        "滝壺理后の",
+        "絹旗最愛はレベル4",
+        "フレンダは無能力者",
+        "そして頑張ったあとに待っている"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "公式あらすじでは、4人が",
+          "question": "以学园都市和「道具」引出电话委托、目标以治疗做掩护、对方有人具备防御能力，避免复述作战过程。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "ここで面白いのは、レベル5の麦野",
+          "question": "讲麦野沈利在队伍中的位置和能力，以及她为什么不是独自完成所有工作。只做概括。"
+        },
+        {
+          "kind": "cause",
+          "needle": "滝壺理后の",
+          "question": "用滝壶理后和绢旗最爱的中文名说明两人的能力和队伍分工。只用作品设定概括。"
+        },
+        {
+          "kind": "turn",
+          "needle": "フレンダは無能力者",
+          "question": "写芙兰达在队伍里的独特位置，以及任务后的反差收尾，略去战斗细节。不要推断组织已经摧毁。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "mugino",
+          "name": "麦野沈利",
+          "role": "暗部四人小队「道具」的领队",
+          "beat": 2
+        },
+        {
+          "slug": "takitsubo",
+          "name": "滝壶理后",
+          "role": "擅长追踪的「道具」成员",
+          "beat": 3
+        },
+        {
+          "slug": "kinuhata",
+          "name": "绢旗最爱",
+          "role": "为团队提供防御的「道具」成员",
+          "beat": 3
+        },
+        {
+          "slug": "frenda",
+          "name": "芙兰达",
+          "role": "依靠技能承担前卫工作的「道具」成员",
+          "beat": 4
+        }
+      ],
+      "setting": [
+        "学园都市",
+        1
+      ],
+      "sceneSlug": "new-phone-assignment",
+      "sceneName": "新的电话委托",
+      "place": "「道具」休息室",
+      "sceneBeat": 1,
+      "art": {
+        "referenceURL": "https://toaru-project.com/item/core_sys/images/contents/00000006/block/00000019/00000033.jpg?1794613718",
+        "sourceSHA": "08fcd62b36cc500dece2bf831a62ee9b73f44d608c434fff2a9419ae02b23aa8",
+        "brief": "画四名「道具」成员在室内休息，麦野沈利在画面中间留意到新来电，其他同伴在沙发旁等消息。保留参考画面人物的各自发色和服装，以交接新任务的气氛为主，无武器和文字，主体居中。"
+      }
+    }
+  ]
+}

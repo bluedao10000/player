@@ -1,0 +1,165 @@
+{
+  "world": "ramparts-of-ice-s2-2026",
+  "title": "冰之城墙",
+  "edition": "2026 · 第二季",
+  "provider": "bangumi",
+  "externalID": "665390",
+  "year": 2026,
+  "type": "TV",
+  "intro": "一次告白打破了四个朋友之间原有的距离。美姬、阳太、小雪和湊都想照顾对方，却各有犹豫。",
+  "people": [
+    {
+      "slug": "miki",
+      "name": "安昙美姬",
+      "role": "拒绝好友告白后心事重重",
+      "portrait": {
+        "referenceURL": "https://korinojoheki-pr.com/wp/wp-content/themes/bda003df6be3/static/assets/character/02/main.webp",
+        "sourceSHA": "1cd27112db4395f9ea2ae66be2e117373685a9889b31ba3e9c6d4915d1fa02e5",
+        "brief": "以参考中的浅金短发、琥珀眼、灰色校服和毛衣为依据制作安昙美姬的单人校刊头像。普通站姿，头肩部清楚，纯色背景。",
+        "box": [
+          0.1,
+          0.0,
+          0.8,
+          0.36
+        ]
+      }
+    },
+    {
+      "slug": "minato",
+      "name": "雨宫湊",
+      "role": "开导好友，也因此重新看待自己的感情",
+      "portrait": {
+        "referenceURL": "https://korinojoheki-pr.com/wp/wp-content/themes/bda003df6be3/static/assets/character/03/main.webp",
+        "sourceSHA": "d4629b7cb6ed86c5c4f847a92b3d178fc4a84a691687fe558c1532f7b7d656c3",
+        "brief": "以参考中的浅棕短发、灰色校服和毛衣为依据制作雨宫湊的单人校刊头像。普通站姿，头肩部清楚，纯色背景。",
+        "box": [
+          0.1,
+          0.0,
+          0.8,
+          0.36
+        ]
+      }
+    },
+    {
+      "slug": "koyuki",
+      "name": "冰川小雪",
+      "role": "得知告白结果后想和好友谈清楚",
+      "portrait": {
+        "referenceURL": "https://korinojoheki-pr.com/wp/wp-content/themes/bda003df6be3/static/assets/character/01/main.webp",
+        "sourceSHA": "0f58978cdbac90c51b9e3f0599c63b0eab36aee761bed9cdc65a36d7f911f84a",
+        "brief": "以参考中的浅灰棕长发、蓝眼、深色校服与蓝色毛衣为依据制作冰川小雪的单人校刊头像。普通站姿，头肩部清楚，纯色背景。",
+        "box": [
+          0.1,
+          0.0,
+          0.8,
+          0.36
+        ]
+      }
+    },
+    {
+      "slug": "yota",
+      "name": "日野阳太",
+      "role": "表白后试着一如既往与朋友相处",
+      "portrait": {
+        "referenceURL": "https://korinojoheki-pr.com/wp/wp-content/themes/bda003df6be3/static/assets/character/04/main.webp",
+        "sourceSHA": "6d3fd0668fe4a46c5ce77e64de151c0e5204a651d1182d2cec4f88132621c13d",
+        "brief": "以参考中的黑色短发、灰色校服为依据制作日野阳太的单人校刊头像。普通站姿，头肩部清楚，纯色背景。",
+        "box": [
+          0.1,
+          0.0,
+          0.8,
+          0.36
+        ]
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "cloud-and-rain",
+      "title": "阴雨天 · 全剧第 15 话",
+      "intro": "美姬拒绝阳太后，湊和小雪分别听到消息。四人在快餐店意外碰面，原本想单独谈的话迟迟说不出口。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1790656145",
+      "officialTitle": "第15話「曇雨天」あらすじ",
+      "guide": "https://animenoyakata.com/koorinojouheki-2-ep15/",
+      "guideTitle": "【氷の城壁2期】第15話「曇雨天」",
+      "guideParagraphs": [
+        "物語は、しっとりとした雨の空気",
+        "美姫を心配して声をかけた湊は",
+        "小雪は陽太から、告白がどうなった",
+        "15話の山場は、美姫と話そう",
+        "エピソードの終盤、小雪は自室"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "物語は、しっとりとした雨の空気",
+          "question": "用安昙美姬和日野阳太的名字，写告白被拒后的第二天两人如何相处。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "美姫を心配して声をかけた湊は",
+          "question": "写雨宫湊听完安昙美姬的心事后，为什么开始在意自己和小雪的距离。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "小雪は陽太から、告白がどうなった",
+          "question": "写冰川小雪从日野阳太得知了什么，以及为什么主动找美姬说话。"
+        },
+        {
+          "kind": "turn",
+          "needle": "15話の山場は、美姫と話そう",
+          "question": "使用快餐店一词，交代四人在那里相遇，以及阳太问了湊什么。避免编造对话。",
+          "officialSentence": 4
+        },
+        {
+          "kind": "cause",
+          "needle": "エピソードの終盤、小雪は自室",
+          "question": "写冰川小雪最后回到房间落泪，通过具体动作留住余韵，不替人物断言感情。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "miki",
+          "name": "安昙美姬",
+          "role": "拒绝好友告白后心事重重",
+          "beat": 1
+        },
+        {
+          "slug": "minato",
+          "name": "雨宫湊",
+          "role": "开导好友，也因此重新看待自己的感情",
+          "beat": 2
+        },
+        {
+          "slug": "koyuki",
+          "name": "冰川小雪",
+          "role": "得知告白结果后想和好友谈清楚",
+          "beat": 3
+        },
+        {
+          "slug": "yota",
+          "name": "日野阳太",
+          "role": "表白后试着一如既往与朋友相处",
+          "beat": 1
+        }
+      ],
+      "setting": [
+        "快餐店",
+        4
+      ],
+      "sceneSlug": "unexpected-meeting",
+      "sceneName": "快餐店里的碰面",
+      "place": "快餐店",
+      "sceneBeat": 4,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/09/679bab4de4799ff757110188065352866abb41975939e6_70908075_75e9068835ab67400804aa90779b5fffce8d0e75.jpg",
+        "sourceSHA": "b34688ca748b797cb30f94fdfd8402e226c323509ada7c1e79c8921f6447cebb",
+        "brief": "日野阳太独自坐在快餐店有暖色直背座椅的角落，黑色短发与白衬衫沿用参考，认真地等人开口。对面的同伴只留不清晰剪影，纸杯有颜色但无标志。重点面部，画面中部，适合手机裁切。"
+      },
+      "sourceNumber": 15
+    }
+  ]
+}

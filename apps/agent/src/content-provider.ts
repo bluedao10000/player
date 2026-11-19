@@ -6,7 +6,7 @@ import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.l
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
 import { profile, streamFetch } from './model-api.ts'
 
-export function contentProvider(run: string, phase: string, scope = 'research') {
+export function contentProvider(run: string, phase: string, scope = 'research', structured = false) {
   const p = profile('content')
   const arkKimi = p.gateway && p.model === 'volcengine/kimi-k3.1-pro'
   const protocol = p.gateway ? 'chat-completions' : process.env.CONTENT_AI_PROTOCOL || 'responses'
@@ -51,6 +51,7 @@ export function contentProvider(run: string, phase: string, scope = 'research') 
       onPayload: async (payload: unknown, selected: Parameters<NonNullable<StreamOptions['onPayload']>>[1]) => ({
         ...((await options?.onPayload?.(payload, selected) ?? payload) as Record<string, unknown>),
         thinking: { type: 'disabled' },
+        ...(structured ? { response_format: { type: 'json_object' } } : {}),
       }),
     } : {}),
   })
