@@ -1,0 +1,67 @@
+---
+title: Anime Agent 待开发功能 · 2026-11-19
+config:
+  flowchart:
+    wrappingWidth: 410
+    nodeSpacing: 14
+    rankSpacing: 30
+    padding: 12
+    subGraphTitleMargin:
+      top: 5
+      bottom: 10
+---
+%% 2026-11-19 · main，以 b1336ef 后的模型用量实现及本地作品目录为基线。各行独立，箭头连接已有能力及其缺口。
+flowchart LR
+    subgraph current["已实现"]
+        metering["模型用量<br/>写作、出图、验图、判同分别计量<br/>管理接口可按任务查回执"]
+        play["角色互动<br/>预设剧情选项，本机书架与进度"]
+        kb["知识库<br/>目录同步、分集取证、五维验收与发布"]
+        picks["热门作品选题<br/>20 部已匹配目录，已发布作品世界 0 部"]
+        edit["内容运营<br/>原创资料入库，首页保留策划栏目"]
+        desk["工作台与作品判同<br/>工作台可查看取证、验图与返工<br/>Jev 判同已接入 Gin 管理接口"]
+        seo["搜索引流<br/>公开内容 SSR、页面标题与描述"]
+        app["移动端<br/>可在手机浏览器阅读和探索"]
+        ops["部署<br/>API 与数据服务已拆分，单机 Compose"]
+    end
+    subgraph remaining["待开发或待部署"]
+        bill["用户计费与对账<br/>订单绑定付费账户，区分成本价与售价<br/>幂等扣费、退款、供应商对账与毛利"]
+        rp["自由角色扮演<br/>用户登录、自由输入、角色状态推进<br/>服务端持久会话与跨设备续玩"]
+        expand["扩展到更多作品<br/>接入不同结构的分集来源与校验规则<br/>支持按剧情语义检索知识库"]
+        pilot["首批 2 部各做前 2 集<br/>《药屋》第三季、《学生会也有洞！》TV 版<br/>另有 1 部需先核对 TV 与 ONA 版本"]
+        cms["通用内容编辑后台<br/>编辑人物与世界观，将互动片段整理为公开稿<br/>发布修订，从已发布内容配置首页推荐"]
+        console["工作台用量与后台治理<br/>按任务看 token、缺失及冲突回执<br/>判同、重算等管理操作交给数据服务执行"]
+        growth["全站 SEO / GEO<br/>自动 sitemap、结构化数据 JSON-LD<br/>补齐分享摘要与可引用的页面信息"]
+        ios["iOS App<br/>接入原生壳并完成真机验收"]
+        cloud["双云生产部署<br/>阿里云 API、腾讯云数据服务<br/>跨云鉴权、数据库连接、媒体分发与恢复演练"]
+    end
+    metering --> bill
+    play --> rp
+    kb --> expand
+    picks --> pilot
+    edit --> cms
+    desk --> console
+    seo --> growth
+    app --> ios
+    ops --> cloud
+    classDef done fill:#e8f3ed,stroke:#679080,color:#183e32;
+    classDef todo fill:#fff3e6,stroke:#ad7545,color:#56361d;
+    class metering,play,kb,picks,edit,desk,seo,app,ops done
+    class bill,rp,expand,pilot,cms,console,growth,ios,cloud todo
+%% metering | 汇总接口按用途、端点、账户及实际模型查询用量，调用明细保留回执与计量状态。 | apps/api/internal/knowledge/usage.go
+%% bill | 平台生产成本已有回执。用户费率、订单归属、账户流水、退款及供应商账单核对仍待实现。 | docs/模型用量与计费.md
+%% play | RoleplayComposer 从预设 options 选择下一步；原创故事的书架与进度保存在本机。 | apps/web/src/features/post/roleplay-controls.tsx
+%% rp | 当前 Pi 的持久任务服务于内容生产；面向读者的自由输入、服务端多轮会话、跨端身份与进度仍待接通。 | docs/产品架构.md
+%% kb | 数据服务按配置登记分集、调度取证与素材处理，验收后冻结已完成范围。 | apps/api/cmd/knowledge-sync/main.go
+%% expand | episodeSources 依赖 Naruto 官网页面结构及维基分集表；目录 API 按标题与别名查作品，接入另一种来源和剧情向量检索仍需开发。 | apps/agent/src/episode-plan.ts
+%% picks | 热度榜 20 项按 Bangumi ID 命中本地目录，其中 19 项符合现有 TV 与年份校验。 | docs/热门作品建库计划-2026-11-19.md
+%% pilot | 计划先验证续季集号与集内短篇，四集验收后用真实模型回执核算成本。《黑暗召唤师在地下恋爱中》的 TV/ONA 归属待核。 | docs/热门作品建库计划-2026-11-19.md
+%% edit | 首页作品入口读 Gin，部分港口栏目与原创推荐仍使用前端策划资料。 | apps/web/src/features/post/editorial.tsx
+%% cms | 已有分集自动验收发布；面向编辑的通用创作、修订、发布及首页配置后台仍待开发。 | docs/产品架构.md
+%% desk | 工作台 feed 汇集同步、质检、作品、研究、图片与范围记录，暂未消费管理端用量接口。 | apps/web/src/features/workbench/feed.ts
+%% console | 当前由已授权的 Gin 请求触发判同、部分质检和重算；跨云时数据服务需要异步命令和结果协议。 | apps/api/internal/knowledge/curation.go
+%% seo | H5 内容可 SSR，若干路由已有 head 元信息。 | apps/web/src/routes
+%% growth | 补齐可索引公开内容的 sitemap、统一结构化数据与传播摘要；索引和引用由搜索平台决定。 | docs/功能地图.md
+%% app | 角色、阅读、互动与书架路由已经支持移动 H5。 | apps/web/src/features/post
+%% ios | iOS 包装与真机交付待实施。 | docs/产品架构.md
+%% ops | Compose 已拆出 api、sync、research-agent，运行时仍使用本机卷。 | compose.yaml
+%% cloud | 双云为目标部署，还需跨云连通、服务身份、媒体可达、备份恢复和生产发布。 | docs/部署架构.md

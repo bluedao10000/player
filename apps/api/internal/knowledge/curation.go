@@ -164,6 +164,7 @@ func adminRoutes(r *gin.Engine, db *pgxpool.Pool) {
 		c.Next()
 	})
 	matchAIRoutes(g, db)
+	usageRoutes(g, db)
 	g.POST("/quality", func(c *gin.Context) {
 		work := c.Query("work_id")
 		if work != "" && !uuid(work) {

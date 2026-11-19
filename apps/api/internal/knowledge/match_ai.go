@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"anime-agent/api/internal/aiprovider"
+	"anime-agent/api/internal/modelusage"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -102,6 +103,11 @@ func matchAIRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 			}
 			if !errors.Is(e, pgx.ErrNoRows) {
 				return e
+			}
+			provider.Purpose = "match"
+			provider.Subject = "match:" + strconv.FormatInt(id, 10)
+			provider.Record = func(ctx context.Context, e modelusage.Event) error {
+				return modelusage.Deliver(ctx, db, modelusage.RecoveryDir(), e)
 			}
 			var a any
 			if version == jevVersion {

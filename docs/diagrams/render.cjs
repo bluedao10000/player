@@ -24,8 +24,10 @@ async function build() {
         primaryColor:'#eaf3ed',primaryTextColor:'#183d39',primaryBorderColor:'#488071',lineColor:'#56756f',
         clusterBkg:'#f6f7f3',clusterBorder:'#a9bbb2',edgeLabelBackground:'#fafbf7'},
     }))
+    const backlogOnly = process.argv[2] === 'backlog'
+    const selected = backlogOnly ? [['backlog', '待开发功能', 'diagrams/backlog.mmd']] : views
     const atlas=[]
-    for (const [key,title,source] of views) {
+    for (const [key,title,source] of selected) {
       const code=fs.readFileSync(path.join(docs,source),'utf8')
       const nodes=Object.fromEntries([...code.matchAll(/^%% (\w+) \| (.+?) \| (.+)$/gm)].map(([,id,detail,file])=>{
         if(!fs.existsSync(path.resolve(docs,'..',file))) throw new Error('Missing source: '+file)
@@ -44,12 +46,13 @@ async function build() {
         return new XMLSerializer().serializeToString(template.content.querySelector('svg'))
       },{key,code,nodes})
       fs.writeFileSync(path.join(__dirname,key+'.svg'),svg)
-      if(key==='product'||key==='business'){
+      if(backlogOnly||key==='product'||key==='business'){
         await page.evaluate(svg=>{document.body.innerHTML=svg},svg)
         await page.locator('svg').screenshot({path:path.join(__dirname,key+'.png')})
       }
       atlas.push({key,title,source,nodes,svg})
     }
+    if (backlogOnly) return
     const template=fs.readFileSync(path.join(__dirname,'atlas.template.html'),'utf8')
     const payload=JSON.stringify(atlas).replaceAll('<','\\u003c')
     fs.writeFileSync(path.join(docs,'architecture.html'),template.replace('/* ATLAS_DATA */ []',()=>payload))

@@ -7,12 +7,14 @@ import { createModels } from '@earendil-works/pi-ai/models'
 import { createRegistry, Harness } from '@earendil-works/pi-durable'
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node'
 import { mediaExtension, mediaStatus } from './media.ts'
+import { openUsage, pendingUsage, acknowledgeUsage } from './model-api.ts'
 import { research } from './research.ts'
 import { knowledgeTools } from './knowledge.ts'
 import { health } from '@anime/shared'
 
 const path = process.env.AGENT_DB_PATH ?? fileURLToPath(new URL('../../../data/agent.sqlite', import.meta.url))
 await mkdir(dirname(path), { recursive: true })
+openUsage(dirname(path))
 const storage = await openNodeSqliteStorage(path)
 const registry = createRegistry()
 registry.install(knowledgeTools)
@@ -26,13 +28,58 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify(health('agent')))
     return
   }
-  if (req.method==='POST' && req.url==='/internal/media') {
+  if (req.url === '/internal/model-usage' && req.method === 'GET') {
+    res
+      .writeHead(200, { 'Content-Type': 'application/json' })
+      .end(JSON.stringify(pendingUsage()))
+    return
+  }
+  if (req.url === '/internal/model-usage/ack' && req.method === 'POST') {
     try {
-      const chunks:Buffer[]=[];let size=0
-      for await(const chunk of req){size+=chunk.length;if(size>4096){res.writeHead(413).end();return};chunks.push(chunk)}
-      const result=await mediaStatus(harness,JSON.parse(Buffer.concat(chunks).toString()))
-      res.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify(result))
-    }catch {res.writeHead(503).end('media task unavailable')}
+      let body = ''
+      for await (const chunk of req) {
+        body += chunk
+        if (body.length > 4096) {
+          res.writeHead(413).end()
+          return
+        }
+      }
+      const ids = JSON.parse(body)
+      if (
+        !Array.isArray(ids) ||
+        ids.length > 50 ||
+        !ids.every((id) => typeof id === 'string' && /^[a-f0-9-]{36}$/.test(id))
+      )
+        throw Error()
+      acknowledgeUsage(ids)
+      res.writeHead(204).end()
+    } catch {
+      res.writeHead(400).end()
+    }
+    return
+  }
+  if (req.method === 'POST' && req.url === '/internal/media') {
+    try {
+      const chunks: Buffer[] = []
+      let size = 0
+      for await (const chunk of req) {
+        size += chunk.length
+        if (size > 4096) {
+          res.writeHead(413).end()
+          return
+        }
+        chunks.push(chunk)
+      }
+      const result = await mediaStatus(
+        harness,
+        JSON.parse(Buffer.concat(chunks).toString()),
+      )
+      res
+        .writeHead(200, { 'Content-Type': 'application/json' })
+        .end(JSON.stringify(result))
+    } catch {
+      res.writeHead(503).end('media task unavailable')
+    }
     return
   }
   const route = /^\/internal\/research\/([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\/(collect|write)$/.exec(req.url ?? '')

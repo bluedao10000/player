@@ -18,6 +18,9 @@ import (
 	"time"
 
 	"anime-agent/api/internal/aiprovider"
+	"anime-agent/api/internal/knowledge"
+	"anime-agent/api/internal/modelusage"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type brief struct {
@@ -156,6 +159,25 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
+	var db *pgxpool.Pool
+	spool := filepath.Join(root, "tidepost", "model-usage-outbox")
+	if os.Getenv("DATABASE_URL") != "" {
+		db, e = knowledge.Open(ctx)
+		if e != nil {
+			log.Fatal(e)
+		}
+		defer db.Close()
+		if e = modelusage.Replay(ctx, db, spool); e != nil {
+			log.Fatal(e)
+		}
+	}
+	c.Purpose = "image"
+	c.Subject = "preview:" + modelusage.NewID()
+	c.Size = *size
+	if *reference != "" {
+		c.Quality = "medium"
+	}
+	c.Record = func(ctx context.Context, e modelusage.Event) error { return modelusage.Deliver(ctx, db, spool, e) }
 	dir, e := render(ctx, c, b, *size, filepath.Join(root, "tidepost", "art-previews"), *reference)
 	if e != nil {
 		log.Fatal(e)

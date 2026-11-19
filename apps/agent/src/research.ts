@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { BACKGROUND_CONTEXT as ctx } from '@earendil-works/chord/context'
 import { createModels } from '@earendil-works/pi-ai/models'
-import { openaiProvider } from '@earendil-works/pi-ai/providers/openai'
+import { contentProvider } from './content-provider.ts'
+import { profile } from './model-api.ts'
 import {
   AssistantEntry,
   createRegistry,
@@ -108,12 +109,10 @@ export async function research(
   catalog: string,
 ) {
   if (busy.has(run)) throw Error('取证会话正在执行')
-  if (!process.env.OPENAI_API_KEY)
-    throw Error('需要配置 RESEARCH_OPENAI_API_KEY')
   busy.add(run)
   try {
     const models = createModels()
-    models.setProvider(openaiProvider())
+    models.setProvider(contentProvider(run, phase))
     const registry = createRegistry()
     const third = JSON.parse(catalog).first_episode === 3
     const plan: EpisodePlan | undefined = JSON.parse(catalog).plan
@@ -132,7 +131,7 @@ export async function research(
       ctx,
     )
     try {
-      const model = process.env.RESEARCH_MODEL || 'gpt-4.1-mini'
+      const model = profile('content').model
       const root = await harness.root(ctx, {
         agent: {
           model: { provider: 'openai', modelId: model },

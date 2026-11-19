@@ -11,3 +11,5 @@ NODE_PATH="$diagram_tools/node_modules" CHROME_CHANNEL=chrome node docs/diagrams
 ```
 
 打开[图集](../architecture.html)，在桌面和窄屏切换四个视图，点击节点，核对说明、源码和图源链接。图集模板为 [atlas.template.html](atlas.template.html)。
+
+单独更新[待开发功能 PNG](backlog.png) 时，编辑 [backlog.mmd](backlog.mmd)，在上述渲染命令末尾加上 `backlog`，即可一起导出对应的 SVG 和 PNG。

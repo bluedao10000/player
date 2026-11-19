@@ -1,3 +1,4 @@
+import { modelJSON, profile } from './model-api.ts'
 import { createHash } from 'node:crypto'
 import { constants } from 'node:fs'
 import { access, readFile, rename, writeFile } from 'node:fs/promises'
@@ -119,10 +120,17 @@ async function ref(j: Job) {
     throw Error('参考图版本变化，请核对图像指纹')
   return data
 }
-const imageModel = () => process.env.MEDIA_AI_MODEL || 'gpt-image-2'
-async function decodeImage(response: Response, width: number, height: number) {
-  if (!response.ok) throw Error('图片生成服务 HTTP ' + response.status)
-  const body = await response.json()
+const imageModel = () => profile('image').model
+function mediaSubject(j: Job) {
+  return (
+    'media:' + j.slot + ':r' + j.round + ':' + j.step + ':a' + (j.attempt ?? 1)
+  )
+}
+async function decodeImage(
+  body: { data?: { b64_json?: string }[] },
+  width: number,
+  height: number,
+) {
   if (body.data?.length !== 1 || !body.data[0].b64_json)
     throw Error('生成服务未返回单张图片')
   const bytes = Buffer.from(body.data[0].b64_json, 'base64')
@@ -189,17 +197,25 @@ async function preparePortrait(j: Job): Promise<Result> {
   return { reference, reference_sha: spec.sha, source }
 }
 
-async function prepareReference(): Promise<Result> {
+async function prepareReference(j: Job): Promise<Result> {
   await access(dir, constants.W_OK)
   const path = join(dir, spikeReference)
   if (!(await cached(path))) {
-    const response = await fetch(
-      'https://api.openai.com/v1/images/generations',
+    const p = profile('image')
+    const response = await modelJSON(
+      {
+        ...p,
+        subject: mediaSubject(j),
+        operation: 'reference',
+        size: '1024x1536',
+        quality: 'medium',
+      },
+      p.base + '/images/generations',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + process.env.MEDIA_AI_API_KEY,
+          Authorization: 'Bearer ' + p.key,
           'Idempotency-Key': 'bebop-reference-v1',
         },
         signal: AbortSignal.timeout(300000),
@@ -282,15 +298,26 @@ async function generate(j: Job) {
         ? spikeReference
         : 'mio-reference.webp',
   )
-  const response = await fetch('https://api.openai.com/v1/images/edits', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + process.env.MEDIA_AI_API_KEY,
-      'Idempotency-Key': shaKey(j) + '-' + (j.referenceSHA || refHash),
+  const p = profile('image')
+  const response = await modelJSON(
+    {
+      ...p,
+      subject: mediaSubject(j),
+      operation: 'edit',
+      size: String(form.get('size')),
+      quality: 'medium',
     },
-    body: form,
-    signal: AbortSignal.timeout(300000),
-  })
+    p.base + '/images/edits',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + p.key,
+        'Idempotency-Key': shaKey(j) + '-' + (j.referenceSHA || refHash),
+      },
+      body: form,
+      signal: AbortSignal.timeout(300000),
+    },
+  )
   const bytes = await decodeImage(
     response,
     isBebopScene(j) ? 1536 : 1024,
@@ -400,9 +427,10 @@ async function review(j: Job): Promise<Result> {
         ).toString('base64'),
     })),
   )
-  const primary = process.env.MEDIA_REVIEW_MODEL || 'gpt-4.1-mini'
+  const p = profile('vision')
+  const primary = p.model
   const fields = ['identity', 'scene', 'anatomy', 'clean', 'crop']
-  async function judge(model: string) {
+  async function judge(model: string, operation: string) {
     const instruction = isPortrait(j)
       ? `审核《${j.art?.series ?? '星际牛仔'}》人物专属肖像：${sceneBrief(j)}。第一图是该人物的公开比对资料；第二图是新绘肖像；第三图是 358px 角色图与 52px 圆形列表头像。比较原人物及候选的五官、发型、肤色、配饰和服装，检查只绘制一人、小头像中五官仍可辨认。检查 identity（身份）、scene（单人胸像构图）、anatomy（面部结构）、clean（无水印与文字）、crop（大图与圆形头像裁切）。只报告足以退回的可定位缺陷。只返回 JSON {violations:[{field,detail}],reason,focus:50}，无问题时 violations 为空数组。用中文说明实际看到的特征。`
       : `你在审二次元场景试稿。目标：${sceneBrief(j)}。第一张仅供人物比对，不要求新图沿用其背景光线或动作。仅记录肉眼可定位且足以退回的缺陷。返回 JSON 对象 {violations:[{field,detail}],reason,focus}。五个 field：identity=第二图人物身份偏离，scene=第二图缺少目标剧情动作或环境，anatomy=第二图有明显结构错误，clean=第二图内有额外文字排版或水印（只查第二图），crop=第三图主要人物或关键动作被裁掉或遮住。正常情况 violations 为空数组。第三张的标题、台词和按钮是页面设计，不构成文字污染。只要不影响脸或叙事动作就通过手机裁切。不要仅因晨昏色调相近推断时间错误。detail 用中文说明画面中的具体位置与问题；reason 用中文概述观察；focus 是建议的垂直裁切位置（0 顶部，100 底部，当前 ${j.focus}）。`
@@ -416,27 +444,29 @@ async function review(j: Job): Promise<Result> {
         image,
       ]),
     ]
-    const res = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + process.env.OPENAI_API_KEY,
+    const body = await modelJSON(
+      { ...p, model, subject: mediaSubject(j), operation },
+      p.base + '/responses',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + p.key,
+        },
+        signal: AbortSignal.timeout(90000),
+        body: JSON.stringify({
+          model,
+          input: [{ role: 'user', content }],
+          text: { format: { type: 'json_object' } },
+        }),
       },
-      signal: AbortSignal.timeout(90000),
-      body: JSON.stringify({
-        model,
-        input: [{ role: 'user', content }],
-        text: { format: { type: 'json_object' } },
-      }),
-    })
-    if (!res.ok) throw Error('视觉验图服务 HTTP ' + res.status)
-    const body = await res.json()
-    const r = JSON.parse(
-      body.output
-        ?.flatMap((o: { content?: { text?: string }[] }) => o.content ?? [])
-        .map((v: { text?: string }) => v.text ?? '')
-        .join(''),
     )
+    const verdictText = body.output
+      ?.flatMap((o) => o.content ?? [])
+      .map((v) => v.text ?? '')
+      .join('')
+    if (!verdictText) throw Error('视觉模型没有返回验图意见')
+    const r = JSON.parse(verdictText)
     if (
       !Array.isArray(r.violations) ||
       typeof r.reason !== 'string' ||
@@ -466,12 +496,15 @@ async function review(j: Job): Promise<Result> {
       focus: Math.round(r.focus),
     }
   }
-  let assessment = await judge(primary)
+  let assessment = await judge(primary, 'review')
   let secondModel, firstOpinion
   if (Object.values(assessment.checks).some((v) => !v)) {
     firstOpinion = assessment.reason
-    secondModel = process.env.MEDIA_SECOND_REVIEW_MODEL || 'gpt-4.1'
-    assessment = await judge(secondModel)
+    secondModel =
+      process.env.VISION_AI_SECOND_MODEL ||
+      process.env.MEDIA_SECOND_REVIEW_MODEL ||
+      'gpt-4.1'
+    assessment = await judge(secondModel, 'second-review')
   }
   const checks = assessment.checks
   const decision =
@@ -505,7 +538,7 @@ const task = defineTask<Job, { phase: 'run' }, Result>({
             ? await configuredReference(j)
             : isPortrait(j)
               ? await preparePortrait(j)
-              : await prepareReference()
+              : await prepareReference(j)
         else if (j.step === 'generate') {
           const image = await generate(j)
           result = {

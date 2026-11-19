@@ -340,7 +340,7 @@ func TestPostgresSnapshotLifecycle(t *testing.T) {
 		aiCalls++
 		a := assessment{Verdict: "uncertain", Reason: "需人审核", Evidence: []comparison{{Field: "title", Record: cited, Observation: "比对两个标题"}}}
 		content, _ := json.Marshal(a)
-		json.NewEncoder(w).Encode(gin.H{"choices": []gin.H{{"message": gin.H{"content": string(content)}}}})
+		json.NewEncoder(w).Encode(gin.H{"usage": gin.H{"prompt_tokens": 5, "completion_tokens": 2}, "choices": []gin.H{{"message": gin.H{"content": string(content)}}}})
 	}))
 	defer provider.Close()
 	t.Setenv("MATCH_AI_BASE_URL", provider.URL)
@@ -362,9 +362,12 @@ func TestPostgresSnapshotLifecycle(t *testing.T) {
 		t.Fatal("expected cached assessment")
 	}
 	count("SELECT count(*)::text FROM knowledge_ai_match_assessments", "1")
+	count("SELECT count(*)::text FROM model_calls WHERE purpose='match' AND total_tokens=7", "1")
 	cited = -1
 	t.Setenv("MATCH_AI_MODEL", "different-fixture")
 	assess(502)
+	count("SELECT count(*)::text FROM knowledge_ai_match_assessments", "1")
+	count("SELECT count(*)::text FROM model_calls WHERE purpose='match' AND total_tokens=7", "2")
 
 	if err = Rebuild(ctx, db, A, first); err != nil {
 		t.Fatal(err)

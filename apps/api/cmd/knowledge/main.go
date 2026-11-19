@@ -2,6 +2,7 @@ package main
 
 import (
 	"anime-agent/api/internal/knowledge"
+	"anime-agent/api/internal/modelusage"
 	"context"
 	"encoding/json"
 	"flag"
@@ -14,7 +15,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("usage: knowledge quality|review|rebuild")
+		log.Fatal("usage: knowledge quality|review|rebuild|usage-import")
 	}
 	ctx := context.Background()
 	db, err := knowledge.Open(ctx)
@@ -23,6 +24,14 @@ func main() {
 	}
 	defer db.Close()
 	switch os.Args[1] {
+	case "usage-import":
+		f := flag.NewFlagSet("usage-import", flag.ExitOnError)
+		dir := f.String("dir", "", "model usage outbox directory")
+		f.Parse(os.Args[2:])
+		if *dir == "" {
+			log.Fatal("--dir required")
+		}
+		err = modelusage.Replay(ctx, db, *dir)
 	case "quality", "rebuild", "diff", "project":
 		f := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
 		source := f.String("source", "all", "source name")

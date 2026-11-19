@@ -16,6 +16,16 @@ import (
 	"testing"
 )
 
+func TestPreviewProviderDefaults(t *testing.T) {
+	t.Setenv("MEDIA_AI_BASE_URL", "")
+	t.Setenv("MEDIA_AI_MODEL", "")
+	t.Setenv("MEDIA_AI_API_KEY", "fixture")
+	c, err := aiprovider.Config("MEDIA_AI")
+	if err != nil || c.Base != "https://api.openai.com/v1" || c.Model != "gpt-image-2" {
+		t.Fatalf("unexpected preview defaults: base=%q model=%q err=%v", c.Base, c.Model, err)
+	}
+}
+
 func TestPreview(t *testing.T) {
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, image.NewGray(image.Rect(0, 0, 1024, 1024))); err != nil {

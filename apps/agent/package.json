@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node src/server.ts",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit && node --test test/model-api.test.mjs"
   },
   "dependencies": {
     "@anime/shared": "*",

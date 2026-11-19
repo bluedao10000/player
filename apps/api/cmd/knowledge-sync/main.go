@@ -2,6 +2,7 @@ package main
 
 import (
 	"anime-agent/api/internal/knowledge"
+	"anime-agent/api/internal/modelusage"
 	"context"
 	"flag"
 	"log"
@@ -38,6 +39,25 @@ func main() {
 		return
 	}
 	if !*once && !*research {
+		base := os.Getenv("KNOWLEDGE_RESEARCH_URL")
+		go func() {
+			for ctx.Err() == nil {
+				if e := modelusage.Replay(ctx, db, modelusage.RecoveryDir()); e != nil && ctx.Err() == nil {
+					log.Printf("model receipt recovery: %v", e)
+				}
+				if base != "" {
+					if e := modelusage.Pull(ctx, db, base); e != nil && ctx.Err() == nil {
+						log.Printf("model usage sync: %v", e)
+					}
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(5 * time.Second):
+				}
+			}
+		}()
+
 		go func() {
 			for ctx.Err() == nil {
 				if e := knowledge.LoadEpisodePlans(ctx, db); e != nil {
