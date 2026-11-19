@@ -67,6 +67,13 @@ func TestCustomerBillingAndReconciliation(t *testing.T) {
 	id := call("GET", u+"/account", customer, nil, 200)["id"].(string)
 	call("GET", u+"/account", admin, nil, 401)
 	call("GET", a+"/reconciliation", customer, nil, 401)
+	session := call("POST", u+"/session", customer, nil, 200)["token"].(string)
+	if call("GET", u+"/account", session, nil, 200)["id"] != id {
+		t.Fatal("wrong reader account")
+	}
+	call("POST", u+"/session", session, nil, 403)
+	call("DELETE", u+"/session", session, nil, 204)
+	call("GET", u+"/account", session, nil, 401)
 	credit := a + "/accounts/" + id + "/credits"
 	for i := 0; i < 2; i++ {
 		call("POST", credit, admin, gin.H{"reference": "deposit-1", "currency": "CNY", "amount_micros": 1000}, 200)
@@ -245,13 +252,19 @@ func TestPaidPreviewCommand(t *testing.T) {
 		t.Fatal(e)
 	}
 	spec := billing.PreviewRequest{Size: "1024x1024", Brief: billing.ArtBrief{Subject: "order-fixture", VisualBible: "v", Scene: "s", Composition: "c", ArtDirection: "a"}}
+	if _, e := billing.Reserve(ctx, db, account, "offline", rate, spec, true); !errors.Is(e, billing.ErrWorkerOffline) {
+		t.Fatalf("offline order: %v", e)
+	}
+	if _, e := db.Exec(ctx, `INSERT INTO billing_preview_workers VALUES($1,'studio','fixture',now()+interval '1 minute')`, srv.URL); e != nil {
+		t.Fatal(e)
+	}
 	type result struct {
 		id  string
 		err error
 	}
 	claims := make(chan result, 2)
 	for _, key := range []string{"one", "two"} {
-		go func() { id, e := billing.Reserve(ctx, db, account, key, rate, spec); claims <- result{id, e} }()
+		go func() { id, e := billing.Reserve(ctx, db, account, key, rate, spec, true); claims <- result{id, e} }()
 	}
 	var order string
 	success, denied := 0, 0
@@ -269,8 +282,8 @@ func TestPaidPreviewCommand(t *testing.T) {
 	if success != 1 || denied != 1 {
 		t.Fatal("funds double reserved")
 	}
-	for range 2 {
-		cmd := exec.CommandContext(ctx, "go", "run", "../../cmd/media", "generate-preview", "--order", order)
+	for _, args := range [][]string{{"process-orders", "-once"}, {"process-orders", "-once"}, {"generate-preview", "--order", order}} {
+		cmd := exec.CommandContext(ctx, "go", append([]string{"run", "../../cmd/media"}, args...)...)
 		if out, e := cmd.CombinedOutput(); e != nil {
 			t.Fatalf("private preview: %v %s", e, out)
 		}

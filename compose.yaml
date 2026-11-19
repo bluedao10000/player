@@ -51,7 +51,7 @@ services:
     profiles: ["billing-tools"]
     build: ./apps/api
     entrypoint: ["media", "generate-preview"]
-    environment:
+    environment: &preview-environment
       <<: *database
       MEDIA_AI_API_KEY: ${MEDIA_AI_API_KEY:-}
       MEDIA_AI_BASE_URL: ${MEDIA_AI_BASE_URL:-}
@@ -60,6 +60,17 @@ services:
       XDG_CACHE_HOME: /var/lib/knowledge/archive/preview-cache
     volumes:
       - knowledge-archive:/var/lib/knowledge/archive
+  reader-orders:
+    profiles: ["reader-sales"]
+    build: ./apps/api
+    command: ["media", "process-orders"]
+    environment: *preview-environment
+    volumes:
+      - knowledge-archive:/var/lib/knowledge/archive
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
   research-agent:
     build:
       context: .

@@ -105,6 +105,7 @@ export function Shelf() {
         </div>
         <h1>我的书架</h1>
         <p>你在这个浏览器里收藏的故事。</p>
+        <a className="return" href="/commissions">我的约稿 <Icon name="arrow" size={17} /></a>
       </div>
       {items === null ? (
         <p>正在打开书架…</p>

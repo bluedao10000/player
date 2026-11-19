@@ -13,6 +13,7 @@ import (
 
 var ErrConflict = errors.New("conflicting operation")
 var ErrPending = errors.New("receipt not ready for settlement")
+var ErrWorkerOffline = errors.New("image fulfillment temporarily unavailable")
 var ErrFunds = errors.New("insufficient available balance")
 
 // Taking the account row lock serializes credits, holds, charges, refunds and releases.
@@ -22,7 +23,7 @@ func accountLock(ctx context.Context, tx pgx.Tx, id string) error {
 	return tx.QueryRow(ctx, "SELECT id::text FROM billing_accounts WHERE id=$1 FOR UPDATE", id).Scan(&locked)
 }
 
-func Reserve(ctx context.Context, db *pgxpool.Pool, account, key, rate string, request PreviewRequest) (id string, err error) {
+func Reserve(ctx context.Context, db *pgxpool.Pool, account, key, rate string, request PreviewRequest, automatic bool) (id string, err error) {
 	payload, err := json.Marshal(request)
 	if err != nil {
 		return "", err
@@ -43,19 +44,23 @@ func Reserve(ctx context.Context, db *pgxpool.Pool, account, key, rate string, r
 			return e
 		}
 		var current string
-		var funds bool
-		e = tx.QueryRow(ctx, `SELECT r.id::text,b.available_micros>=r.cap_micros FROM billing_balances b JOIN billing_rates r ON r.currency=b.currency
-   WHERE b.id=$1 AND r.kind='retail' AND r.effective_at<=now() ORDER BY r.effective_at DESC LIMIT 1`, account).Scan(&current, &funds)
+		var funds, worker bool
+		e = tx.QueryRow(ctx, `SELECT r.id::text,b.available_micros>=r.cap_micros,
+ EXISTS(SELECT FROM billing_preview_workers w WHERE (w.endpoint,w.provider_account,w.model)=(r.endpoint,r.provider_account,r.model) AND w.available_until>now()) FROM billing_balances b JOIN billing_rates r ON r.currency=b.currency
+   WHERE b.id=$1 AND r.kind='retail' AND r.effective_at<=now() ORDER BY r.effective_at DESC LIMIT 1`, account).Scan(&current, &funds, &worker)
 		if e != nil {
 			return e
 		}
 		if !strings.EqualFold(current, rate) {
 			return ErrConflict
 		}
+		if automatic && !worker {
+			return ErrWorkerOffline
+		}
 		if !funds {
 			return ErrFunds
 		}
-		return tx.QueryRow(ctx, "INSERT INTO billing_orders(account_id,client_key,rate_id,request) VALUES($1,$2,$3,$4) RETURNING id::text", account, key, rate, payload).Scan(&id)
+		return tx.QueryRow(ctx, "INSERT INTO billing_orders(account_id,client_key,rate_id,request,automatic) VALUES($1,$2,$3,$4,$5) RETURNING id::text", account, key, rate, payload, automatic).Scan(&id)
 	})
 	return
 }

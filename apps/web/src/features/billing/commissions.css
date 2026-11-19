@@ -1,0 +1,148 @@
+.commissions {
+  max-width: 46rem;
+  margin: 28px auto 72px;
+  overflow-wrap: anywhere;
+}
+.commission-title {
+  padding: 2rem 0 1.2rem;
+  border-bottom: 1px solid var(--line);
+}
+.commission-title h1 {
+  font: 600 clamp(36px, 7vw, 58px)/1.15 var(--display);
+  margin: 0;
+}
+.commissions h2,
+.commissions h3 {
+  font-family: var(--display);
+}
+.commissions p,
+.commissions small {
+  color: var(--muted);
+  line-height: 1.65;
+}
+.commissions small {
+  display: block;
+}
+.commissions button,
+.commissions input,
+.commissions select,
+.commissions textarea {
+  font: inherit;
+}
+.commissions button {
+  background: transparent;
+  border: 0;
+  color: var(--link);
+  cursor: pointer;
+  min-height: 44px;
+  padding: 8px 4px;
+}
+.commissions label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.94rem;
+}
+.commissions input,
+.commissions select,
+.commissions textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 11px 13px;
+  font-size: 16px;
+}
+.commissions textarea {
+  min-height: 78px;
+  resize: vertical;
+}
+.commissions .buy {
+  background: var(--accent);
+  color: var(--page);
+  border-radius: var(--pill);
+  padding: 10px 20px;
+  font-weight: 650;
+}
+.commissions :disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.commission-login {
+  margin: 30px 0;
+  max-width: 28rem;
+}
+.wallet-line,
+.commission-orders header,
+.commission-orders article,
+.commission-entries p {
+  display: flex;
+  gap: 15px;
+  justify-content: space-between;
+  align-items: center;
+}
+.wallet-line {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.wallet-line strong {
+  display: block;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+.commission-form,
+.commission-orders,
+.commission-entries {
+  margin: 32px 0;
+}
+.commission-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr 1fr;
+  min-width: 0;
+}
+.commission-form fieldset label:nth-child(3) {
+  grid-column: 1/-1;
+}
+.commission-form fieldset button {
+  align-self: end;
+}
+.commission-confirm {
+  border-left: 2px solid var(--accent);
+  padding: 0 16px;
+}
+.commission-confirm button + button {
+  margin-left: 12px;
+}
+.commission-orders article {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.commission-orders article div:last-child {
+  display: grid;
+  text-align: right;
+}
+.commission-orders article a {
+  color: var(--cyan);
+  line-height: 44px;
+}
+.commission-entries summary {
+  cursor: pointer;
+  padding: 12px 0;
+}
+.commission-notice {
+  color: var(--accent);
+  padding: 10px 0;
+}
+@media (max-width: 540px) {
+  .commission-form fieldset {
+    grid-template-columns: 1fr;
+  }
+  .commissions {
+    margin-top: 16px;
+  }
+}

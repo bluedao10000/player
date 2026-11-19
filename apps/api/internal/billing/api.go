@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	_ "embed"
 	"encoding/hex"
@@ -34,6 +35,8 @@ func fail(c *gin.Context, err error) {
 		c.JSON(409, gin.H{"error": err.Error()})
 	case errors.Is(err, ErrPending):
 		c.JSON(409, gin.H{"error": err.Error(), "state": "pending_reconciliation"})
+	case errors.Is(err, ErrWorkerOffline):
+		c.JSON(503, gin.H{"error": err.Error()})
 	case errors.Is(err, ErrFunds):
 		c.JSON(402, gin.H{"error": err.Error()})
 	case errors.As(err, &p) && (p.Code == "23505" || p.Code == "23503"):
@@ -71,7 +74,7 @@ func listOrders(c *gin.Context, db *pgxpool.Pool, owner string) {
 		return
 	}
 	jsonRow(c, db, `SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY seq DESC),'[]') FROM (
- SELECT seq,id,account_id,status,created_at,finished_at,currency,cap_micros,charge_micros FROM billing_order_details
+ SELECT seq,id,account_id,status,created_at,finished_at,currency,cap_micros,charge_micros,request#>>'{brief,original_subject}' AS subject FROM billing_order_details
  WHERE ($1='' OR account_id=nullif($1,'')::uuid) AND ($2='' OR status=$2) AND seq<$3 ORDER BY seq DESC LIMIT 100)x`, owner, c.Query("status"), before)
 }
 
@@ -85,7 +88,9 @@ func customerAuth(db *pgxpool.Pool) gin.HandlerFunc {
 		}
 		h := sha256.Sum256([]byte(raw))
 		var id string
-		err := db.QueryRow(c.Request.Context(), "SELECT id::text FROM billing_accounts WHERE token_hash=$1", h[:]).Scan(&id)
+		var isSession bool
+		err := db.QueryRow(c.Request.Context(), `SELECT id::text,false FROM billing_accounts WHERE token_hash=$1
+ UNION ALL SELECT account_id::text,true FROM billing_reader_sessions WHERE token_hash=$1 AND expires_at>now()`, h[:]).Scan(&id, &isSession)
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.AbortWithStatus(401)
 			return
@@ -96,6 +101,8 @@ func customerAuth(db *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		c.Set("billing_account", id)
+		c.Set("billing_session", isSession)
+		c.Set("billing_hash", h[:])
 		c.Next()
 	}
 }
@@ -103,11 +110,36 @@ func customerAuth(db *pgxpool.Pool) gin.HandlerFunc {
 func CustomerRoutes(r *gin.Engine, db *pgxpool.Pool) {
 	g := r.Group("/api/v1/billing", customerAuth(db))
 	owner := func(c *gin.Context) string { return c.GetString("billing_account") }
+	g.POST("/session", func(c *gin.Context) {
+		if c.GetBool("billing_session") {
+			c.Status(http.StatusForbidden)
+			return
+		}
+		var secret [32]byte
+		rand.Read(secret[:])
+		token := hex.EncodeToString(secret[:])
+		hash := sha256.Sum256([]byte(token))
+		_, err := db.Exec(c.Request.Context(), `WITH cleanup AS (DELETE FROM billing_reader_sessions WHERE expires_at<=now())
+ INSERT INTO billing_reader_sessions(token_hash,account_id) VALUES($1,$2)`, hash[:], owner(c))
+		if err != nil {
+			fail(c, err)
+			return
+		}
+		c.JSON(200, gin.H{"token": token})
+	})
+	g.DELETE("/session", func(c *gin.Context) {
+		hash, _ := c.Get("billing_hash")
+		if _, err := db.Exec(c.Request.Context(), "DELETE FROM billing_reader_sessions WHERE token_hash=$1", hash); err != nil {
+			fail(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
 	g.GET("/account", func(c *gin.Context) {
 		jsonRow(c, db, "SELECT to_jsonb(b) FROM billing_balances b WHERE id=$1", owner(c))
 	})
 	g.GET("/quote", func(c *gin.Context) {
-		jsonRow(c, db, `SELECT jsonb_build_object('product','image-preview','rate',to_jsonb(r)-ARRAY['created_by','provider_account','endpoint'])
+		jsonRow(c, db, `SELECT jsonb_build_object('product','image-preview','automatic',EXISTS(SELECT FROM billing_preview_workers w WHERE (w.endpoint,w.provider_account,w.model)=(r.endpoint,r.provider_account,r.model) AND w.available_until>now()),'rate',to_jsonb(r)-ARRAY['created_by','provider_account','endpoint'])
  FROM billing_rates r JOIN billing_accounts a ON a.currency=r.currency WHERE a.id=$1 AND r.kind='retail' AND effective_at<=now() ORDER BY effective_at DESC LIMIT 1`, owner(c))
 	})
 	g.GET("/entries", func(c *gin.Context) {
@@ -128,7 +160,7 @@ func CustomerRoutes(r *gin.Engine, db *pgxpool.Pool) {
 		if !input(c, &v) {
 			return
 		}
-		id, e := Reserve(c.Request.Context(), db, owner(c), v.Key, v.Rate, v.Request)
+		id, e := Reserve(c.Request.Context(), db, owner(c), v.Key, v.Rate, v.Request, c.GetBool("billing_session"))
 		if e != nil {
 			fail(c, e)
 			return

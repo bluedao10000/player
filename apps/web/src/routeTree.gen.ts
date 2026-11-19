@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CommissionsRouteImport } from './routes/commissions'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as ShelfRouteImport } from './routes/shelf'
 import { Route as StoriesRouteImport } from './routes/stories'
@@ -18,6 +19,7 @@ import { Route as CharacterMioRouteImport } from './routes/character.mio'
 import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as PlaySlugRouteImport } from './routes/play.$slug'
+import { Route as ReaderApiSplatRouteImport } from './routes/reader-api.$'
 import { Route as StorySlugRouteImport } from './routes/story.$slug'
 import { Route as WorkbenchArtFileRouteImport } from './routes/workbench-art.$file'
 import { Route as WorkbenchHeroFileRouteImport } from './routes/workbench-hero.$file'
@@ -29,6 +31,11 @@ import { Route as WorkWorkKindSlugRouteImport } from './routes/work.$work.$kind.
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommissionsRoute = CommissionsRouteImport.update({
+  id: '/commissions',
+  path: '/commissions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthzRoute = HealthzRouteImport.update({
@@ -71,6 +78,11 @@ const PlaySlugRoute = PlaySlugRouteImport.update({
   path: '/play/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReaderApiSplatRoute = ReaderApiSplatRouteImport.update({
+  id: '/reader-api/$',
+  path: '/reader-api/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StorySlugRoute = StorySlugRouteImport.update({
   id: '/story/$slug',
   path: '/story/$slug',
@@ -109,6 +121,7 @@ const WorkWorkKindSlugRoute = WorkWorkKindSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
@@ -116,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/character/mio': typeof CharacterMioRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
+  '/reader-api/$': typeof ReaderApiSplatRoute
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
   '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
@@ -127,6 +141,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
@@ -134,6 +149,7 @@ export interface FileRoutesByTo {
   '/character/mio': typeof CharacterMioRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
+  '/reader-api/$': typeof ReaderApiSplatRoute
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
   '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
@@ -146,6 +162,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
   '/shelf': typeof ShelfRoute
   '/stories': typeof StoriesRoute
@@ -153,6 +170,7 @@ export interface FileRoutesById {
   '/character/mio': typeof CharacterMioRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
+  '/reader-api/$': typeof ReaderApiSplatRoute
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
   '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
@@ -166,6 +184,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/commissions'
     | '/healthz'
     | '/shelf'
     | '/stories'
@@ -173,6 +192,7 @@ export interface FileRouteTypes {
     | '/character/mio'
     | '/knowledge/$id'
     | '/play/$slug'
+    | '/reader-api/$'
     | '/story/$slug'
     | '/workbench-art/$file'
     | '/workbench-hero/$file'
@@ -184,6 +204,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/commissions'
     | '/healthz'
     | '/shelf'
     | '/stories'
@@ -191,6 +212,7 @@ export interface FileRouteTypes {
     | '/character/mio'
     | '/knowledge/$id'
     | '/play/$slug'
+    | '/reader-api/$'
     | '/story/$slug'
     | '/workbench-art/$file'
     | '/workbench-hero/$file'
@@ -202,6 +224,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/commissions'
     | '/healthz'
     | '/shelf'
     | '/stories'
@@ -209,6 +232,7 @@ export interface FileRouteTypes {
     | '/character/mio'
     | '/knowledge/$id'
     | '/play/$slug'
+    | '/reader-api/$'
     | '/story/$slug'
     | '/workbench-art/$file'
     | '/workbench-hero/$file'
@@ -221,6 +245,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CommissionsRoute: typeof CommissionsRoute
   HealthzRoute: typeof HealthzRoute
   ShelfRoute: typeof ShelfRoute
   StoriesRoute: typeof StoriesRoute
@@ -228,6 +253,7 @@ export interface RootRouteChildren {
   CharacterMioRoute: typeof CharacterMioRoute
   KnowledgeIdRoute: typeof KnowledgeIdRoute
   PlaySlugRoute: typeof PlaySlugRoute
+  ReaderApiSplatRoute: typeof ReaderApiSplatRoute
   StorySlugRoute: typeof StorySlugRoute
   WorkbenchArtFileRoute: typeof WorkbenchArtFileRoute
   WorkbenchHeroFileRoute: typeof WorkbenchHeroFileRoute
@@ -245,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/commissions': {
+      id: '/commissions'
+      path: '/commissions'
+      fullPath: '/commissions'
+      preLoaderRoute: typeof CommissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/healthz': {
@@ -303,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reader-api/$': {
+      id: '/reader-api/$'
+      path: '/reader-api/$'
+      fullPath: '/reader-api/$'
+      preLoaderRoute: typeof ReaderApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/story/$slug': {
       id: '/story/$slug'
       path: '/story/$slug'
@@ -357,6 +397,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CommissionsRoute: CommissionsRoute,
   HealthzRoute: HealthzRoute,
   ShelfRoute: ShelfRoute,
   StoriesRoute: StoriesRoute,
@@ -364,6 +405,7 @@ const rootRouteChildren: RootRouteChildren = {
   CharacterMioRoute: CharacterMioRoute,
   KnowledgeIdRoute: KnowledgeIdRoute,
   PlaySlugRoute: PlaySlugRoute,
+  ReaderApiSplatRoute: ReaderApiSplatRoute,
   StorySlugRoute: StorySlugRoute,
   WorkbenchArtFileRoute: WorkbenchArtFileRoute,
   WorkbenchHeroFileRoute: WorkbenchHeroFileRoute,

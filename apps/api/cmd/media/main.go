@@ -135,6 +135,12 @@ func render(ctx context.Context, c aiprovider.Client, b brief, size, root, refer
 	return dir, nil
 }
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "process-orders" {
+		if err := workOrders(os.Args[2:]); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	if len(os.Args) < 2 || os.Args[1] != "generate-preview" {
 		log.Fatal("usage: media generate-preview --brief brief.json [--size 1024x1536]")
 	}
@@ -196,15 +202,10 @@ func main() {
 		if db == nil {
 			log.Fatal("--order requires PostgreSQL")
 		}
-		id, req, err := billing.ReadRequest(ctx, db, *order)
-		if err != nil {
-			log.Fatal(err)
-		}
-		c.Size = req.Size
-		if e = fulfill(ctx, db, id, c, brief(req.Brief), req.Size, root); e != nil {
+		if e = processOrder(ctx, db, *order, c, root); e != nil {
 			log.Fatal(e)
 		}
-		fmt.Println("Processed private preview order", id)
+		fmt.Println("Processed private preview order", *order)
 		return
 	}
 	dir, e := render(ctx, c, b, *size, filepath.Join(root, "tidepost", "art-previews"), *reference)
