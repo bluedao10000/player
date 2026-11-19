@@ -1,10 +1,10 @@
 import { Dialogue, Narration, RoleplayComposer } from './roleplay-controls'
 import { useEffect, useState } from 'react'
 import { Icon } from './icons'
-import { artUrl, catalog, storyUrl } from './catalog'
+import { artUrl, storyUrl } from './catalog'
 import type { Story } from './catalog'
-import { Layout, StoryPreview } from './design'
-import { readLocal, writeLocal, shelfKey } from './storage'
+import { Layout } from './design'
+import { readLocal, writeLocal } from '../reader/bookmarks'
 export function Play({ story }: { story: Story }) {
   const key = 'tidepost.turn.v1.' + story.slug
   const [choice, setChoice] = useState<number | null>(null),
@@ -56,42 +56,6 @@ export function Play({ story }: { story: Story }) {
           </a>
         </div>
       </section>
-    </Layout>
-  )
-}
-export function Shelf() {
-  const [items, setItems] = useState<string[] | null>(null)
-  useEffect(() => setItems(readLocal(shelfKey)), [])
-  const saved = catalog.filter((s) => items?.includes(s.slug))
-  return (
-    <Layout active="我的">
-      <div className="page-intro">
-        <div className="kicker">
-          <Icon name="bookmark" />
-          私人收藏
-        </div>
-        <h1>我的书架</h1>
-        <p>你在这个浏览器里收藏的故事。</p>
-        <a className="return" href="/commissions">我的约稿 <Icon name="arrow" size={17} /></a>
-      </div>
-      {items === null ? (
-        <p>正在打开书架…</p>
-      ) : saved.length ? (
-        <div className="grid">
-          {saved.map((story) => (
-            <StoryPreview key={story.slug} story={story} />
-          ))}
-        </div>
-      ) : (
-        <div className="empty">
-          <Icon name="book" size={36} />
-          <h2>书架还空着</h2>
-          <p>在故事阅读页点“加入书架”，就能在这里重读。</p>
-          <a className="button" href="/stories">
-            去读故事 <Icon name="arrow" />
-          </a>
-        </div>
-      )}
     </Layout>
   )
 }

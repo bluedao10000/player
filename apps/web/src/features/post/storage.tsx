@@ -1,43 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Icon } from './icons'
-import type { Story } from './catalog'
-export const shelfKey = 'tidepost.shelf.v1'
-export function readLocal(key: string): string[] {
-  try {
-    const v: unknown = JSON.parse(localStorage.getItem(key) ?? '[]')
-    return Array.isArray(v)
-      ? v.filter((x): x is string => typeof x === 'string')
-      : []
-  } catch {
-    return []
-  }
-}
-export function writeLocal(key: string, items: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(items))
-    return true
-  } catch {
-    return false
-  }
-}
-export function Save({ story }: { story: Story }) {
-  const [saved, setSaved] = useState(false),
-    [error, setError] = useState(false)
-  useEffect(
-    () => setSaved(readLocal(shelfKey).includes(story.slug)),
-    [story.slug],
-  )
-  function toggle() {
-    const current = readLocal(shelfKey)
-    const next = current.includes(story.slug)
-      ? current.filter((x) => x !== story.slug)
-      : [...current, story.slug]
-    const ok = writeLocal(shelfKey, next)
-    setError(!ok)
-    if (ok) setSaved(next.includes(story.slug))
-  }
+import {
+  readBookmarks,
+  setBookmark,
+  useBrowserRecord,
+  type Bookmark,
+} from '../reader/bookmarks'
+
+export function Save(item: Bookmark) {
+  const items = useBrowserRecord(readBookmarks)
+  const [error, setError] = useState(false)
+  const saved = items?.some((row) => row.href === item.href) ?? false
   return (
-    <button className="save" aria-pressed={saved} onClick={toggle}>
+    <button
+      className="save"
+      disabled={!items}
+      aria-pressed={saved}
+      onClick={() => setError(!setBookmark(item, !saved))}
+    >
       <Icon name={saved ? 'check' : 'bookmark'} />
       {error ? '保存失败，重试' : saved ? '已加入书架' : '加入书架'}
     </button>

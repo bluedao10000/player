@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CharactersRouteImport } from './routes/characters'
 import { Route as CommissionsRouteImport } from './routes/commissions'
 import { Route as HealthzRouteImport } from './routes/healthz'
+import { Route as MeRouteImport } from './routes/me'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ShelfRouteImport } from './routes/shelf'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -53,6 +54,11 @@ const CommissionsRoute = CommissionsRouteImport.update({
 const HealthzRoute = HealthzRouteImport.update({
   id: '/healthz',
   path: '/healthz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shelf': typeof ShelfRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shelf': typeof ShelfRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shelf': typeof ShelfRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/characters'
     | '/commissions'
     | '/healthz'
+    | '/me'
     | '/robots.txt'
     | '/shelf'
     | '/sitemap.xml'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/characters'
     | '/commissions'
     | '/healthz'
+    | '/me'
     | '/robots.txt'
     | '/shelf'
     | '/sitemap.xml'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/characters'
     | '/commissions'
     | '/healthz'
+    | '/me'
     | '/robots.txt'
     | '/shelf'
     | '/sitemap.xml'
@@ -332,6 +344,7 @@ export interface RootRouteChildren {
   CharactersRoute: typeof CharactersRoute
   CommissionsRoute: typeof CommissionsRoute
   HealthzRoute: typeof HealthzRoute
+  MeRoute: typeof MeRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   ShelfRoute: typeof ShelfRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -383,6 +396,13 @@ declare module '@tanstack/react-router' {
       path: '/healthz'
       fullPath: '/healthz'
       preLoaderRoute: typeof HealthzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -540,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   CharactersRoute: CharactersRoute,
   CommissionsRoute: CommissionsRoute,
   HealthzRoute: HealthzRoute,
+  MeRoute: MeRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   ShelfRoute: ShelfRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

@@ -94,9 +94,9 @@ function Preview() {
       {scene ? (
         <ScenePage {...scene} />
       ) : data.chapter.work.origin === 'original' ? (
-        <Reader page={data.chapter} />
+        <Reader page={data.chapter} preview />
       ) : (
-        <ChapterPage {...data.chapter} />
+        <ChapterPage {...data.chapter} preview />
       )}
     </div>
   )

@@ -1,14 +1,37 @@
 import { useEffect, useState } from 'react'
-import { readLocal, writeLocal } from './storage'
+import {
+  chapterPath,
+  readLocal,
+  useBrowserRecord,
+  writeLocal,
+} from '../reader/bookmarks'
 import { catalog, storyUrl } from './catalog'
 import { Icon } from './icons'
 
 const lastKey = 'tidepost.last-read.v1'
-function percent(slug: string) {
-  return Math.max(
-    0,
-    Math.min(100, Number(readLocal('tidepost.progress.' + slug)[0]) || 0),
-  )
+function position(slug: string) {
+  const [n, id, excerpt] = readLocal('tidepost.progress.' + slug)
+  return {
+    percent: Math.max(0, Math.min(100, Number(n) || 0)),
+    anchor: id && /^[\w-]+$/.test(id) ? id : '',
+    excerpt,
+  }
+}
+export function readLastChapter() {
+  const [slug, path, name, work] = readLocal(lastKey)
+  const story = catalog.find((s) => s.slug === slug)
+  const href = path && chapterPath.test(path) ? path : story && storyUrl(story)
+  const title = name || story?.title
+  if (!href || !title) return null
+  const { percent, anchor, excerpt } = position(slug)
+  return {
+    href,
+    title,
+    excerpt,
+    work: work || '潮汐邮局',
+    percent,
+    resume: href + '#' + (anchor || 'resume'),
+  }
 }
 export function ReadingProgress({
   slug,
@@ -28,7 +51,8 @@ export function ReadingProgress({
     const prose = document.getElementById(containerId)
     if (!prose) return
     const key = 'tidepost.progress.' + slug
-    writeLocal(lastKey, [slug, href, title, work])
+    const mark = () => writeLocal(lastKey, [slug, href, title, work])
+    mark()
     const start = () =>
       Math.max(
         0,
@@ -37,31 +61,61 @@ export function ReadingProgress({
           window.innerHeight * 0.4,
       )
     const span = () => Math.max(1, prose.offsetHeight)
-    let current = percent(slug)
+    const previous = position(slug)
+    const requested = location.hash.slice(1)
+    if (
+      requested === 'resume' ||
+      (requested &&
+        requested === previous.anchor &&
+        !document.getElementById(requested))
+    ) {
+      const target = previous.anchor && document.getElementById(previous.anchor)
+      if (target) target.scrollIntoView()
+      else window.scrollTo(0, start() + (span() * previous.percent) / 100)
+    }
+    const paragraphs = Array.from(
+      prose.querySelectorAll<HTMLElement>('p[data-block][id]'),
+    )
     let moved = false
-    if (location.hash === '#resume')
-      window.scrollTo(0, start() + (span() * current) / 100)
-    function update() {
-      moved = true
-      current = Math.round(
-        Math.max(0, Math.min(1, (window.scrollY - start()) / span())) * 100,
-      )
-      setValue(current)
-    }
-    function save() {
-      if (moved) writeLocal(key, [String(current)])
-    }
-    setValue(
+    const percentage = () =>
       Math.round(
         Math.max(0, Math.min(1, (window.scrollY - start()) / span())) * 100,
-      ),
-    )
+      )
+    function update() {
+      moved = true
+      setValue(percentage())
+    }
+    function save() {
+      if (!moved && !paragraphs.some((p) => p.id === requested)) return
+      const line = window.innerHeight * 0.4
+      const linked = paragraphs.find((p) => p.id === requested)
+      const atLinked =
+        linked && Math.abs(linked.getBoundingClientRect().top) < 48
+      const block =
+        (!moved || atLinked) && linked
+          ? linked
+          : paragraphs
+              .filter((p) => p.getBoundingClientRect().top <= line)
+              .at(-1)
+      const text = block?.textContent?.trim() ?? ''
+      const excerpt = text.length > 40 ? text.slice(0, 40) + '…' : text
+      writeLocal(key, [String(percentage()), block?.id || '', excerpt])
+    }
+    function visibility() {
+      if (document.visibilityState === 'hidden') save()
+      else mark()
+    }
+    setValue(percentage())
     window.addEventListener('scroll', update, { passive: true })
     window.addEventListener('pagehide', save)
+    window.addEventListener('pageshow', mark)
+    document.addEventListener('visibilitychange', visibility)
     return () => {
       save()
       window.removeEventListener('scroll', update)
       window.removeEventListener('pagehide', save)
+      window.removeEventListener('pageshow', mark)
+      document.removeEventListener('visibilitychange', visibility)
     }
   }, [slug, href, title, work, containerId])
   return (
@@ -78,30 +132,16 @@ export function ReadingProgress({
   )
 }
 export function ContinueReading() {
-  const [record, setRecord] = useState<string[]>([])
-  useEffect(() => {
-    const sync = () => setRecord(readLocal(lastKey))
-    sync()
-    window.addEventListener('pageshow', sync)
-    return () => window.removeEventListener('pageshow', sync)
-  }, [])
-  const [slug, path, name, work] = record
-  const story = catalog.find((s) => s.slug === slug)
-  const href =
-    path &&
-    /^\/(?:story\/[a-z0-9-]+|work\/[a-z0-9-]+\/chapter\/[a-z0-9-]+)$/.test(path)
-      ? path
-      : story && storyUrl(story)
-  const title = name || story?.title
-  if (!title || !href) return null
+  const last = useBrowserRecord(readLastChapter)
+  if (!last) return null
   return (
-    <a className="continue" href={href + '#resume'}>
+    <a className="continue" href={last.resume}>
       <Icon name="bookmark" />
       <div>
-        <small>继续阅读 · {work || '潮汐邮局'}</small>
-        <strong>{title}</strong>
+        <small>继续阅读 · {last.work}</small>
+        <strong>{last.title}</strong>
       </div>
-      <span>{percent(slug)}%</span>
+      <span>{last.percent}%</span>
       <Icon name="arrow" />
     </a>
   )

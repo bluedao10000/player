@@ -12,6 +12,7 @@ import type {
   WorldCard,
   WorldOverview,
 } from '@anime/shared/knowledge'
+import { Save } from '../post/storage'
 import { ReadingProgress } from '../post/progress'
 import { Fragment } from 'react'
 
@@ -305,7 +306,7 @@ export function ReadingBlocks({
           {block.anchors.slice(1).map((id) => (
             <span key={id} id={id} aria-hidden="true" />
           ))}
-          <p id={block.anchors[0]} data-block={block.key}>
+          <p id={block.anchors[0] ?? `reading-${block.key}`} data-block={block.key}>
             {block.text}
           </p>
           {illustrations
@@ -359,11 +360,12 @@ export function ChapterPage({
   next_chapter,
   scenes,
   attribution,
-}: ChapterDetail) {
+  preview = false,
+}: ChapterDetail & { preview?: boolean }) {
   return (
     <Layout active="故事">
       <WorldTrail work={work} />
-      <ReadingProgress slug={chapter.href} href={chapter.href} title={chapter.title} work={work.title} containerId="chapter-body" />
+      {!preview && <ReadingProgress slug={chapter.href} href={chapter.href} title={chapter.title} work={work.title} containerId="chapter-body" />}
       {accepted_art?.length ? (
         <header className="column episode-heading">
           <small className="world-kicker">
@@ -391,6 +393,7 @@ export function ChapterPage({
         />
       )}
       <article className="column world-reading" id="chapter-body">
+        {!preview && <Save href={chapter.href} title={chapter.title} work={work.title} />}
         {reader_passages && (
           <ReadingBlocks
             blocks={reader_passages}
@@ -401,7 +404,7 @@ export function ChapterPage({
           <section className="episode-guide" aria-label="本集剧情">
             <div className="prose">
               {research.paragraphs.map((p, i) => (
-                <p key={i}>{p.text}</p>
+                <p key={i} id={`reading-research-${i + 1}`} data-block={i + 1}>{p.text}</p>
               ))}
             </div>
           </section>

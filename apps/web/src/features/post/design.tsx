@@ -11,7 +11,7 @@ const nav = [
   ['作品', '/works', 'map'],
   ['角色', '/characters', 'people'],
   ['故事', '/stories', 'book'],
-  ['我的', '/shelf', 'user'],
+  ['我的', '/me', 'user'],
 ] as const
 function NavLink({
   item,
@@ -64,12 +64,12 @@ export function Layout({
           </nav>
           <a
             className="shelf-link"
-            aria-label="我的书架"
-            href="/shelf"
+            aria-label="我的"
+            href="/me"
             aria-current={active === '我的' ? 'page' : undefined}
           >
-            <Icon name="bookmark" size={17} />
-            <span>我的书架</span>
+            <Icon name="user" size={17} />
+            <span>我的</span>
           </a>
         </div>
       </header>
