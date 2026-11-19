@@ -130,6 +130,88 @@
         "brief": "用参考中的深蓝短发天道茜为唯一角色。她穿白蓝色衣服，在山中修行营地的简易桌前认真准备一锅咖喱。人物面部和锅都在中央，暖色自然光，无文字和复杂标志。"
       },
       "sourceNumber": 25
+    },
+    {
+      "number": 2,
+      "sourceNumber": 26,
+      "slug": "the-breaking-point",
+      "title": "爆砕点穴 · 全剧第 26 话",
+      "intro": "良牙想以新绝招赢下再战，乱马也在准备应对。两个人忙着较劲的时候，天道茜发现自己被卷进了一场不情愿的赌约。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1791447769",
+      "officialTitle": "第26話「爆砕点穴」",
+      "guide": "https://ani-chara.net/19554/",
+      "guideTitle": "『らんま1/2【新作】第3期』第26話",
+      "guideParagraphs": [
+        "前回、乱馬に完敗した良牙は、コロンの指導",
+        "そんな良牙のもとへ、乱馬が",
+        "乱馬の側も、爆砕点穴を封じるため",
+        "ところが、勝負の場にはなぜか景品",
+        "激闘の末に勝負がつき",
+        "あれほど恐れていた技の正体がこれ"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "前回、乱馬に完敗した良牙は、コロンの指導",
+          "question": "写响良牙为什么请可伦训练、为什么把学会「爆砕点穴」当作再战的机会。只写虚构作品情节，不写训练操作。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "そんな良牙のもとへ、乱馬が",
+          "question": "写早乙女乱马来到修行处，因为挂念天道茜却口不对心。茜也在担心良牙，三人关系的变化点到为止。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "乱馬の側も、爆砕点穴を封じるため",
+          "question": "写双方分别准备一周并开始决战，表现彼此在意对手是否进步，无招式技术描写。"
+        },
+        {
+          "kind": "cause",
+          "needle": "ところが、勝負の場にはなぜか景品",
+          "question": "写可伦擅自订下牵涉茜的赌约，天道茜明确抗议，说明这场较量对她的影响。",
+          "officialSentence": 4
+        },
+        {
+          "kind": "turn",
+          "needle": "激闘の末に勝負がつき",
+          "question": "写良牙最终承认败下阵，大家才发现对绝招的理解有误，最后良牙以小猪的样子回来。不写动作步骤或下一集。"
+        }
+      ],
+      "setting": [
+        "爆砕点穴",
+        1
+      ],
+      "sceneSlug": "checking-on-practice",
+      "sceneName": "修行地的碰面",
+      "place": "可伦训练良牙的地方",
+      "sceneBeat": 2,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/10/f4496853d36263257619bfd745e7d81b6abe2ce689d844_26317887_2439707495588a719efd4d5fd8ae3a4dbdcf990a.jpg",
+        "sourceSHA": "c029eaaee64e2a7d2236a58b4c6715ae5d4f0eae301a6ba9f75a30dfc9c7dbed",
+        "brief": "画参考里的早乙女乱马保留黑辫子和红色上衣，站在林间石阶边往修行地望，神情明明担心却装作漫不经心。只出现乱马一人，背景有石块和树木，柔和自然光，人物主体居中，无打斗和文字。"
+      },
+      "people": [
+        {
+          "slug": "ryoga",
+          "name": "响良牙",
+          "role": "想在再次交手时战胜乱马",
+          "beat": 1
+        },
+        {
+          "slug": "ranma",
+          "name": "早乙女乱马",
+          "role": "进山修行的武术少年",
+          "beat": 2
+        },
+        {
+          "slug": "akane",
+          "name": "天道茜",
+          "role": "为修行的伙伴准备晚饭",
+          "beat": 4
+        }
+      ]
     }
   ]
 }

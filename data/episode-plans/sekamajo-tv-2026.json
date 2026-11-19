@@ -81,6 +81,69 @@
         "sourceSHA": "fc94109e2355406efdfc112cbce17f3e1d015895ff2207c5d2cb087c581ed98d",
         "brief": "以基准图中的短深蓝发罗娜为唯一焦点，保留绿色旅装和金色裙边。在自然光下的森林探索岔路，眼前有淡青色透明光块象征世界内的查询技能。主体居中、面部和动作可见，无任何文字与标志。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "becoming-an-adventurer",
+      "title": "试着成为冒险者！",
+      "intro": "罗娜穿着新靴子来到了伊福涅。她先遇见一位因腿伤放下冒险的卫兵，随后去公会报名，发现那里早有人在等她。",
+      "official": "https://www.b-ch.com/titles/9932/002",
+      "officialTitle": "冒険者になってみた！",
+      "guide": "https://anime-no-mikata.com/archives/9029",
+      "guideTitle": "『世界最強の魔女、始めました』第2話",
+      "guideParagraphs": [
+        "第2話の出発点からして",
+        "町の門番ラインハルテは",
+        "第2話で一番おいしいのは",
+        "そこで今回は、ローナの自己認識と"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "第2話の出発点からして",
+          "question": "写罗娜用新靴子到了伊福涅，为什么想进入小镇继续她的冒险。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "cause",
+          "needle": "町の門番ラインハルテは",
+          "question": "交代卫兵莱因哈尔特为何不再冒险，罗娜解决了困扰他的难题，然后前往「冒险者公会」。不要补写治疗方式。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "第2話で一番おいしいのは",
+          "question": "写公会会长艾莉米娜为什么等着罗娜，点明是奉家族之命。概述她看到罗娜的魔力后气势如何变化。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "cause",
+          "needle": "そこで今回は、ローナの自己認識と",
+          "question": "以罗娜仍把自己视为普通报考者、周围人却意识到她的特殊收束，勿猜测以后剧情。",
+          "officialSentence": 4
+        }
+      ],
+      "setting": [
+        "冒险者公会",
+        2
+      ],
+      "sceneSlug": "arrival-at-adventurers-guild",
+      "sceneName": "第一次走进冒险者公会",
+      "place": "伊福涅 · 冒险者公会",
+      "sceneBeat": 2,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/09/86bba2cbdab4bbb4e595e15564e1c6e76abb75188ca594_81628102_b678eb664ad106c7cb5eb3d7c2fbd7cb62b92ffd.png",
+        "sourceSHA": "c34ba20ca65870d55cb30f5aa0709685650be1da0b448d35e9a3d8527f4c36cf",
+        "brief": "画参考里的罗娜，保留发色、发饰与原本的旅行服。普通小镇的冒险者公会大厅，罗娜正带着好奇走向木质柜台，可看见窗光、木梁和冒险者背包。只出现罗娜一人，角色脸和动作居中，适合手机横图裁切。无战斗、无文字。"
+      },
+      "people": [
+        {
+          "slug": "rona",
+          "name": "罗娜",
+          "role": "被家族逐出、以「互联网」探索世界的少女",
+          "beat": 1
+        }
+      ]
     }
   ]
 }

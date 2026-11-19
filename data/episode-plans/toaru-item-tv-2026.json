@@ -142,6 +142,86 @@
         "sourceSHA": "08fcd62b36cc500dece2bf831a62ee9b73f44d608c434fff2a9419ae02b23aa8",
         "brief": "画四名「道具」成员在室内休息，麦野沈利在画面中间留意到新来电，其他同伴在沙发旁等消息。保留参考画面人物的各自发色和服装，以交接新任务的气氛为主，无武器和文字，主体居中。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "kinuhata-joins-item",
+      "title": "绢旗最爱加入道具",
+      "intro": "在麦野沈利、滝壶理后和芙兰达仍是三人组时，一项研究设施任务让她们遇见了绢旗最爱。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1791814021",
+      "officialTitle": "第2話「絹旗最愛（しんいり）」",
+      "guide": "https://ani-chara.net/20072/",
+      "guideTitle": "『とある暗部の少女共棲(アイテム)』第2話",
+      "guideParagraphs": [
+        "『とある暗部の少女共棲(アイテム)』第2話",
+        "暗闇の五月計画は",
+        "一方、絹旗はフレンダたちとショッピングへ",
+        "絹旗が気に入ったのは"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "研究施設の証拠隠滅という真っ黒な仕事",
+          "question": "写麦野沈利、滝壶理后和芙兰达组成的三人小队因委托来到研究设施。交代「暗闇的五月计划」是试图复现学园都市第一名能力的项目，只写剧情层事实。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "暗闇の五月計画は",
+          "question": "说清麦野沈利为何看中能担任防守的绢旗最爱，为什么从此三人变成四人。避免战斗、设施和掩盖痕迹的具体方法。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "cause",
+          "needle": "一方、絹旗はフレンダたちとショッピングへ",
+          "question": "说清一次购物成了前辈欢迎绢旗最爱的方式，写芙兰达带着新人看衣服和新人有些不自在。只描写日常气氛。",
+          "officialSentence": 4
+        },
+        {
+          "kind": "turn",
+          "needle": "絹旗が気に入ったのは",
+          "question": "写付款才发现账户冻结，让轻松气氛突然变了。不推断是谁做的，不写后续剧情。"
+        }
+      ],
+      "setting": [
+        "暗闇的五月计划",
+        1
+      ],
+      "sceneSlug": "welcome-at-the-clothing-store",
+      "sceneName": "新人的第一件衣服",
+      "place": "学园都市 · 服装店",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://toaru-project.com/item/core_sys/images/contents/00000006/block/00000019/00000032.jpg?1794613718",
+        "sourceSHA": "3d1a37561c5afb97eb5438ac267d0129879e29df644739f5607963b2528e2ecb",
+        "brief": "画参考里的绢旗最爱，棕色短发、橙色连帽外衣，整洁日常穿着。她在一家明亮的普通服装店沿挂衣架看外套，略带犹豫，脸和手中衣架居中，单人，无武器或文字。"
+      },
+      "people": [
+        {
+          "slug": "mugino",
+          "name": "麦野沈利",
+          "role": "暗部四人小队「道具」的领队",
+          "beat": 1
+        },
+        {
+          "slug": "takitsubo",
+          "name": "滝壶理后",
+          "role": "擅长追踪的「道具」成员",
+          "beat": 1
+        },
+        {
+          "slug": "frenda",
+          "name": "芙兰达",
+          "role": "依靠技能承担前卫工作的「道具」成员",
+          "beat": 1
+        },
+        {
+          "slug": "kinuhata",
+          "name": "绢旗最爱",
+          "role": "为团队提供防御的「道具」成员",
+          "beat": 2
+        }
+      ]
     }
   ]
 }

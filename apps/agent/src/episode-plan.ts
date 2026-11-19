@@ -154,6 +154,13 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
       text: main.find('.story_foot_txt').text().trim(),
     }
   }
+  if (plan.official === 'https://www.b-ch.com/titles/9932/002') {
+    return {
+      number: Number(site('#bch-story-title').text().trim().match(/^第(\d+)話/)?.[1]),
+      title: site('.bch-p-heading-mov__summary').text().trim(),
+      text: site('.bch-p-heading-mov__detail-txt').text().trim(),
+    }
+  }
   if (plan.official === 'https://fxkurumi-info.com/story/episodes.json') {
     const records: { epID?: string; title?: string; text?: string }[] = JSON.parse(site.root().text())
     const second = records.find((entry) => entry.epID === '02')

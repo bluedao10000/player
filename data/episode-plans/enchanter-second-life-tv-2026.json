@@ -104,6 +104,83 @@
         "sourceSHA": "9e06b44140f563b21c8f9f01a45a6b536d902dba0de855faab93b88ed2845192",
         "brief": "重绘雷恩与妮娜交谈的街道中景。雷恩是棕发穿棕色上衣的男青年，侧身向深发的妮娜说明衣服经过强化，两人平静站立。保持参考人物特征，构图变为侧前方巷口与窗光，两人面部居中，无文字。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "reins-first-partnership",
+      "title": "雷恩第一次找到搭档",
+      "intro": "雷恩会强化装备，却缺少冒险经验。莉莉熟悉任务，却还没走出上次失败的阴影。一次任务让两人决定作伴。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1791680575",
+      "officialTitle": "第2話「強化した服を着ていたら痛恨の一撃で破壊されトラウマを抱えたプライベートコーデ女子に渾身の一撃を食らう。」",
+      "guide": "https://tv-times.jp/dramas/dyehk1k/2",
+      "guideTitle": "リリィが恐怖を越えてドラゴン討伐、レインは王獣の牙と対峙する",
+      "guideParagraphs": [
+        "ドラゴンを前にしたリリィは",
+        "討伐後、リリィは強化で",
+        "戦いのあと、レインはリリィが",
+        "レインは承諾し、自分には",
+        "移動中、二人は王獣の牙",
+        "その後、コーネリアスはレインの連れ"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "ドラゴンを前にしたリリィは",
+          "question": "写莉莉因旧任务的阴影无法战斗，雷恩也缺乏经验，两人以莉莉判断、雷恩使用「强化赋予」互补度过危机。只写剧情，略去如何攻击。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "討伐後、リリィは強化で",
+          "question": "写获胜后莉莉指出强化无法让装备永远耐用。她解释青之水晶接纳过她，因此她想回报公会。不要描写自伤。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "レインは承諾し、自分には",
+          "question": "写雷恩为什么提出组队，莉莉接受。日暮两人暂留野外，成为搭档。",
+          "officialSentence": 4
+        },
+        {
+          "kind": "cause",
+          "needle": "移動中、二人は王獣の牙",
+          "question": "写归途中遇见雷恩原公会成员科内利厄斯，莉莉装成寻常过路人，却仍受到质疑。",
+          "officialSentence": 5
+        },
+        {
+          "kind": "turn",
+          "needle": "その後、コーネリアスはレインの連れ",
+          "question": "交代雷恩拒绝交出莉莉，并说清过去施给王兽之牙的强化已经解除，引发冲突。只给剧情概括，不写伤害或可模仿步骤。",
+          "officialSentence": 6
+        }
+      ],
+      "setting": [
+        "强化赋予",
+        1
+      ],
+      "sceneSlug": "agreeing-to-travel-together",
+      "sceneName": "在篝火前成为同伴",
+      "place": "归途前 · 野外宿营地",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/10/19ed0ba5364eaa66da8c967571c06b5d6abf6eaceda344_89259568_f167ee784d9b223396145fce7b51c36cfa09d85f.jpg",
+        "sourceSHA": "75c320f2751170a9f3864242ed6b8e31a1c62d8dd23d6fc63824bdc7a3c091b5",
+        "brief": "沿参考画成年冒险者雷恩，棕发棕眼，朴素棕色外衣。夜里靠着野外宿营地的小篝火，他坐在木桩上，脸朝向画外说话，神情放松。只出现雷恩一人，主角脸和篝火均在画面中部，无武器或文字。"
+      },
+      "people": [
+        {
+          "slug": "rein",
+          "name": "雷恩",
+          "role": "被王兽之牙赶走的装备强化术师",
+          "beat": 1
+        },
+        {
+          "slug": "lily",
+          "name": "莉莉",
+          "role": "愿意和雷恩同行的 S 级剑士",
+          "beat": 1
+        }
+      ]
     }
   ]
 }

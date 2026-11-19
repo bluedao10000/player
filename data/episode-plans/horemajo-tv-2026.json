@@ -97,6 +97,74 @@
         "sourceSHA": "9612f19680247aebbd21ba53ff1ff4affa272a92d97ad271ac00eb8ebe3f9939",
         "brief": "罗泽戴棕色兜帽坐在湖心小岛的木屋内，浅玫瑰色头发和绿眼睛，专注听一位来访者说话。来访者只留模糊背影，主体罗泽在暖色烛光下居中，有空药瓶但无标签和文字。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "the-good-witch-of-the-lake",
+      "title": "湖畔的善良魔女",
+      "intro": "商人蒂恩来收药，罗泽难得开口问起新斗篷。哈里朱又在意料之外的时刻到访，她一紧张，先把自己的秘密说漏了。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1791534183",
+      "officialTitle": "第2話「湖の善き魔女」",
+      "guide": "https://anime-no-mikata.com/archives/9016",
+      "guideTitle": "『どうも、好きな人に惚れ薬を依頼された魔女です。』第2話",
+      "guideParagraphs": [
+        "最初に刺さったのは",
+        "第2話で重要なのは",
+        "さらに動揺したロゼは",
+        "この設定が面白いのは",
+        "さらに彼が昼間に訪ねてきた本当の理由は",
+        "そこへハリージュが入り"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "最初に刺さったのは",
+          "question": "交代罗泽向熟识商人蒂恩询问斗篷，他察觉她不同以往。用罗泽的名字。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "cause",
+          "needle": "第2話で重要なのは",
+          "question": "说明罗泽失去祖母后常被人以魔女身份区别对待，哈里朱曾平等地对待她，这份记忆让她至今在意他。"
+        },
+        {
+          "kind": "turn",
+          "needle": "さらに動揺したロゼは",
+          "question": "写哈里朱忽然来访，罗泽因为提前叫出他的名字而说漏秘密。概述「魔女的誓约」：除了涉及魔法的事，她们不能说谎。不写衣着和危险行为。"
+        },
+        {
+          "kind": "cause",
+          "needle": "さらに彼が昼間に訪ねてきた本当の理由は",
+          "question": "写哈里朱是担心罗泽没好好吃饭，特地送来面包和吃食。罗泽的生活因此被温和地打扰，勿断言骑士已有恋爱感情。"
+        }
+      ],
+      "setting": [
+        "魔女的誓约",
+        3
+      ],
+      "sceneSlug": "bread-at-the-lakeside-cottage",
+      "sceneName": "送到湖边的面包",
+      "place": "湖心小岛 · 罗泽的药屋",
+      "sceneBeat": 4,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/09/faf02927dba098a7949e9a0b66f899a46ab89949246438_89726599_e4fcc59788b819716b413a1c216d4ba6b8b7e556.jpg",
+        "sourceSHA": "776e067fa0d26f429e83b9ea638b4b8ea89a4e930eb2b2c511d9f69774be43b4",
+        "brief": "画参考里灰发的成年骑士哈里朱，穿棕色兜帽披风，在湖岛木屋窗边把普通乡村面包轻轻放到木桌上。只出现哈里朱一人，面包、手和脸都在画面中部，自然窗光，无文字。"
+      },
+      "people": [
+        {
+          "slug": "rose",
+          "name": "罗泽",
+          "role": "在湖心小岛制药、暗恋骑士的魔女",
+          "beat": 1
+        },
+        {
+          "slug": "harij",
+          "name": "哈里朱",
+          "role": "来湖岛求药的骑士",
+          "beat": 2
+        }
+      ]
     }
   ]
 }
