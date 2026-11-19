@@ -164,6 +164,7 @@ async function configuredReference(j: Job): Promise<Result> {
       || (url.host === 'tenken-anime.com' && url.pathname === '/assets/character/4c.webp')
       || (url.host === 'www.lastboss-anime.com' && (/^\/core_sys\/images\/contents\/00000034\/block\/00000171\/000001(5[6-9]|6[01])\.jpg$/.test(url.pathname)
         || url.pathname === '/core_sys/images/main/cont/chara/chara17-stand.png'))
+      || (url.host === 'darksummoner.deregula.com' && /^\/wp-content\/uploads\/(amona|roni)_main\.png$/.test(url.pathname))
       || (url.host === 'lookback-anime.com' && url.pathname.startsWith('/assets/img/'))
       || (url.host === 'www.tbs.co.jp' && url.pathname.startsWith('/anime/takopi_project/series/')))
   )

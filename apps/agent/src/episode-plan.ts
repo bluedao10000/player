@@ -145,6 +145,15 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
     first.find('.story-title .title-num').remove()
     return { number, title: first.find('.story-title').text().trim(), text: first.find('.story-txt').text().trim() }
   }
+  if (plan.official === 'https://darksummoner.deregula.com/story/') {
+    const first = site('#js_story .story').filter((_, node) => site(node).find('.story_num span').text().trim() === '1')
+    const main = first.find('.story_foot').first()
+    return {
+      number: first.length === 1 ? Number(first.find('.story_num span').text()) : NaN,
+      title: main.find('.story_foot_title').text().trim(),
+      text: main.find('.story_foot_txt').text().trim(),
+    }
+  }
   if (plan.official === 'https://romelia-senki.com/news/episode_data') {
     const records: { acf?: { season_id: string; index: string; title: string; story: string } }[] =
       JSON.parse(site.root().text())
