@@ -96,6 +96,67 @@
         "sourceSHA": "e9847b7353235ba6536c067a637aeccc641ad58b9dcf6784b87a5b6a7403787b",
         "brief": "绘制红发、红棕眼、黑色发带的艾莉丝在安静的室内木地板道场独自练习之后停下休息，穿高领白色剑道服，神情专注，窗光、木梁、沉静的色调，角色面部和上半身居中，适合手机裁切。无武器、无伤痕、无文字。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "bark-mad-dog",
+      "sceneSlug": "after-the-practice",
+      "title": "吠吧，狂犬",
+      "official": "https://www.animatetimes.com/news/details.php?id=1783401407",
+      "officialTitle": "第2話「吠えよ狂犬」あらすじ",
+      "guide": "https://animenoyakata.com/mushoku-tensei-3-ep2/",
+      "guideTitle": "無職転生Ⅲ第2話「吠えよ狂犬」",
+      "guideParagraphs": [
+        "ルーデウスに相応しい存在となるためにエリスが",
+        "どうしてもエリスの話を信じられないニナが、ラ",
+        "水神レイダの弟子イゾルテを加えた3人の合同稽",
+        "イゾルテから「殺気を出しすぎ」と指摘されたエ"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "ルーデウスに相応しい存在",
+          "question": "交代艾莉丝在剑之圣地修行已经两年，目标是什么；尼娜为何要亲自确认卢迪乌斯的存在。用「剑之圣地」。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "どうしてもエリスの話を信じられない",
+          "question": "写尼娜到拉诺亚魔法大学目睹了什么，怎样改变了对卢迪乌斯的看法。"
+        },
+        {
+          "kind": "cause",
+          "needle": "水神レイダの弟子イゾルテを加えた",
+          "question": "写水神流的伊佐露缇加入合练，三位修行者之间相互克制；不要写招式步骤。",
+          "officialSentence": 4
+        },
+        {
+          "kind": "turn",
+          "needle": "イゾルテから「殺気を出しすぎ」",
+          "question": "合练复盘时艾莉丝得到什么提醒？结尾她在下一次练习中有怎样的进步？概括人物改变，无招式和成人内容。"
+        }
+      ],
+      "setting": [
+        "剑之圣地",
+        1
+      ],
+      "sceneName": "一次合练结束之后",
+      "place": "剑之圣地的训练庭院",
+      "sceneBeat": 3,
+      "intro": "艾莉丝已在剑之圣地修行两年。尼娜去确认卢迪乌斯的身份，而水神流来访者带来的合练，让三个年轻剑士开始互相指点。",
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/07/d3c4d5d633bf2771c74c71a9879686706a44b7abeac5f6_03201325_e71751065997d28c88d0f0a4b546e0582995ac23.jpg",
+        "sourceSHA": "e9847b7353235ba6536c067a637aeccc641ad58b9dcf6784b87a5b6a7403787b",
+        "brief": "保持角色参考的红色长发和日常训练服。艾莉丝独自在木质训练庭院边的台阶上休息，双手自然放在膝上，柔和晨光，人物居中、脸部清楚、构图适合手机裁切。全身衣着完整，无战斗、武器、伤口或文字。"
+      },
+      "people": [
+        {
+          "slug": "eris",
+          "name": "艾莉丝",
+          "role": "因自觉实力不足，来到剑之圣地修行的剑士",
+          "beat": 1
+        }
+      ]
     }
   ]
 }

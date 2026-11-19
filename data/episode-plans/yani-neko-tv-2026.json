@@ -106,6 +106,70 @@
         "sourceSHA": "efe13d9bbfa0d6d58cf4284e3bbeb8bddca2a82ec9c4c21c5cefe128656146bc",
         "brief": "画成年猫耳女孩尼古喵为拍屋内照片而犹豫，浅灰绿头发和宽松浅色T恤保持参考造型。她站在公寓房间里的纸箱和整理袋旁，拿着手机，神情犯难。正视构图，面部和动作居中，无文字，无烟草、烟雾或品牌。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "my-juniors",
+      "sceneSlug": "rooftop-conversation",
+      "title": "猫的后辈们",
+      "official": "https://www.animatetimes.com/news/details.php?id=1783505709",
+      "officialTitle": "第2話「ニャーの後輩たちにゃ」",
+      "guide": "https://mahoyaku.net/archives/14336",
+      "guideTitle": "『ヤニねこ』2話で何が起きた？",
+      "guideParagraphs": [
+        "公式に公開された第2話のあらすじでも、ヤニ切",
+        "第1話だけを見ると、ヤニねこは社会から少し外",
+        "そしてカーテンの向こうから見えた煙をきっかけ",
+        "夜の街を歩くヤニねことヤクねこは、路地裏で占",
+        "第2話でもっとも『ヤニねこ』らしい場面の一つ",
+        "腹を空かせたヤニねこを見たヤクねこは、自分が",
+        "そして空に浮かぶ雲を見ながら、何にも縛られず"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "ヤニ切れを起こした",
+          "question": "尼古喵为什么找上住在隔壁的后辈？交代两人是邻居，简洁转述，不描述吸烟方法。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "カーテンの向こう",
+          "question": "尼古喵怎么注意到相邻住户？公寓里也住着她的后辈，称呼保留「尼古喵」。"
+        },
+        {
+          "kind": "cause",
+          "needle": "夜の街を歩く",
+          "question": "两人为什么在路上停下？是谁找上她们？"
+        },
+        {
+          "kind": "cause",
+          "needle": "アパートの屋根",
+          "question": "在公寓屋顶后辈提出什么工作建议？尼古喵又怎样理解自由？",
+          "officialSentence": 3
+        }
+      ],
+      "setting": [
+        "公寓",
+        2
+      ],
+      "sceneName": "公寓屋顶的闲谈",
+      "place": "公寓屋顶",
+      "sceneBeat": 4,
+      "intro": "尼古喵找上隔壁的后辈，两人从夜路上的小插曲聊到工作与自由。",
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/07/c1426abe938c9b7c9c296d95f58c7be16a44cf35692cf7_08014782_e5b9138bdc340c6f664a3b501dea5540b8649cea.jpg",
+        "sourceSHA": "efe13d9bbfa0d6d58cf4284e3bbeb8bddca2a82ec9c4c21c5cefe128656146bc",
+        "brief": "依参考保留尼古喵的猫耳、发型和人物轮廓。成年兽人女性独坐在低矮公寓的屋顶平台，平静望向城市上空的云，傍晚柔光，衣着完整，主体居中适配竖裁。不出现烟、烟具、烟雾或任何文字。"
+      },
+      "people": [
+        {
+          "slug": "yani",
+          "name": "尼古喵",
+          "role": "住在旧公寓的成年猫耳住客",
+          "beat": 1
+        }
+      ]
     }
   ]
 }

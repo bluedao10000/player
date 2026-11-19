@@ -29,21 +29,34 @@ const titles = ['Asteroid Blues', 'Stray Dog Strut', 'Honky Tonk Women']
 const normalized = (s: string) => s.replace(/\s+/g, ' ').trim()
 
 export async function page(url: string) {
-  const response = await fetch(url, {
-    redirect: 'error',
-    signal: AbortSignal.timeout(25000),
-    headers: { 'User-Agent': 'Tidepost-Knowledge/1.0' },
-  })
-  if (!response.ok || !response.body)
-    throw Error('来源 HTTP ' + response.status)
-  const chunks = []
-  let size = 0
-  for await (const bytes of response.body) {
-    size += bytes.length
-    if (size > 2_000_000) throw Error('来源文档超出大小限制')
-    chunks.push(bytes)
+  const host = new URL(url).hostname
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const response = await fetch(url, {
+        redirect: 'error',
+        signal: AbortSignal.timeout(25000),
+        headers: { 'User-Agent': 'Tidepost-Knowledge/1.0' },
+      })
+      if (!response.ok || !response.body)
+        throw Error('来源 HTTP ' + response.status)
+      const chunks = []
+      let size = 0
+      for await (const bytes of response.body) {
+        size += bytes.length
+        if (size > 2_000_000) throw Error('来源文档超出大小限制')
+        chunks.push(bytes)
+      }
+      return load(Buffer.concat(chunks).toString('utf8'))
+    } catch (error) {
+      const failure = error instanceof Error ? error : Error(String(error))
+      const cause = failure.cause as { code?: string; message?: string } | undefined
+      const network = failure.name === 'TimeoutError' || failure.message === 'terminated' ||
+        (failure.message === 'fetch failed' && cause?.message !== 'unexpected redirect')
+      if (!network || attempt >= 3)
+        throw Error(host + ' · ' + failure.message + (cause?.code ? ' (' + cause.code + ')' : ''), { cause: failure })
+      await new Promise((resolve) => setTimeout(resolve, 300 * attempt))
+    }
   }
-  return load(Buffer.concat(chunks).toString('utf8'))
 }
 
 const sourceTool = (first: number, last: number) =>
@@ -163,7 +176,7 @@ export async function research(
             type: 'input',
             requestId: phase,
             content: plan
-              ? '调用 read_episode_sources 读取本集官方页面和分集资料。完成后回答 OK。'
+              ? '下一步必须调用 read_episode_sources，参数为 {}，读取本集官方页面和分集资料。收到工具结果前请不要发送普通文本，不要直接确认完成。'
               : '调用 read_bebop_episode_sources 读取《星际牛仔》1998 TV ' +
                 (third ? '第3集' : '前两集') +
                 '的官方及补充分集资料，完成后回答 OK。',

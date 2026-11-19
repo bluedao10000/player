@@ -69,15 +69,16 @@ func (e episodeSpec) validate() error {
 	council := e.Number <= 3 && e.Official == fmt.Sprintf("https://nama-anaru.com/episode/?id=%d", e.Number)
 	pressRelease := official.Host == "www.animatetimes.com" && official.Path == "/news/details.php" && pressID.MatchString(official.RawQuery)
 	itemPremiere := e.Number == 1 && e.Official == "https://toaru-project.com/item/story/01.html"
-	romeliaPremiere := e.Number == 1 && e.Official == "https://romelia-senki.com/news/episode_data"
+	romelia := e.Official == "https://romelia-senki.com/news/episode_data"
 	aniplexPremiere := e.Number == 1 && (e.Official == "https://www.aniplex.co.jp/lineup/majieku/story/" ||
 		e.Official == "https://www.aniplex.co.jp/lineup/saikyosoubi/story/")
 	yukionnaPremiere := e.Number == 1 && e.Official == "https://anime-yukionna.af-original.com/story/"
 	lastBossPremiere := e.Number == 1 && e.SourceNumber == 13 && e.Official == "https://www.lastboss-anime.com/story/13.html"
 	darkSummonerPremiere := e.Number == 1 && e.Official == "https://darksummoner.deregula.com/story/"
+	darkSummonerSecond := e.Number == 2 && e.Official == "https://animestore.docomo.ne.jp/animestore/ci_pc?partId=29245002&workId=29245"
 	fxSecond := e.Number == 2 && e.Official == "https://fxkurumi-info.com/story/episodes.json"
 	witchSecond := e.Number == 2 && e.Official == "https://www.b-ch.com/titles/9932/002"
-	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romeliaPremiere || aniplexPremiere || yukionnaPremiere || lastBossPremiere || darkSummonerPremiere || fxSecond || witchSecond) && official.Fragment == ""
+	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romelia || aniplexPremiere || yukionnaPremiere || lastBossPremiere || darkSummonerPremiere || darkSummonerSecond || fxSecond || witchSecond) && official.Fragment == ""
 	if !naruto && !takopi && !lookBack && !apothecary && !council && !press {
 		return errors.New("官方来源或标题无效")
 	}
@@ -104,6 +105,9 @@ func (e episodeSpec) validate() error {
 				(e.Official == "https://www.animatetimes.com/news/details.php?id=1789112810" && e.Guide == "https://sayo.blog/tenken13/") ||
 				(lastBossPremiere && e.Guide == "https://ani-chara.net/18776/") ||
 				(darkSummonerPremiere && e.Guide == "https://ani-chara.net/18983/") ||
+				(darkSummonerSecond && e.Guide == "https://ani-chara.net/19691/") ||
+				(romelia && e.Number == 2 && e.Guide == "https://biwaochan-blog.com/romelia-senki-2-kansou/") ||
+				(e.Number == 2 && e.Official == "https://www.animatetimes.com/news/details.php?id=1791607498" && e.Guide == "https://sayo.blog/tenken14/") ||
 				(e.Number == 2 && e.Official == "https://www.animatetimes.com/news/details.php?id=1791814021" && e.Guide == "https://ani-chara.net/20072/") ||
 				(e.Number == 2 && e.SourceNumber == 26 && e.Official == "https://www.animatetimes.com/news/details.php?id=1791447769" && e.Guide == "https://ani-chara.net/19554/") ||
 				((guide.Host == "anime-no-mikata.com" || guide.Host == "mahoyaku.net") && numericArchivePath.MatchString(guide.Path))) {

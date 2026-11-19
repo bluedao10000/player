@@ -107,6 +107,79 @@
         "sourceSHA": "be45d6b2c169a3341f1fabc770cd8f7e775e78e798666875b2c28ce4cc567fb7",
         "brief": "画参考形象的芙兰刚注意到云间的浮岛并抬眼看过去。保留黑色短发、猫耳、红围巾与普通旅行服。她站在高地，脸和主要动作可见，岛的轮廓在云间稍远处。平静、明亮，主体居中，手机裁切可同时看清芙兰与岛。无战斗、无武器、无文字。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "jeans-dungeon-expedition",
+      "sceneSlug": "examining-the-floating-ruins",
+      "title": "让·杜比的迷宫调查",
+      "official": "https://www.animatetimes.com/news/details.php?id=1791607498",
+      "officialTitle": "第2話「ジャン・ドゥービーは優秀でした」",
+      "guide": "https://sayo.blog/tenken14/",
+      "guideTitle": "転生したら剣でしたII 2期 第2話",
+      "guideParagraphs": [
+        "「怨念」が渦巻く浮遊島の迷宮に挑むフランたち",
+        "ジャンに色々バレたおかげで、ならばと鑑定偽装",
+        "彼が罠を解除、また解除不能なら自ら喰らって潰",
+        "またやはり浮遊島は、名無したちを苦しめたアン",
+        "やはり「名無し」がいた研究所と同じだ、と痕跡",
+        "死霊を喰らう死霊、ジャンが倒せずフラン達に協",
+        "どうも「名無し」は大量の怨念で、強大な悪霊系",
+        "ジャン『ステファンには死霊耐性、吸収耐性、浸",
+        "ステファンは顛末を知らず、巨大悪霊を乗っ取っ"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "怨念」が渦巻く浮遊島の迷宮",
+          "question": "芙兰一行进入浮岛的迷宫，那里有什么异常？用「浮岛」。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "ジャンに色々バレたおかげで",
+          "question": "交代让·杜比如何凭鉴定知识和亡灵协助队伍前进，用这个译名，不写可实践的技术步骤。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "またやはり浮遊島は",
+          "question": "岛上的遗迹指向怎样的旧设施？区分已出现的线索和推测。"
+        },
+        {
+          "kind": "turn",
+          "needle": "死霊を喰らう死霊",
+          "question": "一行遇到什么会吞食其他亡灵的存在？概述它为何与让·杜比此前的合作请求有关。",
+          "officialSentence": 2
+        }
+      ],
+      "setting": [
+        "浮岛",
+        1
+      ],
+      "sceneName": "浮岛迷宫里的遗迹",
+      "place": "浮岛迷宫",
+      "sceneBeat": 3,
+      "intro": "芙兰跟随让·杜比深入浮岛迷宫。在新的能力和线索之外，一只吞食亡灵的存在还在等着他们。",
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/09/b8e25df2a1d69893ae6eae14391a82ad6aa3b8832ded04_93331720_f44d5c81cc0c004f11c884ffbd9e61867a51197e.jpg",
+        "sourceSHA": "be45d6b2c169a3341f1fabc770cd8f7e775e78e798666875b2c28ce4cc567fb7",
+        "brief": "参考里芙兰的黑短发、猫耳、红围巾和完整深色旅行服。她独自在漂浮岛下的平静遗迹前察看石门，背后蓝绿色自然天光，脸可见、人物居中、适配手机竖裁。不出现武器、怪物、打斗、文字。"
+      },
+      "people": [
+        {
+          "slug": "fran",
+          "name": "芙兰",
+          "role": "黑猫族的冒险者，与有灵魂的剑师父同行",
+          "beat": 1
+        },
+        {
+          "slug": "jean",
+          "name": "让·杜比",
+          "role": "住在坠落地点的亡灵术师，认识到师父有灵魂",
+          "beat": 2
+        }
+      ]
     }
   ]
 }

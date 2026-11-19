@@ -82,6 +82,76 @@
         "sourceSHA": "d9d210489d69fd0cb6ab710899e01598e0ba463fd8b7fa1cedc9f717ed720965",
         "brief": "描绘银白短发的罗梅莉亚披着高领斗篷回到家门口。她停在石墙和木门前，回头望向身后道路，神情镇定。人物和石门在画面中部，适合手机裁切。无武器、无文字。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "at-carlus-fort",
+      "sceneSlug": "addressing-the-recruits",
+      "title": "卡尔鲁斯堡的讨伐队",
+      "official": "https://romelia-senki.com/news/episode_data",
+      "officialTitle": "砦攻略開始",
+      "guide": "https://biwaochan-blog.com/romelia-senki-2-kansou/",
+      "guideTitle": "『ロメリア戦記』2話「砦攻略開始」感想・考察",
+      "guideParagraphs": [
+        "魔王が倒れても、辺境の悲劇は終わっていません",
+        "討伐隊の編成を求められたセルベクは、表向き「",
+        "王国軍はいま、国境沿いの戦いに向かっている。",
+        "ロメリアが右手から見せたのは、たった一枚の金",
+        "出発の直前、レイが言います。「僕たち死なない"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "街ではなく辺境のカルルス砦",
+          "question": "罗梅莉亚为何来到卡尔鲁斯堡，打算担任什么角色？",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "討伐隊の編成を求められたセルベク",
+          "question": "代官塞尔贝克表面如何回应，实际给了怎样的新兵？",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "王国軍はいま",
+          "question": "用「王国军」解释为何边境难以等到增援，她希望新兵为谁而行动。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "ロメリアが右手から見せたのは",
+          "question": "指出罗梅莉亚拿出一枚金币说明报酬，为什么这能让新兵愿意迈出第一步？",
+          "officialSentence": 4
+        },
+        {
+          "kind": "cause",
+          "needle": "出発の直前、レイが言います",
+          "question": "说明众人出发时新兵依然不完全信任指挥官，分开写行动和信任。",
+          "officialSentence": 5
+        }
+      ],
+      "setting": [
+        "王国军",
+        3
+      ],
+      "sceneName": "在堡垒里向新兵说明处境",
+      "place": "边境卡尔鲁斯堡",
+      "sceneBeat": 3,
+      "intro": "罗梅莉亚自荐带领讨伐队，接手一群没有实战经验的新兵。她说清边境的处境，再用一枚金币让队伍动起来。",
+      "art": {
+        "referenceURL": "https://romelia-senki.com/news/wp/wp-content/uploads/2026/09/romelia_ep01_08.jpg",
+        "sourceSHA": "d9d210489d69fd0cb6ab710899e01598e0ba463fd8b7fa1cedc9f717ed720965",
+        "brief": "沿用参考里的罗梅莉亚发型、发色和服饰，画她在边境石堡的庭院里讲话。独自站在木桌旁，背景低石墙和柔和清晨光，人物中景居中。无打斗、无武器、无文字。"
+      },
+      "people": [
+        {
+          "slug": "romelia",
+          "name": "罗梅莉亚",
+          "role": "讨伐后回到家乡的伯爵千金",
+          "beat": 1
+        }
+      ]
     }
   ]
 }

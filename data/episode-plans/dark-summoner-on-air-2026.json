@@ -128,6 +128,85 @@
           0.3
         ]
       }
+    },
+    {
+      "number": 2,
+      "slug": "the-locked-room",
+      "sceneSlug": "the-dungeon-door",
+      "title": "走不出去的房间",
+      "official": "https://animestore.docomo.ne.jp/animestore/ci_pc?partId=29245002&workId=29245",
+      "officialTitle": "ダークサモナーと出られない部屋",
+      "guide": "https://ani-chara.net/19691/",
+      "guideTitle": "『ダークサモナーとデキている』第2話",
+      "guideParagraphs": [
+        "舞台は、かつて高度な文明を築いた古代人の技術",
+        "口げんかの勢いのまま、二人は開いていた扉の奥",
+        "ロニの問いかけをきっかけに、アモナの脳裏によ",
+        "そこへ勝手に現れたのが、インプだった。なぜ自",
+        "最後は、扉がいつの間にか開いていたことに安堵"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "舞台は、かつて高度な文明",
+          "question": "冒险队来到哪种古代遗迹？阿莫娜和罗尼对遗产有什么分歧？用「古代遗迹」。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "口げんかの勢いのまま",
+          "question": "他们为什么误入房间、被关在门内？其他队友如何行动？",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "ロニの問いかけをきっかけに",
+          "question": "罗尼的提问让阿莫娜想起怎样的旧事？区分她的回忆和她真正说出口的理由。"
+        },
+        {
+          "kind": "turn",
+          "needle": "そこへ勝手に現れたのが",
+          "question": "小恶魔提出用力量帮忙，涉及什么契约条件？跳过暧昧内容，只写已证实规则。"
+        },
+        {
+          "kind": "cause",
+          "needle": "最後は、扉がいつの間にか開いていた",
+          "question": "队友回来时发现门已打开。交代队伍汇合的结果，不猜测谁开的门；说到汇合即可。"
+        }
+      ],
+      "setting": [
+        "古代遗迹",
+        1
+      ],
+      "sceneName": "古代遗迹里的石门",
+      "place": "古代遗迹的侧廊",
+      "sceneBeat": 2,
+      "intro": "探索古代遗迹时，阿莫娜和罗尼误入一间封闭的房间。等待队友找路的时间里，一次追问带出了阿莫娜一直没讲过的往事。",
+      "art": {
+        "referenceURL": "https://darksummoner.deregula.com/wp-content/uploads/roni_main.png",
+        "sourceSHA": "f8302e06bec508668f863b340817adb26962041fe4fb081447fcc1059db1ca89",
+        "brief": "以参考中的成年神官罗尼为准，保留发色、发型和长袖神官服。他单独站在古代遗迹封闭的石门旁，侧身查看门框，石地面和柔和的灯光，人物居中，脸部清楚。不出现其他人物、裸露、战斗或文字。",
+        "box": [
+          0.15,
+          0.015,
+          0.7,
+          0.3
+        ]
+      },
+      "people": [
+        {
+          "slug": "amona",
+          "name": "阿莫娜",
+          "role": "使用召唤术的冒险者，小队新成员",
+          "beat": 1
+        },
+        {
+          "slug": "roni",
+          "name": "罗尼",
+          "role": "信仰虔诚的神官，起初反对接纳召唤师",
+          "beat": 2
+        }
+      ]
     }
   ]
 }

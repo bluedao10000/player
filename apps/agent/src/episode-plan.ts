@@ -111,7 +111,7 @@ export async function readEpisodeDocuments(
     if (Buffer.byteLength(text) < 60 || text.length > 6000) throw Error('分集原文不完整')
     const segmenter = new Intl.Segmenter((key === 'official' && japanese) || council || press ? 'ja' : 'en', { granularity: 'sentence' })
     // This recap omits sentence punctuation between its short paragraph notes.
-    const blocks = key === 'guide' && guideBlocks && p.guide === 'https://sayo.blog/tenken13/'
+    const blocks = key === 'guide' && guideBlocks && new URL(p.guide).hostname === 'sayo.blog'
       ? guideBlocks.map((block) => block.normalize('NFKC').replace(/\s+/g, ' ').trim())
       : [text]
     const sentences = blocks.flatMap((block) =>
@@ -129,7 +129,7 @@ export async function readEpisodeDocuments(
     }
   })
 }
-function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' | 'officialTitle'>) {
+function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' | 'officialTitle' | 'number'>) {
   const url = new URL(plan.official)
   if (url.hostname === 'www.aniplex.co.jp') {
     const first = site('#worksstory_1').first()
@@ -154,6 +154,15 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
       text: main.find('.story_foot_txt').text().trim(),
     }
   }
+  if (plan.official === 'https://animestore.docomo.ne.jp/animestore/ci_pc?partId=29245002&workId=29245') {
+    const heading = site('meta[property="og:title"]').attr('content') ?? ''
+    const match = heading.match(/^ダークサモナーとデキている【オンエア版】 第(\d+)話 (.+)$/)
+    return {
+      number: Number(match?.[1]),
+      title: match?.[2] ?? '',
+      text: site('meta[property="og:description"]').attr('content') ?? '',
+    }
+  }
   if (plan.official === 'https://www.b-ch.com/titles/9932/002') {
     return {
       number: Number(site('#bch-story-title').text().trim().match(/^第(\d+)話/)?.[1]),
@@ -171,10 +180,11 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
   if (plan.official === 'https://romelia-senki.com/news/episode_data') {
     const records: { acf?: { season_id: string; index: string; title: string; story: string } }[] =
       JSON.parse(site.root().text())
-    const first = records.find((record) => record.acf?.season_id === 'season1' && record.acf.index === '01')?.acf
-    if (!first || typeof first.title !== 'string' || typeof first.story !== 'string')
-      throw Error('官方剧集数据缺少第一季首集')
-    return { number: Number(first.index), title: first.title, text: first.story }
+    const index = String(plan.number).padStart(2, '0')
+    const episode = records.find((record) => record.acf?.season_id === 'season1' && record.acf.index === index)?.acf
+    if (typeof episode?.title !== 'string' || typeof episode.story !== 'string')
+      throw Error('官方剧集数据缺少第一季第 ' + plan.number + ' 集')
+    return { number: Number(episode.index), title: episode.title, text: episode.story }
   }
   const item = site('#cms_block .line_00 .epHead b, #cms_block .line_01 .storyHead__ep')
   if (item.length === 1) return {
