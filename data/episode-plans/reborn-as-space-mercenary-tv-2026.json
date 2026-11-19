@@ -1,0 +1,104 @@
+{
+  "world": "reborn-as-space-mercenary-tv-2026",
+  "title": "一觉醒来就有了最强装备跟太空船 决定以自家独栋建筑为目标当佣兵自由过活",
+  "edition": "2026 · TV 动画",
+  "provider": "bangumi",
+  "externalID": "536270",
+  "year": 2026,
+  "type": "TV",
+  "intro": "上班族佐藤孝弘醒在一艘陌生的宇宙船里，窗外却像极了他熟悉的科幻游戏。从第一次落脚到开始找工作，他以希罗这个新名字重新生活。",
+  "people": [
+    {
+      "slug": "hiro",
+      "name": "希罗",
+      "role": "原名佐藤孝弘，克里希纳号船长，初来乍到的佣兵",
+      "portrait": {
+        "referenceURL": "https://www.aniplex.co.jp/SYS/CONTENTS/story_4648_photo_179110344442224910",
+        "sourceSHA": "266d825d2ca7b99e80a44b9e2e255514e5e41d9d2a83f9ff4c6e456e12aa934b",
+        "brief": "参考的黑色短发和白色高领外套、墨绿内衫，希罗单人头肩像，纯色背景。"
+      }
+    },
+    {
+      "slug": "elma",
+      "name": "艾尔玛",
+      "role": "希罗在交易殖民地遇到的精灵前辈佣兵",
+      "portrait": {
+        "referenceURL": "https://www.aniplex.co.jp/SYS/CONTENTS/story_4648_photo_1790265270855292627",
+        "sourceSHA": "fd005cd6c55580e51411702c4ef58e6a5a9d243e1af6d919bf68f5642484d604",
+        "brief": "参考中的浅蓝短发、尖耳、蓝眼的精灵艾尔玛，保留深色宇航工作服和饰物，单人头肩像，纯色背景。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "first-space-colony",
+      "title": "初访太空殖民地",
+      "intro": "佐藤孝弘从一次突如其来的太空遭遇中脱身，乘着克里希纳号驶向有居民的交易殖民地。",
+      "official": "https://www.aniplex.co.jp/lineup/saikyosoubi/story/",
+      "officialTitle": "はじめてのスペースコロニー",
+      "guide": "https://anime-no-mikata.com/archives/8936",
+      "guideTitle": "『目覚めたら最強装備と宇宙船持ちだったので、一戸建て目指して傭兵として自由に生きたい』第1話",
+      "guideParagraphs": [
+        "会社員の佐藤孝弘が目を覚ました先は",
+        "第1話では、その圧倒的な性能を持つ船で",
+        "戦闘を切り抜けた後、向かう先が",
+        "孝弘は初戦闘の後",
+        "ターメーンプライムでは軍人や",
+        "軍人と先輩傭兵という"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "会社員の佐藤孝弘が目を覚ました先は",
+          "question": "交代孝弘醒来在哪、他为什么觉得熟悉、以及辨认出克里希纳号的过程。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "第1話では、その圧倒的な性能を持つ船で",
+          "question": "写宇宙海盗带来的紧急状况与克里希纳号如何提供脱身条件，避免杜撰作战细节。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "cause",
+          "needle": "戦闘を切り抜けた後、向かう先が",
+          "question": "写孝弘以船长希罗的名字前往交易殖民地，路线如何从脱险转入谋生。用「交易殖民地」。"
+        },
+        {
+          "kind": "turn",
+          "needle": "ターメーンプライムでは軍人や",
+          "question": "讲希罗进入殖民地后遇到军人与精灵前辈佣兵，为什么人际交往和找工作变得重要，不引出后续情节。",
+          "officialSentence": 4
+        }
+      ],
+      "people": [
+        {
+          "slug": "hiro",
+          "name": "希罗",
+          "role": "原名佐藤孝弘，克里希纳号船长，初来乍到的佣兵",
+          "beat": 1
+        },
+        {
+          "slug": "elma",
+          "name": "艾尔玛",
+          "role": "希罗在交易殖民地遇到的精灵前辈佣兵",
+          "beat": 4
+        }
+      ],
+      "setting": [
+        "交易殖民地",
+        3
+      ],
+      "sceneSlug": "krishna-arrives",
+      "sceneName": "克里希纳号靠港",
+      "place": "塔梅恩普莱姆 · 太空港",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://www.aniplex.co.jp/SYS/CONTENTS/story_4648_photo_179110344442224910",
+        "sourceSHA": "266d825d2ca7b99e80a44b9e2e255514e5e41d9d2a83f9ff4c6e456e12aa934b",
+        "brief": "画参考中黑色短发的希罗坐在克里希纳号驾驶座上，穿白外套和墨绿内衫，正对前窗观看逐渐接近的太空港。窗外有港口导向灯，画面围绕人物的辨识度与第一次靠港的好奇感，脸和驾驶舱关键环境保留在居中手机裁切内。无文字。"
+      }
+    }
+  ]
+}

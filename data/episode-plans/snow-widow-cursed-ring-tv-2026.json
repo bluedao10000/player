@@ -1,0 +1,102 @@
+{
+  "world": "snow-widow-cursed-ring-tv-2026",
+  "title": "不擅交际的未亡人雪女与诅咒戒指",
+  "edition": "2026 · TV 播出版",
+  "provider": "bangumi",
+  "externalID": "656083",
+  "year": 2026,
+  "type": "TV",
+  "intro": "高桥悟接手父亲留下的妖怪公寓后，渐渐喜欢上住户雪乃深冬。一次谈话让两人产生误会，他此时翻出了一枚旧戒指。",
+  "people": [
+    {
+      "slug": "satoru",
+      "name": "高桥悟",
+      "role": "妖怪公寓的住家管理员，接替了父亲的工作",
+      "portrait": {
+        "referenceURL": "https://anime-yukionna.af-original.com/wp-content/uploads/sites/4/c1_face.png",
+        "sourceSHA": "c9be7501aa2ee4d3d70843ffd8205a2809804a9f6838363b21d32d5d8ebf83ee",
+        "brief": "参考里的成年男性高桥悟，深色短发与垂下的刘海保持原样，穿普通白衬衣，正面单人肩像，纯色背景。"
+      }
+    },
+    {
+      "slug": "mifuyu",
+      "name": "雪乃深冬",
+      "role": "住在公寓、用冷气为悟缓解疼痛的雪女",
+      "portrait": {
+        "referenceURL": "https://anime-yukionna.af-original.com/wp-content/uploads/sites/4/c2_face.png",
+        "sourceSHA": "a2b02fda2859bffd497300e8d42990b81c37e8fb3f2de385daf75f4ad1b89056",
+        "brief": "参考中的成年雪女雪乃深冬，保持浅冰蓝长发、蓝眼和克制表情，穿白色高领外套，胸口与肩部全覆盖，单人正面肩像，纯色背景。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "the-ring",
+      "title": "戒指",
+      "intro": "悟想向雪乃深冬道歉。父亲留下的旧物，让这场原本简单的道歉出现意外转折。",
+      "official": "https://anime-yukionna.af-original.com/story/",
+      "officialTitle": "指輪",
+      "guide": "https://ani-chara.net/18988/",
+      "guideTitle": "『人付き合いが苦手な未亡人の雪女さんと呪いの指輪』第1話",
+      "guideParagraphs": [
+        "物語の語り手は、高橋さとる",
+        "痛がるさとるを、深冬が",
+        "深冬が口にしたのは",
+        "落ち込むさとるの目に留まったのは",
+        "すると、深冬の態度が一変する"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "物語の語り手は、高橋さとる",
+          "question": "说明高桥悟继承父亲的工作，在妖怪公寓里住着并照料住户。用「妖怪公寓」。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "痛がるさとるを、深冬が",
+          "question": "交代住户雪乃深冬用冷气帮悟缓解疼痛并说明雪女身份。"
+        },
+        {
+          "kind": "cause",
+          "needle": "深冬が口にしたのは",
+          "question": "用深冬想保留亡夫的回忆与悟好意却越界的安慰，解释两人为何闹别扭。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "落ち込むさとるの目に留まったのは",
+          "question": "写悟发现父亲留下的戒指，指望它帮助沟通，结果深冬态度突然变化；把诅咒作为悬念，不描述亲密或露骨情节。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "satoru",
+          "name": "高桥悟",
+          "role": "妖怪公寓的住家管理员，接替了父亲的工作",
+          "beat": 1
+        },
+        {
+          "slug": "mifuyu",
+          "name": "雪乃深冬",
+          "role": "住在公寓、用冷气为悟缓解疼痛的雪女",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "妖怪公寓",
+        1
+      ],
+      "sceneSlug": "finding-fathers-ring",
+      "sceneName": "父亲留下的戒指",
+      "place": "夜夜木公寓 · 管理室",
+      "sceneBeat": 4,
+      "art": {
+        "referenceURL": "https://anime-yukionna.af-original.com/wp-content/uploads/sites/4/c1_face.png",
+        "sourceSHA": "c9be7501aa2ee4d3d70843ffd8205a2809804a9f6838363b21d32d5d8ebf83ee",
+        "brief": "画成年男管理员高桥悟独自坐在公寓管理室木桌旁，深色短发与垂下的刘海、白衬衣保持参考造型，面前的旧盒子里放着一枚小戒指，他疑惑地低头看。主体居中，安静生活场景，画面无文字，无其他人。"
+      }
+    }
+  ]
+}

@@ -125,6 +125,21 @@ export async function readEpisodeDocuments(
   })
 }
 function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' | 'officialTitle'>) {
+  const url = new URL(plan.official)
+  if (url.hostname === 'www.aniplex.co.jp') {
+    const first = site('#worksstory_1').first()
+    return {
+      number: Number(first.find('[class="p-work:story-episode__no"]').text().trim().match(/^(?:第)?(\d+)(?:話)?$/)?.[1]),
+      title: first.find('[class="p-work:story-outline__title"]').text().trim(),
+      text: first.find('[class="p-work:story-outline__introduction"]').text().trim(),
+    }
+  }
+  if (plan.official === 'https://anime-yukionna.af-original.com/story/') {
+    const first = site('#story1')
+    const number = Number(first.find('.story-title .title-num').text().trim().match(/^#(\d+)$/)?.[1])
+    first.find('.story-title .title-num').remove()
+    return { number, title: first.find('.story-title').text().trim(), text: first.find('.story-txt').text().trim() }
+  }
   if (plan.official === 'https://romelia-senki.com/news/episode_data') {
     const records: { acf?: { season_id: string; index: string; title: string; story: string } }[] =
       JSON.parse(site.root().text())

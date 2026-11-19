@@ -1,0 +1,102 @@
+{
+  "world": "magical-explorer-tv-2026",
+  "title": "魔法★探险家",
+  "edition": "2026 · TV 动画",
+  "provider": "bangumi",
+  "externalID": "456078",
+  "year": 2026,
+  "type": "TV",
+  "intro": "泷音幸助来到曾经熟悉的游戏世界，却成了原故事里一直站在主角身旁的朋友。想走出自己的路，他得先弄明白这具身体的魔力和处境。",
+  "people": [
+    {
+      "slug": "kosuke",
+      "name": "泷音幸助",
+      "role": "转生为游戏配角、魔力充沛却不擅长放出魔法的青年",
+      "portrait": {
+        "referenceURL": "https://www.aniplex.co.jp/SYS/CONTENTS/story_4709_photo_1789658240613353250",
+        "sourceSHA": "c89c36b445187d5b07ade39234e106703b9f1da04bcd9f9dda5b478a13a01fd0",
+        "brief": "参考中深棕发与蓝紫眼的泷音幸助，保留暗色上衣和红围巾，单人头肩像，纯色背景。"
+      }
+    },
+    {
+      "slug": "marino",
+      "name": "花邑毬乃",
+      "role": "亲自登门拜访幸助的月读魔法学园学园长",
+      "portrait": {
+        "referenceURL": "https://www.aniplex.co.jp/SYS/CONTENTS/story_4709_photo_1789658241826548644",
+        "sourceSHA": "0f3e7bef3a18a01748e90bf6eede0cfc91362b60cd90e4d2e185b99c974ae291",
+        "brief": "参考中紫色长发、黑色得体外套与白色领口，花邑毬乃成年女性单人头肩像，素色背景，表情亲切。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "living-by-my-own-rules",
+      "title": "配角也能走自己的路",
+      "intro": "来到游戏世界以后，泷音幸助发现原本略过的配角人生，比他玩过的故事复杂得多。",
+      "official": "https://www.aniplex.co.jp/lineup/majieku/story/",
+      "officialTitle": "エロゲの友人キャラに転生したけど、ゲーム知識使って自由に生きる",
+      "guide": "https://anime-no-mikata.com/archives/8923",
+      "guideTitle": "『マジカル★エクスプローラー』第1話",
+      "guideParagraphs": [
+        "まず面白いのが",
+        "第1話で特に効いていたのは",
+        "さらに印象に残るのが",
+        "そして、花邑毬乃の訪問"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "まず面白いのが",
+          "question": "写泷音幸助转生到认识的游戏里，却处于什么位置，以及他为什么想有自己的路。用「游戏世界」。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "第1話で特に効いていたのは",
+          "question": "交代魔力总量与放出魔法的差别，以及这套能力为什么不能让幸助轻松照走主角路线。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "さらに印象に残るのが",
+          "question": "幸助发现身边没有亲近的亲属，也意识到前世知道的剧情无法覆盖他现在的生活。"
+        },
+        {
+          "kind": "turn",
+          "needle": "そして、花邑毬乃の訪問",
+          "question": "交代花邑毬乃是魔法学园的学园长，她的登门如何把独自生活的幸助与学园联系起来，只写到本集。",
+          "officialSentence": 3
+        }
+      ],
+      "people": [
+        {
+          "slug": "kosuke",
+          "name": "泷音幸助",
+          "role": "转生为游戏配角、魔力充沛却不擅长放出魔法的青年",
+          "beat": 1
+        },
+        {
+          "slug": "marino",
+          "name": "花邑毬乃",
+          "role": "亲自登门拜访幸助的月读魔法学园学园长",
+          "beat": 4
+        }
+      ],
+      "setting": [
+        "游戏世界",
+        1
+      ],
+      "sceneSlug": "at-kosukes-door",
+      "sceneName": "到访的学园长",
+      "place": "泷音幸助的家",
+      "sceneBeat": 4,
+      "art": {
+        "referenceURL": "https://www.aniplex.co.jp/SYS/CONTENTS/story_4709_photo_1789658241826548644",
+        "sourceSHA": "0f3e7bef3a18a01748e90bf6eede0cfc91362b60cd90e4d2e185b99c974ae291",
+        "brief": "画花邑毬乃站在幸助家木门前来访，保留成年学园长标志性的紫色长发、黑外套和白色领口，轻抬手敲门，透入自然光，人物居中，端庄暖色，适合手机裁切。无文字。"
+      }
+    }
+  ]
+}

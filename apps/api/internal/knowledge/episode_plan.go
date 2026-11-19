@@ -70,7 +70,10 @@ func (e episodeSpec) validate() error {
 	pressRelease := official.Host == "www.animatetimes.com" && official.Path == "/news/details.php" && pressID.MatchString(official.RawQuery)
 	itemPremiere := e.Number == 1 && e.Official == "https://toaru-project.com/item/story/01.html"
 	romeliaPremiere := e.Number == 1 && e.Official == "https://romelia-senki.com/news/episode_data"
-	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romeliaPremiere) && official.Fragment == ""
+	aniplexPremiere := e.Number == 1 && (e.Official == "https://www.aniplex.co.jp/lineup/majieku/story/" ||
+		e.Official == "https://www.aniplex.co.jp/lineup/saikyosoubi/story/")
+	yukionnaPremiere := e.Number == 1 && e.Official == "https://anime-yukionna.af-original.com/story/"
+	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romeliaPremiere || aniplexPremiere || yukionnaPremiere) && official.Fragment == ""
 	if !naruto && !takopi && !lookBack && !apothecary && !council && !press {
 		return errors.New("官方来源或标题无效")
 	}
@@ -93,6 +96,7 @@ func (e episodeSpec) validate() error {
 			!((guide.Host == "2jigen-otaku.com" && pressGuidePath.MatchString(guide.Path)) ||
 				(guide.Host == "tv-times.jp" && tvTimesEpisodePath.MatchString(guide.Path)) ||
 				((guide.Host == "saisokustory.com" || guide.Host == "animenoyakata.com") && pressGuidePath.MatchString(guide.Path)) ||
+				(yukionnaPremiere && e.Guide == "https://ani-chara.net/18988/") ||
 				((guide.Host == "anime-no-mikata.com" || guide.Host == "mahoyaku.net") && numericArchivePath.MatchString(guide.Path))) {
 			return errors.New("新闻稿分集补充来源不匹配")
 		}

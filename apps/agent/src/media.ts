@@ -159,6 +159,8 @@ async function configuredReference(j: Job): Promise<Result> {
       || (url.host === 'toaru-project.com' && /^\/item\/core_sys\/images\/contents\/\d+\/block\/\d+\/\d+\.jpg$/.test(url.pathname))
       || (url.host === 'korinojoheki-pr.com' && /^\/wp\/wp-content\/themes\/[0-9a-f]+\/static\/assets\/character\/0[1-4]\/main\.webp$/.test(url.pathname))
       || (url.host === 'romelia-senki.com' && /^\/news\/wp\/wp-content\/uploads\/2026\/09\/romelia_ep01_\d+\.jpg$/.test(url.pathname))
+      || (url.host === 'www.aniplex.co.jp' && /^\/SYS\/CONTENTS\/story_(4709|4648)_photo_\d+$/.test(url.pathname))
+      || (url.host === 'anime-yukionna.af-original.com' && /^\/wp-content\/uploads\/sites\/4\/c[12]_face\.png$/.test(url.pathname))
       || (url.host === 'lookback-anime.com' && url.pathname.startsWith('/assets/img/'))
       || (url.host === 'www.tbs.co.jp' && url.pathname.startsWith('/anime/takopi_project/series/')))
   )
