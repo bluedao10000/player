@@ -43,6 +43,9 @@ services:
       ALIPAY_NOTIFY_URL: ${ALIPAY_NOTIFY_URL:-}
       ALIPAY_PRIVATE_KEY: ${ALIPAY_PRIVATE_KEY:-}
       ALIPAY_SELLER_ID: ${ALIPAY_SELLER_ID:-}
+      AUTH_RESEND_API_KEY: ${AUTH_RESEND_API_KEY:-}
+      AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-}
+      READER_LOCAL_MAIL: ${READER_LOCAL_MAIL:-}
       API_HOST: 0.0.0.0
     volumes:
       - knowledge-archive:/var/lib/knowledge/archive

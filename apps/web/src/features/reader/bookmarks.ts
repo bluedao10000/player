@@ -30,7 +30,7 @@ export function writeLocal(key: string, items: string[]) {
 // Each chapter has a separate key so two tabs can save different works independently.
 // A removal overrides the original slug without rewriting the old shelf.
 export type Bookmark = { href: string; title: string; work: string }
-export function readBookmarks(): Bookmark[] {
+export function readBookmarks() {
   const items = new Map<string, Bookmark & { order: number }>()
   readLocal(legacyShelf).forEach((slug, order) => {
     const story = catalog.find((s) => s.slug === slug)

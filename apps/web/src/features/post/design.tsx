@@ -52,9 +52,7 @@ export function Layout({
       <header className="mast">
         <div className="wrap mast-inner">
           <a className="brand" href="/" aria-label={siteName + '首页'}>
-            <span className="brand-mark">
-              <Icon name="plane" size={30} />
-            </span>
+            <img src="/brand/folio-plane.svg" width="34" height="34" alt="" />
             <b>{siteName}</b>
           </a>
           <nav className="top-nav" aria-label="主导航">
@@ -77,7 +75,7 @@ export function Layout({
         {children}
       </main>
       <footer className="wrap foot">
-        <Icon name="plane" />
+        <img src="/brand/folio-plane.svg" width="22" height="22" alt="" />
         {siteName}
       </footer>
       <BottomNavigation active={active} />

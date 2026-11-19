@@ -105,12 +105,6 @@ svg {
   min-height: var(--touch);
   letter-spacing: 0.03em;
 }
-.brand-mark {
-  display: grid;
-  place-items: center;
-  color: var(--accent);
-  transform: rotate(-9deg);
-}
 .brand b {
   font-size: 21px;
   letter-spacing: 0.06em;

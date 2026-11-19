@@ -3,7 +3,6 @@ export type IconName =
   | 'spark'
   | 'forward'
   | 'moon'
-  | 'plane'
   | 'user'
   | 'left'
   | 'right'
@@ -24,12 +23,6 @@ const paths: Record<IconName, ReactNode> = {
   spark: <path d="m12 2 2.7 7.3L22 12l-7.3 2.7L12 22l-2.7-7.3L2 12l7.3-2.7z" />,
   forward: <path d="M6 18 18 6M6 6h12v12" />,
   moon: <path d="M20 14A8.7 8.7 0 0 1 10 3a9 9 0 1 0 10 11Z" />,
-  plane: (
-    <>
-      <path d="m2 11 20-8-6.2 18-4.4-6.5L2 11Z" />
-      <path d="M11.4 14.5 21 4" />
-    </>
-  ),
   user: (
     <>
       <circle cx="12" cy="8" r="4" />

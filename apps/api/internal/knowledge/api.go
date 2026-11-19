@@ -2,6 +2,7 @@ package knowledge
 
 import (
 	"anime-agent/api/internal/billing"
+	"anime-agent/api/internal/reader"
 	"context"
 	"errors"
 	"log"
@@ -44,6 +45,7 @@ func queryJSON(c *gin.Context, db *pgxpool.Pool, sql string, args ...any) {
 func Routes(r *gin.Engine, db *pgxpool.Pool) {
 	adminRoutes(r, db)
 	billing.CustomerRoutes(r, db)
+	reader.Routes(r, db)
 	g := r.Group("/api/v1/knowledge")
 	worldRoutes(g, db)
 	mediaRoutes(g, db)

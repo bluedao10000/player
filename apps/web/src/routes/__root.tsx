@@ -11,7 +11,11 @@ import type { ReactNode } from 'react'
 export const Route = createRootRoute({
   ssr: true,
   head: () => ({
-    links: [{ rel: 'stylesheet', href: postCss }],
+    links: [
+      { rel: 'stylesheet', href: postCss },
+      { rel: 'icon', type: 'image/svg+xml', sizes: 'any', href: '/brand/folio-plane.svg' },
+      { rel: 'apple-touch-icon', sizes: '180x180', href: '/brand/apple-touch-icon.png' },
+    ],
     meta: [
       { charSet: 'utf-8' },
       { title: siteName },

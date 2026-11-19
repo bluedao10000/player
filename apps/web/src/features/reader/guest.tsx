@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Button, Layout, SectionHeader } from '../post/design'
 import { Icon } from '../post/icons'
-import { readLastChapter } from '../post/progress'
-import { readBookmarks, setBookmark, useBrowserRecord } from './bookmarks'
+import { useLastChapter } from '../post/progress'
+import { useShelf, identityChanged, refresh, request } from './account'
 import type { libraryCatalog } from './library'
 import './guest.css'
 
@@ -17,8 +17,8 @@ export function GuestLibrary({
   catalog: Catalog
   full?: boolean
 }) {
-  const saved = useBrowserRecord(readBookmarks)
-  const last = useBrowserRecord(readLastChapter)
+  const { items: saved, save, reader } = useShelf()
+  const last = useLastChapter()
   const [filter, setFilter] = useState('')
   const [error, setError] = useState('')
   const published = new Map(catalog?.map((c) => [c.href, c]))
@@ -50,11 +50,55 @@ export function GuestLibrary({
             </a>
           )}
           <h1>{full ? '我的书架' : '我的'}</h1>
-          <p>{full ? '按最近收藏排列' : '访客 · 阅读记录保存在此浏览器'}</p>
+          <p>
+            {reader === null
+              ? '访客 · 阅读记录保存在此浏览器'
+              : reader && reader !== 'error'
+                ? reader.email
+                : reader === 'error'
+                  ? '读者服务暂时无法连接'
+                  : '正在打开阅读账户…'}
+          </p>
+          {reader === null && (
+            <a
+              className="return"
+              href={'/login?returnTo=' + (full ? '%2Fshelf' : '%2Fme')}
+            >
+              登录以同步书架和进度 <Icon name="arrow" size={16} />
+            </a>
+          )}
+          {reader === 'error' && (
+            <button className="guest-remove" onClick={() => void refresh()}>
+              重试
+            </button>
+          )}
+          {reader && reader !== 'error' && (
+            <>
+              {reader.pending && (
+                <a className="return" href="/login">
+                  选择是否导入本机记录
+                </a>
+              )}
+              <button
+                className="guest-remove"
+                onClick={async () => {
+                  try {
+                    await request('logout', {}, reader.id)
+                    await identityChanged()
+                    setError('')
+                  } catch {
+                    setError('退出失败，请重试。')
+                  }
+                }}
+              >
+                退出登录
+              </button>
+            </>
+          )}
         </header>
         {catalog === null && (
           <p className="guest-notice" role="status">
-            暂时无法核对公开目录。你仍可以打开本机保存的章节。
+            暂时无法核对公开目录。你仍可以打开已收藏的章节。
           </p>
         )}
         {!full && last !== undefined && (
@@ -112,7 +156,7 @@ export function GuestLibrary({
         )}
         {error && <p role="alert">{error}</p>}
         {shown === undefined ? (
-          <p role="status">正在打开本机书架…</p>
+          <p role="status">正在打开书架…</p>
         ) : shown.length === 0 ? (
           <div className="guest-empty">
             <Icon name="bookmark" size={25} />
@@ -157,9 +201,9 @@ export function GuestLibrary({
                       type="button"
                       className="guest-remove"
                       aria-label={'移除《' + title + '》'}
-                      onClick={() =>
+                      onClick={async () =>
                         setError(
-                          setBookmark(b, false) ? '' : '移除失败，请重试。',
+                          (await save(b, false)) ? '' : '移除失败，请重试。',
                         )
                       }
                     >

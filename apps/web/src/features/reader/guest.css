@@ -153,3 +153,108 @@
     height: 160px;
   }
 }
+
+.guest-heading .return,
+.guest-heading .guest-remove {
+  margin-top: 10px;
+}
+.reader-login {
+  max-width: 940px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: clamp(20px, 6vw, 90px) auto;
+  background: var(--surface);
+  border-radius: var(--r-hero);
+  overflow: hidden;
+}
+.reader-login figure {
+  position: relative;
+  margin: 0;
+  min-height: 420px;
+}
+.reader-login figure img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.reader-login figcaption {
+  position: absolute;
+  bottom: 0;
+  padding: 16px 24px;
+  width: 100%;
+  background: linear-gradient(transparent, #11111bcc);
+  color: white;
+}
+.reader-form {
+  min-width: 0;
+  padding: clamp(22px, 4vw, 52px);
+  align-self: center;
+}
+.reader-form h1 {
+  font: 600 clamp(28px, 4vw, 40px)/1.25 var(--display);
+  margin: 18px 0 8px;
+}
+.reader-form p {
+  color: var(--muted);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.reader-form label {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+.reader-form input {
+  width: 100%;
+  color: inherit;
+  background: var(--page);
+  border: 1px solid var(--line);
+  padding: 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 16px;
+}
+.reader-form button {
+  min-height: 44px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--link);
+  background: transparent;
+  border: 0;
+}
+.reader-form .reader-primary {
+  display: block;
+  width: 100%;
+  background: var(--link);
+  color: #191424;
+  border-radius: 24px;
+  font-weight: 650;
+  margin: 20px 0 6px;
+}
+.reader-form button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.reader-actions {
+  display: flex;
+  justify-content: space-between;
+}
+.reader-retry {
+  position: fixed;
+  bottom: 90px;
+  right: 16px;
+  z-index: 5;
+}
+@media (max-width: 650px) {
+  .reader-login {
+    grid-template-columns: 1fr;
+  }
+  .reader-login figure {
+    min-height: 150px;
+  }
+  .reader-login figure img {
+    object-position: center 36%;
+  }
+}

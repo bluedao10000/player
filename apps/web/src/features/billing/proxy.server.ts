@@ -7,7 +7,7 @@ const privateHeaders = {
   'X-Content-Type-Options': 'nosniff',
 }
 
-export async function readBody(request: Request) {
+export async function readBody(request: Request, limit = 16_384) {
   const reader = request.body?.getReader()
   if (!reader) return ''
   const chunks: Uint8Array[] = []
@@ -16,7 +16,7 @@ export async function readBody(request: Request) {
     const { value, done } = await reader.read()
     if (done) break
     size += value.length
-    if (size > 16_384) {
+    if (size > limit) {
       await reader.cancel()
       throw new Error('body too large')
     }
