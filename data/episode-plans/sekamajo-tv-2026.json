@@ -1,0 +1,86 @@
+{
+  "world": "sekamajo-tv-2026",
+  "title": "世界最强的魔女，就此开始",
+  "edition": "2026 · TV 动画",
+  "provider": "bangumi",
+  "externalID": "646154",
+  "year": 2026,
+  "type": "TV",
+  "intro": "罗娜得到了一项家族看不懂的技能。离开家门后，她试着用「互联网」查看眼前这个世界。",
+  "people": [
+    {
+      "slug": "rona",
+      "name": "罗娜",
+      "role": "被家族逐出、以「互联网」探索世界的少女",
+      "portrait": {
+        "referenceURL": "https://img2.animatetimes.com/2026/09/86bba2cbdab4bbb4e595e15564e1c6e76abb75188ca594_81628102_b678eb664ad106c7cb5eb3d7c2fbd7cb62b92ffd.png",
+        "sourceSHA": "c34ba20ca65870d55cb30f5aa0709685650be1da0b448d35e9a3d8527f4c36cf",
+        "brief": "独立画一个普通单人肖像，保持罗娜的深蓝短发、绿色衣服和笑容。清楚头肩，纯色背景，去掉原有文字和夸张前景大手。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "using-the-internet",
+      "title": "试着用了一下互联网！",
+      "intro": "被家族赶走的罗娜踏上旅途，发现自己被嫌弃的技能竟能查到森林的危险和装备的位置。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1790669864",
+      "officialTitle": "第1話『インターネットを使ってみた！』あらすじ",
+      "guide": "https://anime-no-mikata.com/archives/8979",
+      "guideTitle": "『世界最強の魔女、始めました』第1話",
+      "guideParagraphs": [
+        "ローナは名門ググレカース家に",
+        "なぜなら、このスキルが",
+        "第1話で一番好きなのは",
+        "放送直後の感想記事では、攻略情報で"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "ローナは名門ググレカース家に",
+          "question": "写罗娜为什么被逐、怎样踏上旅途。照所给来源，不把评论者的猜测当成她的内心独白。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "なぜなら、このスキルが",
+          "question": "明确「互联网」是本作内能搜索和阅读世界信息的技能。写罗娜怎样第一次使用攻略资料。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "第1話で一番好きなのは",
+          "question": "写借攻略穿行森林并抵达装备所在地，交代信息怎样改变探索路线。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "放送直後の感想記事では",
+          "question": "写罗娜用攻略提供的线索取得强力装备，让自由旅程有了开端。不给装备编造名称、机制或未来战绩。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "rona",
+          "name": "罗娜",
+          "role": "被家族逐出、以「互联网」探索世界的少女",
+          "beat": 1
+        }
+      ],
+      "setting": [
+        "互联网",
+        2
+      ],
+      "sceneSlug": "searching-the-forest",
+      "sceneName": "森林里的攻略",
+      "place": "森林",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/09/f4da71662daa5b4e9002e5872c04ad2d6abb751d5d1274_48158771_dc886467bde9b2dd75fad94cf2b95b68a144669e.png",
+        "sourceSHA": "fc94109e2355406efdfc112cbce17f3e1d015895ff2207c5d2cb087c581ed98d",
+        "brief": "以基准图中的短深蓝发罗娜为唯一焦点，保留绿色旅装和金色裙边。在自然光下的森林探索岔路，眼前有淡青色透明光块象征世界内的查询技能。主体居中、面部和动作可见，无任何文字与标志。"
+      }
+    }
+  ]
+}

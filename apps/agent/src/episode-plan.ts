@@ -57,7 +57,7 @@ export async function readEpisodeDocuments(
     $(selector).toArray().map((x) => $(x).text().trim()).join(' ')
   const apTitle = site('.news-content h2').filter((_, el) => site(el).text() === p.officialTitle)
   const box = site('.storypage-wrap')
-  const item = press ? readPressSynopsis(site, p.officialTitle) : apothecary ? {
+  const item = press ? readPressSynopsis(site, p) : apothecary ? {
     number: Number(apTitle.text().match(/第(\d+)話/)?.[1]),
     title: apTitle.text(),
     text: apTitle.next('h3').nextUntil('h2,h3','p').toArray().map((x) => site(x).text()).join(' '),
@@ -124,7 +124,15 @@ export async function readEpisodeDocuments(
     }
   })
 }
-function readPressSynopsis(site: CheerioAPI, expected: string) {
+function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' | 'officialTitle'>) {
+  if (plan.official === 'https://romelia-senki.com/news/episode_data') {
+    const records: { acf?: { season_id: string; index: string; title: string; story: string } }[] =
+      JSON.parse(site.root().text())
+    const first = records.find((record) => record.acf?.season_id === 'season1' && record.acf.index === '01')?.acf
+    if (!first || typeof first.title !== 'string' || typeof first.story !== 'string')
+      throw Error('官方剧集数据缺少第一季首集')
+    return { number: Number(first.index), title: first.title, text: first.story }
+  }
   const item = site('#cms_block .line_00 .epHead b')
   if (item.length === 1) return {
     number: Number(item.text()),
@@ -132,10 +140,12 @@ function readPressSynopsis(site: CheerioAPI, expected: string) {
     text: site('#cms_block .line_02 .read').text().trim(),
   }
   const heading = site('.news-content h2, .news-content h3')
-    .filter((_, node) => site(node).text().trim() === expected)
+    .filter((_, node) => site(node).text().trim() === plan.officialTitle)
     .first()
   const title = heading.text().trim()
   const label = title.match(/第([0-9０-９一二三]+)[話回]/)?.[1]
+    ?? site('.news-content').prevAll().find('h1').first().text().match(/第([0-9０-９一二三]+)[話回]/)?.[1]
+    ?? site('h1').first().text().match(/第([0-9０-９一二三]+)[話回]/)?.[1]
   const japaneseNumbers: Record<string, number> = { 一: 1, 二: 2, 三: 3 }
   const number = label ? japaneseNumbers[label] ?? Number(label.normalize('NFKC')) : NaN
   const synopsis = heading.next('h3').text().trim() === 'あらすじ' ? heading.next('h3') : heading

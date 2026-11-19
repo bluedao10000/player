@@ -1,0 +1,87 @@
+{
+  "world": "romelia-war-chronicle-tv-2026",
+  "title": "罗梅莉亚战记",
+  "edition": "2026 · TV 动画",
+  "provider": "bangumi",
+  "externalID": "511936",
+  "year": 2026,
+  "type": "TV",
+  "intro": "魔王讨伐结束，队伍就此分开。失去婚约的罗梅莉亚回到领地，开始面对胜利以后仍无人善后的问题。",
+  "people": [
+    {
+      "slug": "romelia",
+      "name": "罗梅莉亚",
+      "role": "讨伐后回到家乡的伯爵千金",
+      "portrait": {
+        "referenceURL": "https://romelia-senki.com/news/wp/wp-content/uploads/2026/09/romelia_ep01_08.jpg",
+        "sourceSHA": "d9d210489d69fd0cb6ab710899e01598e0ba463fd8b7fa1cedc9f717ed720965",
+        "brief": "独立绘制罗梅莉亚的单人头肩像，银白短发，清蓝色眼睛，保留高领披风，纯色背景，表情镇定。"
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "a-girl-named-romelia",
+      "title": "名叫罗梅莉亚的少女",
+      "intro": "魔王被击败之后，罗梅莉亚没有参加凯旋。她返回家乡，发现战后的日子才刚刚开始。",
+      "official": "https://romelia-senki.com/news/episode_data",
+      "officialTitle": "ロメリアという少女",
+      "guide": "https://anime-no-mikata.com/archives/8929",
+      "guideTitle": "『ロメリア戦記』第1話",
+      "guideParagraphs": [
+        "いきなり魔王ゼルギスとの決戦から",
+        "ところが『ロメリア戦記』は",
+        "第1話で一番刺さったのは",
+        "凱旋への参加すら許されず",
+        "この主人公像がかなり好みでした"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "いきなり魔王ゼルギスとの決戦から",
+          "question": "交代罗梅莉亚所在队伍如何因安利王子的独断陷入苦战、最终靠配合取得胜利。避免战斗招式和细节。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "ところが『ロメリア戦記』は",
+          "question": "写胜利后罗梅莉亚被指责未直接参战、安利单方面解除婚约。别把指责当事实结论。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "第1話で一番刺さったのは",
+          "question": "自然交代「战后」的世界何以仍困难，落实荒地和百姓生活等现实问题，区分观后资料的推测。"
+        },
+        {
+          "kind": "turn",
+          "needle": "凱旋への参加すら許されず",
+          "question": "写没有参加凯旋、回家后受轻视，及罗梅莉亚把注意力放到接下来要做的事。不要编造第2集行动。",
+          "officialSentence": 3
+        }
+      ],
+      "people": [
+        {
+          "slug": "romelia",
+          "name": "罗梅莉亚",
+          "role": "讨伐后回到家乡的伯爵千金",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "战后",
+        3
+      ],
+      "sceneSlug": "romelia-returns-home",
+      "sceneName": "不参加凯旋的人",
+      "place": "格拉汉姆家",
+      "sceneBeat": 4,
+      "art": {
+        "referenceURL": "https://romelia-senki.com/news/wp/wp-content/uploads/2026/09/romelia_ep01_08.jpg",
+        "sourceSHA": "d9d210489d69fd0cb6ab710899e01598e0ba463fd8b7fa1cedc9f717ed720965",
+        "brief": "描绘银白短发的罗梅莉亚披着高领斗篷回到家门口。她停在石墙和木门前，回头望向身后道路，神情镇定。人物和石门在画面中部，适合手机裁切。无武器、无文字。"
+      }
+    }
+  ]
+}
