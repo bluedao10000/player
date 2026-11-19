@@ -63,10 +63,10 @@ func (e episodeSpec) validate() error {
 	naruto := official.Host == "naruto-official.com" && strings.HasPrefix(official.Path, "/en/anime/")
 	takopi := official.Host == "www.tbs.co.jp" && official.Path == tbsPath && e.Number <= 6 && official.RawQuery == "" && official.Fragment == ""
 	lookBack := e.Number == 1 && e.Official == "https://lookback-anime.com/"
-	apothecaryReleases := map[int]string{49: "1790842934", 50: "1791440404"}
+	apothecaryReleases := map[int]string{49: "1790842934", 50: "1791440404", 51: "1792047363"}
 	release, found := apothecaryReleases[e.SourceNumber]
 	apothecary := found && e.SourceNumber == e.Number+48 && e.Official == "https://www.animatetimes.com/news/details.php?id="+release
-	council := e.Number <= 2 && e.Official == fmt.Sprintf("https://nama-anaru.com/episode/?id=%d", e.Number)
+	council := e.Number <= 3 && e.Official == fmt.Sprintf("https://nama-anaru.com/episode/?id=%d", e.Number)
 	pressRelease := official.Host == "www.animatetimes.com" && official.Path == "/news/details.php" && pressID.MatchString(official.RawQuery)
 	itemPremiere := e.Number == 1 && e.Official == "https://toaru-project.com/item/story/01.html"
 	romeliaPremiere := e.Number == 1 && e.Official == "https://romelia-senki.com/news/episode_data"
@@ -75,7 +75,8 @@ func (e episodeSpec) validate() error {
 	yukionnaPremiere := e.Number == 1 && e.Official == "https://anime-yukionna.af-original.com/story/"
 	lastBossPremiere := e.Number == 1 && e.SourceNumber == 13 && e.Official == "https://www.lastboss-anime.com/story/13.html"
 	darkSummonerPremiere := e.Number == 1 && e.Official == "https://darksummoner.deregula.com/story/"
-	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romeliaPremiere || aniplexPremiere || yukionnaPremiere || lastBossPremiere || darkSummonerPremiere) && official.Fragment == ""
+	fxSecond := e.Number == 2 && e.Official == "https://fxkurumi-info.com/story/episodes.json"
+	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romeliaPremiere || aniplexPremiere || yukionnaPremiere || lastBossPremiere || darkSummonerPremiere || fxSecond) && official.Fragment == ""
 	if !naruto && !takopi && !lookBack && !apothecary && !council && !press {
 		return errors.New("官方来源或标题无效")
 	}
@@ -114,7 +115,7 @@ func (e episodeSpec) validate() error {
 			}
 		}
 	} else if council {
-		if e.Guide != fmt.Sprintf("https://2jigen-otaku.com/seitokai-ana-%dwa/", e.Number) {
+		if e.Guide != fmt.Sprintf("https://2jigen-otaku.com/seitokai-ana-%dwa/", e.Number) || (e.Number == 3 && (len(e.GuideParagraphs) < 3 || len(e.GuideParagraphs) > 18)) {
 			return errors.New("TV 版分集补充来源不匹配")
 		}
 	} else if err != nil || guide.Scheme != "https" || guide.Host != "en.wikipedia.org" || !strings.HasPrefix(guide.Path, "/wiki/") || guide.Fragment != guideAnchor {

@@ -183,6 +183,85 @@
         "sourceSHA": "a1e8083d71cefd8618affd88430f290117868fa0964a3579790a268d1d053a3c",
         "brief": "古衣店内，两位顾客在挂着白色长外衣的木墙前停下，猫猫保留绿色服装、深绿发与紫眼，短棕发的赵迂站在她身旁看向白衣。白衣袖子有藤蔓纹样。按参考识别人物和衣料，另构新的中景。人物、衣服都在画面中部并适合手机裁切，衣服只出现纹样，无可读文字。"
       }
+    },
+    {
+      "number": 3,
+      "sourceNumber": 51,
+      "slug": "if-there-is-no-bread",
+      "title": "如果没有面包",
+      "intro": "一名男子上门为女儿求医，猫猫跟着右叫来到花街附近。姐妹吃下的点心，让这趟出诊变成了一次追查。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1792047363",
+      "officialTitle": "第51話「麺麭がなければ」",
+      "guide": "https://en.wikipedia.org/wiki/List_of_The_Apothecary_Diaries_episodes#ep51",
+      "guideTitle": "Let Them Eat Cake",
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "A villager summons Maomao",
+          "question": "交代有人上门求医，猫猫与「右叫」去花街附近看望身体不适的妹妹，右叫是「绿青馆」的人。只写读者需要知道的症状。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "She discovers the girl ate an unusual sweet",
+          "question": "交代猫猫为什么怀疑姐妹得到的点心，以及右叫发现附近也有人吃过来路不明的同样东西。只写剧情因果，不给药物成分、配方、用量或做法。",
+          "officialSentence": 5
+        },
+        {
+          "kind": "cause",
+          "needle": "Maomao takes the girl home",
+          "question": "写赵迂协助猫猫照料女孩，姐姐想独立养活妹妹，猫猫帮她们寻找安身处。不要写未经证实的后续。"
+        },
+        {
+          "kind": "turn",
+          "needle": "Jinshi receives reports",
+          "question": "写壬氏发现街头的药物疑案反复出现同一个白衣女子的线索，但暂时缺少能指认证明的证据。"
+        },
+        {
+          "kind": "cause",
+          "needle": "Basen delivers the recovered insect volume",
+          "question": "交代马闪送回的册子没有蝗虫记录，猫猫得知还可能有第三册，最后去向翠苓追问线索。把药物案和蝗虫旧书区分开。"
+        }
+      ],
+      "setting": [
+        "绿青馆",
+        1
+      ],
+      "sceneSlug": "examining-the-unusual-sweet",
+      "sceneName": "从一块点心查起",
+      "place": "花街附近 · 姐妹的住处",
+      "sceneBeat": 2,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/10/394056ddfccbc1369173f26fc4c932ca6ad07b2c61c116_97588697_e01b053853c0e42e27062986f502e2940eefd99a.jpg",
+        "sourceSHA": "05d32deb1927aaab35b1854c759bf7fa881aab0cf782e507b07e04d4922ae65b",
+        "brief": "依照参考画猫猫，深墨绿色盘发、短刘海、红棕色外衣。她在朴素小室里若有所思地观察手边放在干净白布上的普通小点心，桌边有木碟，窗边有自然光。单人，脸和点心居中，手机裁切要能看见动作。无伤害、无文字。",
+        "box": [
+          0.23,
+          0.0,
+          0.77,
+          1.0
+        ]
+      },
+      "people": [
+        {
+          "slug": "maomao",
+          "name": "猫猫",
+          "role": "回到花街的药师",
+          "beat": 1
+        },
+        {
+          "slug": "chou-u",
+          "name": "赵迂",
+          "role": "留意到收成变化的孩子",
+          "beat": 3
+        },
+        {
+          "slug": "jinshi",
+          "name": "壬氏",
+          "role": "公开皇弟身份、忧心灾害预兆的朝廷成员",
+          "beat": 4
+        }
+      ]
     }
   ]
 }

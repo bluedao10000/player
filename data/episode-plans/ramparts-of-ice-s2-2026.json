@@ -160,6 +160,74 @@
         "brief": "日野阳太独自坐在快餐店有暖色直背座椅的角落，黑色短发与白衬衫沿用参考，认真地等人开口。对面的同伴只留不清晰剪影，纸杯有颜色但无标志。重点面部，画面中部，适合手机裁切。"
       },
       "sourceNumber": 15
+    },
+    {
+      "number": 2,
+      "sourceNumber": 16,
+      "slug": "stopping-and-moving-forward",
+      "title": "停下与前进",
+      "intro": "文化祭开始筹备，湊想离小雪再近一点，却发觉两个人都担心又一次会错意。桃香的直接，让他们维持的距离有了变化。",
+      "official": "https://www.animatetimes.com/news/details.php?id=1791267004",
+      "officialTitle": "第16話「停止と進行」あらすじ",
+      "guide": "https://animenoyakata.com/kori-no-joheki-season2-ep16/",
+      "guideTitle": "【氷の城壁2期】第16話「停止と進行」",
+      "guideParagraphs": [
+        "学校では、いよいよ文化祭の準備期間",
+        "二人とも、相手への気持ちには気づいて",
+        "一方、男子から人気の高い桃香は",
+        "物語の終盤、桃香から湊との関係を"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "学校では、いよいよ文化祭の準備期間",
+          "question": "交代「文化祭」准备怎样提供了相处机会。雨宫湊主动靠近，冰川小雪努力把距离维持在朋友的位置。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "二人とも、相手への気持ちには気づいて",
+          "question": "写两人各自心动，却怕自己会错意，把善意当作自己想多了。不要补写私下对白。"
+        },
+        {
+          "kind": "cause",
+          "needle": "一方、男子から人気の高い桃香は",
+          "question": "写桃香为何主动，雨宫湊虽然察觉却难以明确回绝。放学路上桃香与小雪并肩走，谈话让小雪更无法维持原来的判断。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "物語の終盤、桃香から湊との関係を",
+          "question": "写桃香后来告知小雪两人之间有了变化，小雪因此动摇。只写这一集确认的信息，保留没明说的部分。"
+        }
+      ],
+      "setting": [
+        "文化祭",
+        1
+      ],
+      "sceneSlug": "two-on-the-way-home",
+      "sceneName": "放学路上的谈话",
+      "place": "校园外 · 放学路上",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/10/b2d1f207769311005b39140b7a817f886ac4915a5730a2_61402024_7fe90e25459f4df6fb3d7cd9e67a2026648eccb6.png",
+        "sourceSHA": "53d03acbed423115c7f98acc181d7b0e3342215a37e34788dd136c818d33f92f",
+        "brief": "按参考的放学路场景绘制。右侧是黑色长卷发的冰川小雪，左侧是浅棕色直发的桃香。整洁校服与日常书包，两人并肩走在人少的校园外，眼神各有心事，树荫柔和。面部及并肩行走的叙事保持居中，画面无字幕或文字。"
+      },
+      "people": [
+        {
+          "slug": "minato",
+          "name": "雨宫湊",
+          "role": "开导好友，也因此重新看待自己的感情",
+          "beat": 1
+        },
+        {
+          "slug": "koyuki",
+          "name": "冰川小雪",
+          "role": "得知告白结果后想和好友谈清楚",
+          "beat": 1
+        }
+      ]
     }
   ]
 }

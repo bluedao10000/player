@@ -48,10 +48,10 @@ export async function readEpisodeDocuments(
   ])
   const fromTbs = new URL(p.official).hostname === 'www.tbs.co.jp'
   const film = p.official === 'https://lookback-anime.com/'
-  const apothecary = /^https:\/\/www\.animatetimes\.com\/news\/details\.php\?id=(1790842934|1791440404)$/.test(p.official)
-  const council = p.number <= 2 && p.official === 'https://nama-anaru.com/episode/?id=' + p.number
+  const apothecary = /^https:\/\/www\.animatetimes\.com\/news\/details\.php\?id=(1790842934|1791440404|1792047363)$/.test(p.official)
+  const council = p.number <= 3 && p.official === 'https://nama-anaru.com/episode/?id=' + p.number
   const sourceNumber = p.sourceNumber ?? p.number
-  const press = Boolean(p.guideParagraphs?.length)
+  const press = !council && Boolean(p.guideParagraphs?.length)
   const japanese = fromTbs || film || apothecary || council || press
   const paragraphText = ($: CheerioAPI, selector: string) =>
     $(selector).toArray().map((x) => $(x).text().trim()).join(' ')
@@ -94,7 +94,7 @@ export async function readEpisodeDocuments(
     !guideTitle.includes(p.guideTitle)
   )
     throw Error('分集编号或标题与配置不一致')
-  const guideBlocks = press ? readGuideParagraphs(wiki, p.guideParagraphs!) : undefined
+  const guideBlocks = p.guideParagraphs?.length ? readGuideParagraphs(wiki, p.guideParagraphs!) : undefined
   return [
     [p.official, item.text, 'official', item.title],
     [
@@ -153,6 +153,13 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
       title: main.find('.story_foot_title').text().trim(),
       text: main.find('.story_foot_txt').text().trim(),
     }
+  }
+  if (plan.official === 'https://fxkurumi-info.com/story/episodes.json') {
+    const records: { epID?: string; title?: string; text?: string }[] = JSON.parse(site.root().text())
+    const second = records.find((entry) => entry.epID === '02')
+    if (typeof second?.title !== 'string' || typeof second.text !== 'string')
+      throw Error('官方分集数据缺少第 2 集')
+    return { number: Number(second.epID), title: second.title, text: second.text }
   }
   if (plan.official === 'https://romelia-senki.com/news/episode_data') {
     const records: { acf?: { season_id: string; index: string; title: string; story: string } }[] =

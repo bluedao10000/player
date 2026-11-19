@@ -81,6 +81,67 @@
         "sourceSHA": "c593e2f9969f6bd678b1902c02176913e16b045ff526a6543644dd6ccf8c0536",
         "brief": "成年福贺久留美穿着日常服装独自坐在书桌前，粉色短发，电脑屏幕的光映在脸上。显示模糊且抽象的走势，画面聚焦她略显惊讶的神情，不画数字文字，不描绘伤害。横幅，适合手机裁切。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "when-confidence-becomes-risk",
+      "title": "信心变成了风险",
+      "intro": "一次侥幸脱险让久留美逐渐相信自己。萌智子提到母亲曾交易过的品种，她随之面对远超自己预想的亏损。",
+      "official": "https://fxkurumi-info.com/story/episodes.json",
+      "officialTitle": "レバレッジあるから大丈夫ぅ♪",
+      "guide": "https://anime-no-mikata.com/archives/8992",
+      "guideTitle": "『FX戦士くるみちゃん』第2話",
+      "guideParagraphs": [
+        "第1話で大きな含み損を抱えたくるみは",
+        "投資仲間の小金萌智子から",
+        "この瞬間が第2話の肝です",
+        "萌智子から300万円を貸すという話が"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "第1話で大きな含み損を抱えたくるみは",
+          "question": "用福贺久留美的名字，写第一次遇到亏损却意外转盈，之后的顺利如何抬高她的信心。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "投資仲間の小金萌智子から",
+          "question": "讲小金萌智子提起母亲参与过的交易，久留美产生新的冲动。用「杠杆」概括风险放大，不列具体比例，不给操作建议或策略。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "この瞬間が第2話の肝です",
+          "question": "讲久留美因为想等更多收益错过退出时机，行情反向后仍犹豫不决。可以写场景和心理变化，不给建议。"
+        },
+        {
+          "kind": "turn",
+          "needle": "萌智子から300万円を貸すという話が",
+          "question": "讲亏损迫使久留美考虑动用父亲的积蓄，家人的信任因此受到威胁。只写她动了这个念头或伸手取钱，别写第 3 集结局。"
+        }
+      ],
+      "setting": [
+        "杠杆",
+        2
+      ],
+      "sceneSlug": "hesitating-at-the-screen",
+      "sceneName": "迟迟没有关掉的页面",
+      "place": "福贺家 · 久留美的房间",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://fxkurumi-info.com/story/img/ep02/02_5.jpg",
+        "sourceSHA": "5c544f88eb85ad46bc9f0977feebb4385fd9b6e1d574f54e2b4e88f2589cbba1",
+        "brief": "参考中福贺久留美的粉色短发、粉红眼睛与浅黄色针织外套。画她在家里对着普通手机发愣，手停在屏幕边缘，屏幕内容模糊不可读，背景是简单木桌和台灯。只画一人，居中保留脸、手和手机。无文字、品牌、交易数字。"
+      },
+      "people": [
+        {
+          "slug": "kurumi",
+          "name": "福贺久留美",
+          "role": "发现家中亏损、后来开始接触外汇交易的主人公",
+          "beat": 1
+        }
+      ]
     }
   ]
 }
