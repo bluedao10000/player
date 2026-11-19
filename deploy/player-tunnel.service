@@ -1,0 +1,17 @@
+[Unit]
+Description=Cloudflare Tunnel for Player reader ingress
+After=network-online.target docker.service
+Wants=network-online.target
+[Service]
+DynamicUser=yes
+LoadCredential=tunnel-token:/opt/codeiy/player/tunnel-token
+Environment=TUNNEL_METRICS=127.0.0.1:14381
+ExecStart=/opt/codeiy/player/cloudflared tunnel --no-autoupdate --protocol http2 run --token-file %d/tunnel-token
+Restart=always
+RestartSec=5
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+[Install]
+WantedBy=multi-user.target
