@@ -109,6 +109,7 @@ func customerAuth(db *pgxpool.Pool) gin.HandlerFunc {
 
 func CustomerRoutes(r *gin.Engine, db *pgxpool.Pool) {
 	g := r.Group("/api/v1/billing", customerAuth(db))
+	alipayEnabled := alipayRoutes(r, g, db)
 	owner := func(c *gin.Context) string { return c.GetString("billing_account") }
 	g.POST("/session", func(c *gin.Context) {
 		if c.GetBool("billing_session") {
@@ -136,7 +137,7 @@ func CustomerRoutes(r *gin.Engine, db *pgxpool.Pool) {
 		c.Status(http.StatusNoContent)
 	})
 	g.GET("/account", func(c *gin.Context) {
-		jsonRow(c, db, "SELECT to_jsonb(b) FROM billing_balances b WHERE id=$1", owner(c))
+		jsonRow(c, db, "SELECT to_jsonb(b)||jsonb_build_object('alipay_available',$2::boolean AND currency='CNY') FROM billing_balances b WHERE id=$1", owner(c), alipayEnabled)
 	})
 	g.GET("/quote", func(c *gin.Context) {
 		jsonRow(c, db, `SELECT jsonb_build_object('product','image-preview','automatic',EXISTS(SELECT FROM billing_preview_workers w WHERE (w.endpoint,w.provider_account,w.model)=(r.endpoint,r.provider_account,r.model) AND w.available_until>now()),'rate',to_jsonb(r)-ARRAY['created_by','provider_account','endpoint'])

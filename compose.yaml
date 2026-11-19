@@ -38,6 +38,11 @@ services:
       TYPESAFE_MODEL: ${TYPESAFE_MODEL:-jev-latest}
       MATCH_AI_MODEL: ${MATCH_AI_MODEL:-}
       MATCH_AI_API_KEY: ${MATCH_AI_API_KEY:-}
+      ALIPAY_APP_ID: ${ALIPAY_APP_ID:-}
+      ALIPAY_PUBLIC_KEY: ${ALIPAY_PUBLIC_KEY:-}
+      ALIPAY_NOTIFY_URL: ${ALIPAY_NOTIFY_URL:-}
+      ALIPAY_PRIVATE_KEY: ${ALIPAY_PRIVATE_KEY:-}
+      ALIPAY_SELLER_ID: ${ALIPAY_SELLER_ID:-}
       API_HOST: 0.0.0.0
     volumes:
       - knowledge-archive:/var/lib/knowledge/archive

@@ -10,10 +10,10 @@ config:
       top: 5
       bottom: 10
 ---
-%% 2026-11-19 · main，以 3315d40 后的 H5 购买实现及本地作品目录为基线。各行独立，箭头连接已有能力及其缺口。
+%% 2026-11-19 · main，以 f869f68 后的支付宝充值实现及本地作品目录为基线。各行独立，箭头连接已有能力及其缺口。
 flowchart LR
     subgraph current["已实现"]
-        metering["H5 预付约稿与模型计费<br/>确认上限、自动交付、扣费与退款<br/>供应商日账单核对与同币种毛利"]
+        metering["H5 预付约稿与模型计费<br/>支付宝充值、自动交付与余额扣退<br/>供应商日账单核对与同币种毛利"]
         play["角色互动<br/>预设剧情选项，本机书架与进度"]
         kb["知识库<br/>目录同步、分集取证、五维验收与发布"]
         picks["热门作品选题<br/>20 部已匹配目录，已发布作品世界 0 部"]
@@ -24,7 +24,7 @@ flowchart LR
         ops["部署<br/>API 与数据服务已拆分，单机 Compose"]
     end
     subgraph remaining["待开发或待部署"]
-        bill["在线收款与商业对账<br/>读者自助开户、充值与渠道回调<br/>供应商自动拉单及真实账单核验"]
+        bill["在线收款与商业对账<br/>自助开户、实付验收与原路退款<br/>供应商自动拉单及真实账单核验"]
         rp["自由角色扮演<br/>用户登录、自由输入、角色状态推进<br/>服务端持久会话与跨设备续玩"]
         expand["扩展到更多作品<br/>接入不同结构的分集来源与校验规则<br/>支持按剧情语义检索知识库"]
         pilot["首批 2 部各做前 2 集<br/>《药屋》第三季、《学生会也有洞！》TV 版<br/>另有 1 部需先核对 TV 与 ONA 版本"]
@@ -48,7 +48,7 @@ flowchart LR
     class metering,play,kb,picks,edit,desk,seo,app,ops done
     class bill,rp,expand,pilot,cms,console,growth,ios,cloud todo
 %% metering | 私有试稿订单锁定零售价，交付后按去重回执扣款，支持退款与供应商日账单对账。 | apps/api/internal/billing/api.go
-%% bill | 接入自助开户、真实收款与回调，将供应商自动拉单与真实合同费率校验接入现有账本。 | docs/模型用量与计费.md
+%% bill | 接入自助开户并完成支付宝实付验收与原路退款，将供应商自动拉单与真实合同费率校验接入现有账本。 | docs/模型用量与计费.md
 %% play | RoleplayComposer 从预设 options 选择下一步；原创故事的书架与进度保存在本机。 | apps/web/src/features/post/roleplay-controls.tsx
 %% rp | 当前 Pi 的持久任务服务于内容生产；面向读者的自由输入、服务端多轮会话、跨端身份与进度仍待接通。 | docs/产品架构.md
 %% kb | 数据服务按配置登记分集、调度取证与素材处理，验收后冻结已完成范围。 | apps/api/cmd/knowledge-sync/main.go

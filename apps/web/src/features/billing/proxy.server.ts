@@ -7,7 +7,7 @@ const privateHeaders = {
   'X-Content-Type-Options': 'nosniff',
 }
 
-async function readBody(request: Request) {
+export async function readBody(request: Request) {
   const reader = request.body?.getReader()
   if (!reader) return ''
   const chunks: Uint8Array[] = []
@@ -31,9 +31,11 @@ export async function readerRequest(request: Request, path: string) {
   const url = new URL(request.url)
   const post = request.method === 'POST'
   const allowed = post
-    ? ['login', 'logout', 'orders'].includes(path) || orderCancel.test(path)
-    : ['account', 'quote', 'orders', 'entries'].includes(path) ||
-      orderRead.test(path)
+    ? ['login', 'logout', 'orders', 'alipay/topups'].includes(path) ||
+      orderCancel.test(path)
+    : ['account', 'quote', 'orders', 'entries', 'alipay/topups'].includes(
+        path,
+      ) || orderRead.test(path)
   if (!allowed) return fail(404)
   if (
     post &&

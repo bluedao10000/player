@@ -26,6 +26,7 @@ import { Route as WorkbenchHeroFileRouteImport } from './routes/workbench-hero.$
 import { Route as ArtEpisodeScenesFileRouteImport } from './routes/art.episode-scenes.$file'
 import { Route as ArtPortraitsFileRouteImport } from './routes/art.portraits.$file'
 import { Route as WorkWorkIndexRouteImport } from './routes/work.$work.index'
+import { Route as ApiBillingAlipayNotifyRouteImport } from './routes/api.billing.alipay.notify'
 import { Route as WorkWorkKindSlugRouteImport } from './routes/work.$work.$kind.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -113,6 +114,11 @@ const WorkWorkIndexRoute = WorkWorkIndexRouteImport.update({
   path: '/work/$work/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBillingAlipayNotifyRoute = ApiBillingAlipayNotifyRouteImport.update({
+  id: '/api/billing/alipay/notify',
+  path: '/api/billing/alipay/notify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkWorkKindSlugRoute = WorkWorkKindSlugRouteImport.update({
   id: '/work/$work/$kind/$slug',
   path: '/work/$work/$kind/$slug',
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/work/$work/': typeof WorkWorkIndexRoute
+  '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
 export interface FileRoutesByTo {
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/work/$work': typeof WorkWorkIndexRoute
+  '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
 export interface FileRoutesById {
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/work/$work/': typeof WorkWorkIndexRoute
+  '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
 export interface FileRouteTypes {
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
     | '/work/$work/'
+    | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
     | '/work/$work'
+    | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   id:
     | '__root__'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
     | '/work/$work/'
+    | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   ArtEpisodeScenesFileRoute: typeof ArtEpisodeScenesFileRoute
   ArtPortraitsFileRoute: typeof ArtPortraitsFileRoute
   WorkWorkIndexRoute: typeof WorkWorkIndexRoute
+  ApiBillingAlipayNotifyRoute: typeof ApiBillingAlipayNotifyRoute
   WorkWorkKindSlugRoute: typeof WorkWorkKindSlugRoute
 }
 
@@ -385,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkWorkIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/billing/alipay/notify': {
+      id: '/api/billing/alipay/notify'
+      path: '/api/billing/alipay/notify'
+      fullPath: '/api/billing/alipay/notify'
+      preLoaderRoute: typeof ApiBillingAlipayNotifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/work/$work/$kind/$slug': {
       id: '/work/$work/$kind/$slug'
       path: '/work/$work/$kind/$slug'
@@ -413,6 +433,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtEpisodeScenesFileRoute: ArtEpisodeScenesFileRoute,
   ArtPortraitsFileRoute: ArtPortraitsFileRoute,
   WorkWorkIndexRoute: WorkWorkIndexRoute,
+  ApiBillingAlipayNotifyRoute: ApiBillingAlipayNotifyRoute,
   WorkWorkKindSlugRoute: WorkWorkKindSlugRoute,
 }
 export const routeTree = rootRouteImport

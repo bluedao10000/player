@@ -7,6 +7,7 @@ type Account = {
   customer_ref: string
   currency: string
   available_micros: number
+  alipay_available: boolean
   held_micros: number
 }
 type Rate = {
@@ -30,7 +31,15 @@ type Order = {
   charge_micros: number | null
 }
 type Entry = { id: number; kind: string; amount_micros: number; at: string }
+type Topup = {
+  client_key: string
+  id: string
+  amount_fen: number
+  status: string
+  created_at: string
+}
 type Wallet = {
+  topups: Topup[]
   account: Account
   quote: Quote | null
   orders: Order[]
@@ -109,16 +118,17 @@ export function Commissions() {
     const seq = ++version.current
     try {
       const account = await api<Account>('account')
-      const [quote, orders, entries] = await Promise.all([
+      const [quote, orders, entries, topups] = await Promise.all([
         api<Quote>('quote').catch((e) => {
           if (e instanceof RequestError && e.status === 404) return null
           throw e
         }),
         api<Order[]>('orders' + (beforeOrder ? '?before=' + beforeOrder : '')),
         api<Entry[]>('entries' + (beforeEntry ? '?before=' + beforeEntry : '')),
+        account.currency === 'CNY' ? api<Topup[]>('alipay/topups') : [],
       ])
       if (version.current === seq)
-        setWallet({ account, quote, orders, entries })
+        setWallet({ account, quote, orders, entries, topups })
     } catch (e) {
       if (version.current !== seq) return
       if (e instanceof RequestError && e.status === 401) {
@@ -134,9 +144,11 @@ export function Commissions() {
       version.current++
     }
   }, [refresh])
-  const active = wallet?.orders.some((o) =>
-    ['reserved', 'running', 'delivered'].includes(o.status),
-  )
+  const active =
+    wallet?.topups.some((t) => t.status === 'pending') ||
+    wallet?.orders.some((o) =>
+      ['reserved', 'running', 'delivered'].includes(o.status),
+    )
   useEffect(() => {
     if (!active) return
     const timer = setInterval(() => {
@@ -241,6 +253,9 @@ export function Commissions() {
                 退出账户
               </button>
             </section>
+            {wallet.account.currency === 'CNY' && (
+              <Recharge wallet={wallet} busy={busy} act={act} />
+            )}
             <CommissionForm
               key={wallet.account.id}
               wallet={wallet}
@@ -345,6 +360,101 @@ export function Commissions() {
         )}
       </div>
     </Layout>
+  )
+}
+
+function Recharge({
+  wallet,
+  busy,
+  act,
+}: {
+  wallet: Wallet
+  busy: boolean
+  act: (fn: () => Promise<void>) => Promise<void>
+}) {
+  const [amount, setAmount] = useState('')
+  useEffect(() => {
+    for (const t of wallet.topups) {
+      const key = 'tidepost.topup.' + wallet.account.id + '.' + t.amount_fen
+      if (
+        t.status !== 'pending' &&
+        sessionStorage.getItem(key) === t.client_key
+      )
+        sessionStorage.removeItem(key)
+    }
+  }, [wallet.account.id, wallet.topups])
+  async function openCashier(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    await act(async () => {
+      const [whole, frac = ''] = amount.split('.')
+      const fen = Number(whole) * 100 + Number((frac + '00').slice(0, 2))
+      if (!Number.isSafeInteger(fen) || fen <= 0 || fen > 1000000)
+        throw new RequestError(400)
+      const storageKey = 'tidepost.topup.' + wallet.account.id + '.' + fen
+      let key = sessionStorage.getItem(storageKey)
+      if (!key) {
+        key = crypto.randomUUID()
+        sessionStorage.setItem(storageKey, key)
+      }
+      let result: { checkout_url: string }
+      try {
+        result = await api('alipay/topups', {
+          amount_fen: fen,
+          client_key: key,
+        })
+      } catch (e) {
+        if (e instanceof RequestError && e.status === 409)
+          sessionStorage.removeItem(storageKey)
+        throw e
+      }
+      const gateway = new URL(result.checkout_url)
+      if (
+        gateway.origin !== 'https://openapi.alipay.com' ||
+        gateway.pathname !== '/gateway.do'
+      )
+        throw new RequestError(503)
+      window.location.assign(gateway.href)
+    })
+  }
+  return (
+    <section className="commission-recharge">
+      <h2>余额充值</h2>
+      {wallet.account.alipay_available ? (
+        <form onSubmit={openCashier}>
+          <label>
+            充值金额（元）
+            <input
+              inputMode="decimal"
+              required
+              pattern="[0-9]{1,5}([.][0-9]{1,2})?"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+            />
+          </label>
+          <button className="buy" disabled={busy}>
+            前往支付宝付款
+          </button>
+        </form>
+      ) : (
+        <p>支付宝充值暂未开放。</p>
+      )}
+      {wallet.topups.length > 0 && (
+        <details>
+          <summary>近期充值记录</summary>
+          {wallet.topups.map((t) => (
+            <p key={t.id}>
+              {date(t.created_at)} · {money(t.amount_fen * 10000, 'CNY')} ·{' '}
+              {t.status === 'paid'
+                ? '已到账'
+                : t.status === 'pending'
+                  ? '待支付确认'
+                  : '已关闭'}
+            </p>
+          ))}
+        </details>
+      )}
+    </section>
   )
 }
 
