@@ -1,3 +1,4 @@
+import { siteName, siteTitle } from '../site'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { readFeed } from '../features/workbench/feed'
@@ -17,7 +18,7 @@ export const Route = createFileRoute('/workbench')({
   loader: ({ deps }) => (deps.view === 'data' ? readFeed() : null),
   head: () => ({
     meta: [
-      { title: '编辑与数据工作台 · 潮汐邮局' },
+      { title: siteTitle('编辑与数据工作台') },
       { name: 'robots', content: 'noindex' },
     ],
     links: [
@@ -124,7 +125,7 @@ function Board({ feed }: { feed: Awaited<ReturnType<typeof readFeed>> }) {
     <main className="wb">
       <header>
         <a className="wb-brand" href="/">
-          潮汐邮局
+          {siteName}
         </a>
         <span className="wb-slash">/</span>
         <span>数据服务</span>

@@ -1,3 +1,4 @@
+import { siteTitle } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
 import { readWork } from '../features/knowledge-api'
 import { Layout } from '../features/post/design'
@@ -6,7 +7,7 @@ export const Route = createFileRoute('/knowledge/$id')({
   loader: ({ params }) => readWork({ data: params.id }),
   head: ({ loaderData }) => ({
     meta: [
-      { title: (loaderData?.canonical_title ?? '作品') + ' · 作品知识库' },
+      { title: siteTitle((loaderData?.canonical_title ?? '作品') + ' · 作品知识库') },
       { name: 'robots', content: 'noindex' },
     ],
   }),

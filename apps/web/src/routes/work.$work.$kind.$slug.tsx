@@ -1,3 +1,4 @@
+import { siteTitle } from '../site'
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { character, chapter, scene } from '../features/worlds/api'
 import { ChapterPage, PersonPage, ScenePage } from '../features/worlds/pages'
@@ -44,9 +45,9 @@ export const Route = createFileRoute('/work/$work/$kind/$slug')({
   head: ({ loaderData }) => ({
     meta: [
       {
-        title: loaderData
-          ? loaderData.title + ' · ' + loaderData.page.work.title
-          : '未找到内容',
+        title: siteTitle(
+          loaderData ? loaderData.title + ' · ' + loaderData.page.work.title : '未找到内容',
+        ),
       },
       { name: 'description', content: loaderData?.summary },
     ],

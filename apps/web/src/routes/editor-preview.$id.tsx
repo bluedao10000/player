@@ -1,3 +1,4 @@
+import { siteTitle } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import {
@@ -20,7 +21,7 @@ import worldCss from '../features/worlds/world.css?url'
 export const Route = createFileRoute('/editor-preview/$id')({
   head: () => ({
     meta: [
-      { title: '手机审稿预览' },
+      { title: siteTitle('手机审稿预览') },
       { name: 'robots', content: 'noindex,nofollow' },
     ],
     links: [

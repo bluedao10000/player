@@ -1,3 +1,4 @@
+import { siteTitle } from '../site'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { CharacterHero } from '../features/post/character'
 import { bebopArt, casinoArt } from '@anime/shared/media'
@@ -30,7 +31,7 @@ export const Route = createFileRoute('/workbench-hero/$file')({
     links: [{ rel: 'stylesheet', href: css }],
     meta: [
       { name: 'robots', content: 'noindex' },
-      { title: '场景试稿 · 手机预览' },
+      { title: siteTitle('场景试稿 · 手机预览') },
     ],
   }),
   component: HeroPreview,

@@ -1,3 +1,4 @@
+import { siteName } from '../../site'
 import type { SceneCard } from '@anime/shared/knowledge'
 import type { ReactNode } from 'react'
 import { artUrl, storyUrl } from './catalog'
@@ -49,12 +50,11 @@ export function Layout({
       </a>
       <header className="mast">
         <div className="wrap mast-inner">
-          <a className="brand" href="/" aria-label="潮汐邮局首页">
+          <a className="brand" href="/" aria-label={siteName + '首页'}>
             <span className="brand-mark">
               <Icon name="plane" size={30} />
             </span>
-            <b>潮汐邮局</b>
-            <small>TIDEPOST</small>
+            <b>{siteName}</b>
           </a>
           <nav className="top-nav" aria-label="主导航">
             {nav.slice(0, 3).map((item) => (
@@ -77,7 +77,7 @@ export function Layout({
       </main>
       <footer className="wrap foot">
         <Icon name="plane" />
-        潮汐邮局<span>白帆港 · 原创故事集</span>
+        {siteName}
       </footer>
       <BottomNavigation active={active} />
     </>

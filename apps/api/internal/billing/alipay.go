@@ -93,7 +93,7 @@ func (m *wapMerchant) checkout(c *gin.Context, db *pgxpool.Pool) {
 	p.NotifyURL = m.notify
 	p.ReturnURL = m.returnURL
 	p.QuitURL = m.returnURL
-	p.Subject = "潮汐邮局 · 读者余额充值"
+	p.Subject = "Folio 时光 · 读者余额充值"
 	p.ProductCode = "QUICK_WAP_WAY"
 	p.OutTradeNo = "TP" + strings.ReplaceAll(id, "-", "")
 	p.TotalAmount = fenText(v.Fen)

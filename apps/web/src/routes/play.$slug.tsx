@@ -1,3 +1,4 @@
+import { siteTitle } from '../site'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { catalog } from '../features/post/catalog'
 import { Play } from '../features/post/ui'
@@ -10,7 +11,7 @@ export const Route = createFileRoute('/play/$slug')({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: (loaderData?.title ?? '未找到故事') + ' · 剧情试玩' },
+      { title: siteTitle((loaderData?.title ?? '未找到故事') + ' · 剧情试玩') },
       { name: 'description', content: loaderData?.intro },
       { name: 'robots', content: 'noindex' },
     ],

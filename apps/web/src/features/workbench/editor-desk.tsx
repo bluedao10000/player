@@ -1,3 +1,4 @@
+import { siteName } from '../../site'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { editedField, type EditorPages } from './editor-pages'
@@ -202,7 +203,7 @@ export function EditorDesk() {
     <main className="wb ed">
       <header>
         <a href="/" className="wb-brand">
-          潮汐邮局
+          {siteName}
         </a>
         <span>/ 内容运营</span>
         {list && (

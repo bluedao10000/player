@@ -1,3 +1,4 @@
+import { siteTitle } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
 import { findWorks } from '../features/knowledge-api'
 import { Layout } from '../features/post/design'
@@ -5,7 +6,7 @@ import { Layout } from '../features/post/design'
 export const Route = createFileRoute('/knowledge/')({
   head: () => ({
     meta: [
-      { title: '作品知识库 · 潮汐邮局' },
+      { title: siteTitle('作品知识库') },
       { name: 'robots', content: 'noindex' },
     ],
   }),

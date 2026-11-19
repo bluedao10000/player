@@ -1,3 +1,4 @@
+import { siteName } from '../site'
 import {
   createRootRoute,
   HeadContent,
@@ -13,6 +14,8 @@ export const Route = createRootRoute({
     links: [{ rel: 'stylesheet', href: postCss }],
     meta: [
       { charSet: 'utf-8' },
+      { title: siteName },
+      { property: 'og:site_name', content: siteName },
       {
         name: 'viewport',
         content: 'width=device-width, initial-scale=1, viewport-fit=cover',

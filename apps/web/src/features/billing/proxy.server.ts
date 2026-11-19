@@ -110,7 +110,7 @@ export async function readerRequest(request: Request, path: string) {
       headers.set('Content-Type', 'image/png')
       headers.set(
         'Content-Disposition',
-        'attachment; filename="tidepost-preview.png"',
+        'attachment; filename="folio-shiguang-preview.png"',
       )
     } else headers.set('Content-Type', 'application/json')
     return new Response(upstream.body, { status: upstream.status, headers })
