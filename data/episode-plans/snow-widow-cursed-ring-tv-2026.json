@@ -97,6 +97,79 @@
         "sourceSHA": "c9be7501aa2ee4d3d70843ffd8205a2809804a9f6838363b21d32d5d8ebf83ee",
         "brief": "画成年男管理员高桥悟独自坐在公寓管理室木桌旁，深色短发与垂下的刘海、白衬衣保持参考造型，面前的旧盒子里放着一枚小戒指，他疑惑地低头看。主体居中，安静生活场景，画面无文字，无其他人。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "the-snow-woman",
+      "sceneSlug": "help-with-the-rent-form",
+      "title": "雪女",
+      "official": "https://animestore.docomo.ne.jp/animestore/ci_pc?partId=29247002&workId=29247",
+      "officialTitle": "雪女",
+      "guide": "https://ani-chara.net/19869/",
+      "guideTitle": "第2話 感想",
+      "guideParagraphs": [
+        "雪乃さんを見かけたさとるは、昨日のことなんで",
+        "さとるは改めて、無神経なことを言ってすみませ",
+        "後日、さとるは先日話した家賃補助の申請書を持",
+        "さとるは、雪乃さんは人慣れしていないだけだと",
+        "けれどさとるは踏みとどまる。違う、「俺が望ん"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "雪乃さんを見かけたさとる",
+          "question": "说明高桥悟发现雪乃深冬忘记了什么。用「戒指」，解释戒指影响情绪、事后记忆不会保留。只写设定。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "さとるは改めて",
+          "question": "他们各自如何道歉，在没有借助戒指时完成了什么？"
+        },
+        {
+          "kind": "cause",
+          "needle": "後日、さとるは先日話した",
+          "question": "高桥悟带来哪种申请？雪乃深冬叙述找工作时遇到什么实际困难？概括原因。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "さとるは、雪乃さんは人慣れ",
+          "question": "高桥悟提出以什么关系支持深冬？她如何回应？"
+        },
+        {
+          "kind": "cause",
+          "needle": "けれどさとるは踏みとどまる",
+          "question": "交代高桥悟最后选择尊重雪乃深冬的自主意愿，希望建立双方都记得的关系。跳过成人内容。"
+        }
+      ],
+      "setting": [
+        "戒指",
+        1
+      ],
+      "sceneName": "送来的房租补助申请",
+      "place": "雪乃深冬住处门口",
+      "sceneBeat": 3,
+      "intro": "高桥悟发现，戒指的力量会让雪乃深冬事后忘记经过。两人重新开口道歉，谈到找工作时，他提出从朋友做起。",
+      "art": {
+        "referenceURL": "https://anime-yukionna.af-original.com/wp-content/uploads/sites/4/c1_face.png",
+        "sourceSHA": "c9be7501aa2ee4d3d70843ffd8205a2809804a9f6838363b21d32d5d8ebf83ee",
+        "brief": "沿用成年公寓管理员高桥悟的发型、发色和日常服饰。只画他站在安静的公寓走廊，小心拿着一只合上的米白色文件夹，灯光柔软明亮，人物居中。无文字、无其他人物。"
+      },
+      "people": [
+        {
+          "slug": "satoru",
+          "name": "高桥悟",
+          "role": "妖怪公寓的住家管理员，接替了父亲的工作",
+          "beat": 1
+        },
+        {
+          "slug": "mifuyu",
+          "name": "雪乃深冬",
+          "role": "住在公寓、用冷气为悟缓解疼痛的雪女",
+          "beat": 3
+        }
+      ]
     }
   ]
 }

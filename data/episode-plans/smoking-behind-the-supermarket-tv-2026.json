@@ -100,6 +100,75 @@
         "sourceSHA": "1e268e779be4a26c5d3b25d01ded7338371d9326ffc0f35bc2559a279cf3e177",
         "brief": "画黑色梳发和眼镜的佐佐木穿深蓝西装刚走到超市门口，手提普通公文包，店里亮着暖黄色灯，他透过门向里面看。人物居中，保留脸和暖色门灯，呈现寻常下班之夜。无烟草、无烟雾、无标牌文字。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "together-behind-the-supermarket",
+      "sceneSlug": "an-evening-by-the-back-door",
+      "title": "在超市后门陪伴的两人",
+      "official": "https://www.animatetimes.com/news/details.php?id=1783912441",
+      "officialTitle": "2本目「スーパーの裏で添えるふたり」",
+      "guide": "https://anime-no-mikata.com/archives/8271",
+      "guideTitle": "『スーパーの裏でヤニ吸うふたり』2話",
+      "guideParagraphs": [
+        "新卒社員を泣かせてしまい、自分は怖がられてい",
+        "そんな佐々木へ、田山は「そのうち佐々木の良さ",
+        "ところが佐々木には、自分の良さがまるで分から",
+        "田山は顔を近づけ、スーパーで接客する山田と同",
+        "後半では、仕事中のクレームで苛立つ田山に対し",
+        "そして田山は、眠ってしまった佐々木へ自分の上"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "新卒社員を泣かせてしまい",
+          "question": "说明佐佐木担心在工作中吓到了谁，以及他为什么自责。用「超市」，交代他在店后见到田山的背景。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "そんな佐々木へ、田山は",
+          "question": "山田／田山如何安慰佐佐木，为什么给他示范微笑？请在段落中写一次完整的人物名「山田／田山」。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "田山は顔を近づけ",
+          "question": "佐佐木从相似的笑容联想到谁，又错过了什么？保持人物的所见和读者已知的身份各自清楚。"
+        },
+        {
+          "kind": "turn",
+          "needle": "後半では、仕事中のクレーム",
+          "question": "角色互换后佐佐木怎么陪伴烦恼的田山？以她给困倦的佐佐木披衣收束。"
+        }
+      ],
+      "setting": [
+        "超市",
+        1
+      ],
+      "sceneName": "后门旁留给彼此的位置",
+      "place": "夜里的超市后门",
+      "sceneBeat": 4,
+      "intro": "佐佐木为白天工作中的一句话自责，田山教他试着笑一笑。稍晚，当田山也遇上烦心事，两人的角色对换过来。",
+      "art": {
+        "referenceURL": "https://img2.animatetimes.com/2026/07/8058820d004efbf4eaabd1f59a9fd4e36a45f8f9bd2624_84794615_7d0771b693f3bc20488332aecad4571ad9b14cf7.jpg",
+        "sourceSHA": "1e268e779be4a26c5d3b25d01ded7338371d9326ffc0f35bc2559a279cf3e177",
+        "brief": "按参考画黑短发、矩形眼镜、藏蓝西装的成年上班族佐佐木。只画他坐在超市侧门的矮凳上，夜色中有一扇透出暖光的门，人物居中、脸部清楚。无烟或烟具，无文字。"
+      },
+      "people": [
+        {
+          "slug": "sasaki",
+          "name": "佐佐木",
+          "role": "在附近工作的中年上班族，常在下班后到超市",
+          "beat": 1
+        },
+        {
+          "slug": "yamada",
+          "name": "山田／田山",
+          "role": "佐佐木常去的超市店员，店后用田山的称呼",
+          "beat": 2
+        }
+      ]
     }
   ]
 }

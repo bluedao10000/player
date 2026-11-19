@@ -112,6 +112,80 @@
         "brief": "画金色长发和红紫眼的成年露法斯站在高处第一次看见移动的王都布鲁特冈格。穿参考配色的红黑高领斗篷，近景是她的正侧脸，远处机械要塞有城楼和连成片的建筑，光线清晰，手机裁切能辨认人物和都市。无战斗、武器或文字。"
       },
       "sourceNumber": 13
+    },
+    {
+      "number": 2,
+      "slug": "scorpius-rampage",
+      "sceneSlug": "luphas-faces-scorpius",
+      "title": "暴走的斯科尔皮乌斯出现了 · 全剧第 14 话",
+      "official": "https://www.lastboss-anime.com/story/14.html",
+      "officialTitle": "暴走するスコルピウスが現れた！",
+      "guide": "https://ani-chara.net/19514/",
+      "guideTitle": "『野生のラスボスが現れた！ 第2期』第14話",
+      "guideParagraphs": [
+        "ブルートガングに迫る魔物の大軍を、ルファスは",
+        "再会したスコルピウスとの戦いが始まると、ルフ",
+        "スコルピウスの本来の姿が現れると、その力は時",
+        "相手が死なないようHPを調整しながらの戦いは",
+        "ルファスは、ディーナに女神の思考誘導の解除を"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "ブルートガングに迫る魔物の大軍",
+          "question": "交代露法斯所在的要塞都城为何面临危机。用「霸道十二星天」，交代斯科尔皮乌斯是一员。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "再会したスコルピウスとの戦いが始まる",
+          "question": "说明露法斯面对重逢的斯科尔皮乌斯真正想达成什么。概述选择，不写招式。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "スコルピウスの本来の姿が現れると",
+          "question": "对手有什么异常的力量变化，露法斯为何需要找出源头？"
+        },
+        {
+          "kind": "turn",
+          "needle": "相手が死なないよう",
+          "question": "写露法斯暂时制止斯科尔皮乌斯后，为何觉得事情并未解决，找谁帮忙？"
+        },
+        {
+          "kind": "cause",
+          "needle": "ルファスは、ディーナに女神の思考誘導の解除を頼む",
+          "question": "写同伴确认了什么影响；区分已查出的状况与露法斯仍未证实的疑问。"
+        }
+      ],
+      "setting": [
+        "霸道十二星天",
+        1
+      ],
+      "sceneName": "露法斯站在要塞平台",
+      "place": "布鲁特冈要塞内的石台",
+      "sceneBeat": 2,
+      "intro": "要塞都城遭到逼近，露法斯与失控的旧部斯科尔皮乌斯重逢。暂时制止对方之后，她还得弄清这场异变从何而来。",
+      "art": {
+        "referenceURL": "https://www.lastboss-anime.com/core_sys/images/contents/00000034/block/00000171/00000156.jpg",
+        "sourceSHA": "6c6067560105c29af24219d61f4e47a02eda32fb1423b83fefada362502bd3f7",
+        "brief": "参考中露法斯的发色、翅膀颜色和得体的披风。只画她独自立在高处石台边，神情冷静，日光与低矮的石墙勾出背景。人物主体居中，无战斗、武器、文字。"
+      },
+      "people": [
+        {
+          "slug": "luphas",
+          "name": "露法斯",
+          "role": "重聚旧部，想知道女神意图的黑翼霸王",
+          "beat": 1
+        },
+        {
+          "slug": "scorpius",
+          "name": "斯科尔皮乌斯",
+          "role": "朝机动王都进攻的十二星天之一",
+          "beat": 2
+        }
+      ],
+      "sourceNumber": 14
     }
   ]
 }

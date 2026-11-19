@@ -97,6 +97,80 @@
         "sourceSHA": "0f3e7bef3a18a01748e90bf6eede0cfc91362b60cd90e4d2e185b99c974ae291",
         "brief": "画花邑毬乃站在幸助家木门前来访，保留成年学园长标志性的紫色长发、黑外套和白色领口，轻抬手敲门，透入自然光，人物居中，端庄暖色，适合手机裁切。无文字。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "greetings-from-the-elf-kingdom",
+      "sceneSlug": "opening-the-hanamura-home",
+      "title": "来自精灵之国的问候",
+      "official": "https://www.aniplex.co.jp/lineup/majieku/story/",
+      "officialTitle": "エルフの国からごきげんよう",
+      "guide": "https://ani-chara.net/19543/",
+      "guideTitle": "『マジカル★エクスプローラー』第2話",
+      "guideParagraphs": [
+        "戦いが終わり、助けてくれてありがとう、と礼を",
+        "落ち着いたところで、話題は今後のことへ移る。",
+        "そして、リュディだけでなく幸助もそばで守りた",
+        "生きるって何かしら、幸せって何かしら、とすっ",
+        "一方で、物語の土台は確実に変わり始めている。"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "戦いが終わり",
+          "question": "交代泷音幸助帮助露蒂一行脱险，露蒂为何向他道谢。只写脱险与道谢。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "落ち着いたところで、話題は今後",
+          "question": "说明露蒂面临的威胁为何还没结束，用「邪神教」，保留来源中的不确定性。"
+        },
+        {
+          "kind": "cause",
+          "needle": "リュディだけでなく幸助も",
+          "question": "说明花邑毬乃提出的住处安排，以及几人为什么开始在花邑家共同生活。用完整名字。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "生きるって何かしら",
+          "question": "写泷音幸助给露蒂递了什么，她有什么反应。"
+        },
+        {
+          "kind": "cause",
+          "needle": "一方で、物語の土台は",
+          "question": "写幸助意识到原有剧情在变，因此作何准备。跳过成人情节；不写作战细节。",
+          "officialSentence": 3
+        }
+      ],
+      "setting": [
+        "邪神教",
+        2
+      ],
+      "sceneName": "花邑毬乃招呼来客",
+      "place": "花邑家入口",
+      "sceneBeat": 3,
+      "intro": "酒店遇袭后，露蒂一行暂住花邑家。泷音幸助渐渐意识到，今后的生活已开始偏离他熟悉的游戏剧情。",
+      "art": {
+        "referenceURL": "https://www.aniplex.co.jp/SYS/CONTENTS/story_4709_photo_1789658241826548644",
+        "sourceSHA": "0f3e7bef3a18a01748e90bf6eede0cfc91362b60cd90e4d2e185b99c974ae291",
+        "brief": "保留参考里花邑毬乃的发色、头发轮廓和日常正装。一位成年女性独自在住宅门厅招呼来客，画面只出现她。暖色灯光，人物居中，脸部清楚，无战斗和文字。"
+      },
+      "people": [
+        {
+          "slug": "kosuke",
+          "name": "泷音幸助",
+          "role": "转生为游戏配角、魔力充沛却不擅长放出魔法的青年",
+          "beat": 1
+        },
+        {
+          "slug": "marino",
+          "name": "花邑毬乃",
+          "role": "亲自登门拜访幸助的月读魔法学园学园长",
+          "beat": 3
+        }
+      ]
     }
   ]
 }

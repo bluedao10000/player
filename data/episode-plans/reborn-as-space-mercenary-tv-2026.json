@@ -99,6 +99,76 @@
         "sourceSHA": "266d825d2ca7b99e80a44b9e2e255514e5e41d9d2a83f9ff4c6e456e12aa934b",
         "brief": "画参考中黑色短发的希罗坐在克里希纳号驾驶座上，穿白外套和墨绿内衫，正对前窗观看逐渐接近的太空港。窗外有港口导向灯，画面围绕人物的辨识度与第一次靠港的好奇感，脸和驾驶舱关键环境保留在居中手机裁切内。无文字。"
       }
+    },
+    {
+      "number": 2,
+      "slug": "a-girl-named-mimi",
+      "sceneSlug": "invitation-to-the-krishna",
+      "title": "少女米米",
+      "official": "https://www.aniplex.co.jp/lineup/saikyosoubi/story/",
+      "officialTitle": "少女・ミミ",
+      "guide": "https://anime-no-mikata.com/archives/9002",
+      "guideTitle": "第2話ネタバレ感想",
+      "guideParagraphs": [
+        "舞台は交易コロニー・ターメーンプライムの第三",
+        "ここでうれしいのは、その場の危機を片づけるだ",
+        "ミミは共同生活に戸惑いながら、エルマの入れ知",
+        "救われた相手に親しみを持つ、その気持ちは理解",
+        "ヒロたちのもとには、宙賊の大規模討伐の報せも"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "舞台は交易コロニー",
+          "question": "说明希罗在哪里遇到米米，她为什么无处可去。用「贸易殖民地」。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "ここでうれしいのは",
+          "question": "接上前段交代希罗为何把米米接到克里希纳号并接纳为船员，不复述评论。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "cause",
+          "needle": "ミミは共同生活に戸惑いながら",
+          "question": "交代米米怎样开始适应共同生活，以及艾尔玛对她有什么帮助。略去私密情节。",
+          "officialSentence": 4
+        },
+        {
+          "kind": "turn",
+          "needle": "ヒロたちのもとには",
+          "question": "他们接到什么新消息，为什么故事从船内日常重新转向佣兵工作？概括即可。",
+          "officialSentence": 5
+        }
+      ],
+      "setting": [
+        "贸易殖民地",
+        1
+      ],
+      "sceneName": "希罗邀请新成员登船",
+      "place": "克里希纳号登船口",
+      "sceneBeat": 2,
+      "intro": "希罗在贸易殖民地遇见失去依靠的米米，并邀请她加入克里希纳号。船上刚迎来新成员，就收到了新的委托消息。",
+      "art": {
+        "referenceURL": "https://www.aniplex.co.jp/SYS/CONTENTS/story_4648_photo_179110344442224910",
+        "sourceSHA": "266d825d2ca7b99e80a44b9e2e255514e5e41d9d2a83f9ff4c6e456e12aa934b",
+        "brief": "保留参考中的希罗发型和深色飞行服。单人站在干净明亮的飞船舱口，回身看向舱内，斜落的白蓝灯光照亮脸，主体居中。无战斗、武器、文字。"
+      },
+      "people": [
+        {
+          "slug": "hiro",
+          "name": "希罗",
+          "role": "原名佐藤孝弘，克里希纳号船长，初来乍到的佣兵",
+          "beat": 1
+        },
+        {
+          "slug": "elma",
+          "name": "艾尔玛",
+          "role": "希罗在交易殖民地遇到的精灵前辈佣兵",
+          "beat": 3
+        }
+      ]
     }
   ]
 }

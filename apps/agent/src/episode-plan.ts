@@ -132,11 +132,13 @@ export async function readEpisodeDocuments(
 function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' | 'officialTitle' | 'number'>) {
   const url = new URL(plan.official)
   if (url.hostname === 'www.aniplex.co.jp') {
-    const first = site('#worksstory_1').first()
+    const number = (text: string) => Number(text.trim().match(/^(?:第)?(\d+)(?:話)?$/)?.[1])
+    const episodes = site('[class="p-work:story-episode__container"]')
+      .filter((_, el) => number(site(el).find('[class="p-work:story-episode__no"]').text()) === plan.number)
     return {
-      number: Number(first.find('[class="p-work:story-episode__no"]').text().trim().match(/^(?:第)?(\d+)(?:話)?$/)?.[1]),
-      title: first.find('[class="p-work:story-outline__title"]').text().trim(),
-      text: first.find('[class="p-work:story-outline__introduction"]').text().trim(),
+      number: episodes.length === 1 ? plan.number : NaN,
+      title: episodes.find('[class="p-work:story-outline__title"]').text().trim(),
+      text: episodes.find('[class="p-work:story-outline__introduction"]').text().trim(),
     }
   }
   if (plan.official === 'https://anime-yukionna.af-original.com/story/') {
@@ -154,9 +156,14 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
       text: main.find('.story_foot_txt').text().trim(),
     }
   }
-  if (plan.official === 'https://animestore.docomo.ne.jp/animestore/ci_pc?partId=29245002&workId=29245') {
+  const onAirTitle = new Map([
+    ['29245002', 'ダークサモナーとデキている'],
+    ['29247002', '人付き合いが苦手な未亡人の雪女さんと呪いの指輪'],
+  ]).get(url.searchParams.get('partId') ?? '')
+  if (url.hostname === 'animestore.docomo.ne.jp' && onAirTitle) {
     const heading = site('meta[property="og:title"]').attr('content') ?? ''
-    const match = heading.match(/^ダークサモナーとデキている【オンエア版】 第(\d+)話 (.+)$/)
+    const prefix = onAirTitle + '【オンエア版】 '
+    const match = heading.startsWith(prefix) ? heading.slice(prefix.length).match(/^第(\d+)話 (.+)$/) : null
     return {
       number: Number(match?.[1]),
       title: match?.[2] ?? '',
