@@ -4,7 +4,7 @@ import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.l
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
 import { profile, streamFetch } from './model-api.ts'
 
-export function contentProvider(run: string, phase: string) {
+export function contentProvider(run: string, phase: string, scope = 'research') {
   const p = profile('content')
   const protocol = process.env.CONTENT_AI_PROTOCOL || 'responses'
   if (protocol !== 'responses' && protocol !== 'chat-completions')
@@ -32,7 +32,7 @@ export function contentProvider(run: string, phase: string) {
   } as const
   const fetch = streamFetch({
     ...p,
-    subject: 'research:' + run,
+    subject: scope + ':' + run,
     operation: phase,
   })
   return createProvider({

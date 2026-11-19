@@ -41,6 +41,20 @@ func main() {
 	}
 	if !*once && !*research {
 		base := os.Getenv("KNOWLEDGE_RESEARCH_URL")
+		if base != "" {
+			go func() {
+				for ctx.Err() == nil {
+					if err := knowledge.ProcessEditorial(ctx, db, base); err != nil && ctx.Err() == nil {
+						log.Printf("editorial: %v", err)
+					}
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(2 * time.Second):
+					}
+				}
+			}()
+		}
 		go func() {
 			for ctx.Err() == nil {
 				if e := modelusage.Replay(ctx, db, modelusage.RecoveryDir()); e != nil && ctx.Err() == nil {

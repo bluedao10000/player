@@ -71,41 +71,9 @@ func worldRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
     FROM extension_people p JOIN published_extensions e ON e.id=p.id JOIN published_worlds w ON w.version_id=p.v WHERE w.slug=$1 AND p.slug=$2`, c.Param("work"), c.Param("person"))
 	})
 	g.GET("/worlds/:work/chapters/:chapter", func(c *gin.Context) {
-		queryJSON(c, db, `SELECT jsonb_build_object('work',w.card,'chapter',c.card,'accepted_art',(SELECT jsonb_agg(p-ARRAY['sha','slot','round','variant','phone','phone_sha'] ORDER BY ord) FROM visible_reader_scopes s CROSS JOIN jsonb_array_elements(s.picks) WITH ORDINALITY e(p,ord) WHERE s.world_slug=w.slug AND s.v=c.v AND c.episode BETWEEN s.first_episode AND s.last_episode AND p->>'chapter'=c.slug),
-    'content_kind',CASE w.origin WHEN 'original' THEN 'original' ELSE 'editorial_guide' END,
-    'research',(SELECT jsonb_build_object('run_id',r.run_id,'paragraphs',r.paragraphs)
-      FROM chapter_research r WHERE (r.v,r.slug)=(c.v,c.slug) ORDER BY r.run_id LIMIT 1),
-    'reader_passages',coalesce((SELECT s.reader_copy->c.slug FROM visible_reader_scopes s WHERE s.v=c.v AND s.world_slug=w.slug AND c.episode BETWEEN s.first_episode AND s.last_episode), (SELECT jsonb_agg(jsonb_build_object('key',coalesce(p->>'block','episode-'||ord::text),'text',p->>'text',
-      'anchors',coalesce((SELECT jsonb_agg('passage-'||s.slug ORDER BY s.position) FROM work_scenes s
-        WHERE (s.v,s.chapter,s.block)=(c.v,c.slug,p->>'block')),'[]')) ORDER BY ord)
-      FROM edition_reader_chapters i JOIN chapter_research cr ON (cr.v,cr.slug)=(c.v,c.slug)
-      JOIN research_runs rr ON rr.id=cr.run_id AND rr.documents @> i.sources
-      CROSS JOIN jsonb_array_elements(i.passages) WITH ORDINALITY a(p,ord)
-      WHERE (i.world_slug,i.chapter)=(w.slug,c.slug))),
-    'next_chapter',coalesce((SELECT n.card FROM published_chapters n WHERE n.v=c.v AND n.position>c.position ORDER BY n.position LIMIT 1),(SELECT e.chapter FROM published_extensions e WHERE e.v=c.v AND e.first_episode=c.episode+1)),
-    'blocks',(SELECT jsonb_agg(jsonb_build_object('key',b.key,'text',b.text,'anchors',coalesce((SELECT jsonb_agg('passage-'||s.slug ORDER BY s.position) FROM work_scenes s
-      WHERE (s.v,s.chapter,s.block)=(b.v,b.chapter,b.key)),'[]')) ORDER BY b.position) FROM chapter_blocks b WHERE (b.v,b.chapter)=(c.v,c.slug)),
-    'scenes',coalesce((SELECT jsonb_agg(s.card ORDER BY s.position) FROM published_scenes s WHERE (s.v,s.chapter)=(c.v,c.slug)),'[]'),
-    'attribution', (SELECT jsonb_agg(jsonb_build_object('uri',e.uri,'locator',e.locator) ORDER BY e.key) FROM world_evidence e WHERE e.v=c.v AND
-      (e.key=c.evidence OR EXISTS(SELECT FROM chapter_appearances a WHERE (a.v,a.chapter,a.evidence)=(e.v,c.slug,e.key)))))
-    FROM published_worlds w JOIN published_chapters c ON w.version_id=c.v WHERE w.slug=$1 AND c.slug=$2
-    UNION ALL SELECT jsonb_build_object('work',w.card,'chapter',e.chapter,'content_kind','editorial_guide',
-      'accepted_art',(SELECT jsonb_agg(p-ARRAY['sha','slot','round','variant','phone','phone_sha']) FROM jsonb_array_elements(e.picks) p),
-      'research',jsonb_build_object('run_id',r.id,'paragraphs',r.claims),'reader_passages',e.reader_copy->e.slug,
-      'blocks',e.reader_copy->e.slug,'scenes',jsonb_build_array(e.scene),'next_chapter',(SELECT x.chapter FROM published_extensions x WHERE x.v=e.v AND x.first_episode=e.last_episode+1),'attribution','[]'::jsonb)
-    FROM published_extensions e JOIN published_worlds w ON w.version_id=e.v JOIN research_runs r ON r.id=e.research_run WHERE w.slug=$1 AND e.slug=$2`, c.Param("work"), c.Param("chapter"))
+		queryJSON(c, db, `SELECT editor_public_page(p,$1) FROM editor_raw_chapter($1,$2) p WHERE p IS NOT NULL`, c.Param("work"), c.Param("chapter"))
 	})
 	g.GET("/worlds/:work/scenes/:scene", func(c *gin.Context) {
-		queryJSON(c, db, `SELECT jsonb_build_object('work',w.card,'scene',s.card||jsonb_build_object('text',s.text),'chapter',c.card,'setting',s.place,
-    'scene_cast',coalesce((SELECT jsonb_agg(p.card ORDER BY p.position) FROM scene_appearances a JOIN published_characters p ON (p.v,p.slug)=(a.v,a.person)
-     WHERE (a.v,a.scene)=(s.v,s.slug)),'[]'),
-    'return_to',jsonb_build_object('block_key',s.block,'href',(c.card->>'href')||'#passage-'||s.slug),
-    'attribution',(SELECT jsonb_agg(jsonb_build_object('uri',e.uri,'locator',e.locator) ORDER BY e.key) FROM world_evidence e WHERE e.v=s.v AND
-      (e.key=s.evidence OR EXISTS(SELECT FROM scene_appearances a WHERE (a.v,a.scene,a.evidence)=(e.v,s.slug,e.key)))))
-    FROM published_worlds w JOIN published_scenes s ON s.v=w.version_id JOIN published_chapters c ON (c.v,c.slug)=(s.v,s.chapter) WHERE w.slug=$1 AND s.slug=$2
-    UNION ALL SELECT jsonb_build_object('work',w.card,'chapter',e.chapter,'setting',e.place,'scene',e.scene||jsonb_build_object('text',e.reader_copy->e.slug->coalesce((plan.spec->>'sceneBeat')::int-1,1)->>'text'),
-      'scene_cast',coalesce((SELECT jsonb_agg(card ORDER BY ord) FROM extension_cast c WHERE c.topic=e.topic AND ((plan.id IS NULL AND c.slug='spike') OR (plan.id IS NOT NULL AND strpos(plan.spec->'art'->>'brief',c.card->>'name')>0))),'[]'::jsonb),
-      'return_to',jsonb_build_object('block_key',e.picks->0->>'block','href',(e.chapter->>'href')||'#passage-'||e.scene_slug),'attribution','[]'::jsonb)
-    FROM published_extensions e JOIN published_worlds w ON w.version_id=e.v LEFT JOIN episode_plans plan USING(topic) WHERE w.slug=$1 AND e.scene_slug=$2`, c.Param("work"), c.Param("scene"))
+		queryJSON(c, db, `SELECT editor_public_page(p,$1) FROM editor_raw_scene($1,$2) p WHERE p IS NOT NULL`, c.Param("work"), c.Param("scene"))
 	})
 }

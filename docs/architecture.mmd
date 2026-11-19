@@ -1,14 +1,14 @@
 flowchart TB
   subgraph front["前端 · TanStack Start"]
     h5["H5 作品世界"]
-    bench["数据工作台"]
+    bench["统一工作台 · 审稿与数据"]
   end
   subgraph backend["后端 · Go"]
     api["在线 API · Gin"]
     worker["数据服务 · knowledge-sync"]
   end
   subgraph agents["Agent · TypeScript / Pi Durable"]
-    harness["研究 Harness / 媒体任务"]
+    harness["研究、媒体与编辑 Harness"]
     state["SQLite 执行检查点"]
   end
   db[("PostgreSQL 作品知识库")]
@@ -16,7 +16,7 @@ flowchart TB
   sources["上游目录与分集来源"]
   models["生成与视觉模型"]
   h5 -->|SSR 读取| api
-  bench -->|轮询| api
+  bench -->|查询、提修改意见与审批| api
   api -->|读模型与治理| db
   worker -->|清洗、验收、事务发布| db
   worker -->|同步目录| sources

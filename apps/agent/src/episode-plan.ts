@@ -27,51 +27,59 @@ export function episodeSources(
       '读取选题指定的官方分集与独立分集资料，校验标题和集号并保存原文句子。',
     parameters: obj({}),
     async execute(_, api) {
-      const [site, wiki] = await Promise.all([
-        page(p.official),
-        page(p.guide.split('#')[0]),
-      ])
-      const item = JSON.parse(site('#__NEXT_DATA__').text()).props.pageProps
-        .animeData
-      const row = wiki('#ep' + p.number).closest('tr')
-      if (
-        Number(item.anime.story_no) !== p.number ||
-        item.title !== p.officialTitle ||
-        !row.find('.summary').text().includes(p.guideTitle)
-      )
-        throw Error('分集编号或标题与配置不一致')
-      const docs = [
-        [p.official, item.anime.text, 'official', item.title],
-        [
-          p.guide,
-          row.next('tr').find('.shortSummaryText').text(),
-          'guide',
-          p.guideTitle,
-        ],
-      ].map(([url, raw, key, title]) => {
-        const text = String(raw || '')
-          .replace(/\s+/g, ' ')
-          .trim()
-        if (text.length < 60 || text.length > 6000)
-          throw Error('分集原文不完整')
-        const sentences = Array.from(
-          new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text),
-          (x) => x.segment.trim(),
-        ).filter(Boolean)
-        return {
-          id: key + '-' + p.number,
-          episode: p.number,
-          url,
-          locator: title + ' · Episode ' + p.number,
-          text,
-          sentences,
-          fetched_at: new Date().toISOString(),
-          sha256: createHash('sha256').update(text).digest('hex'),
-        }
-      })
+      const docs = await readEpisodeDocuments(p, page)
       api.output(JSON.stringify(docs))
       return {}
     },
+  })
+}
+export async function readEpisodeDocuments(
+  p: Pick<
+    EpisodePlan,
+    'official' | 'guide' | 'number' | 'officialTitle' | 'guideTitle'
+  >,
+  page: (url: string) => Promise<CheerioAPI>,
+) {
+  const [site, wiki] = await Promise.all([
+    page(p.official),
+    page(p.guide.split('#')[0]),
+  ])
+  const item = JSON.parse(site('#__NEXT_DATA__').text()).props.pageProps
+    .animeData
+  const row = wiki('#ep' + p.number).closest('tr')
+  if (
+    Number(item.anime.story_no) !== p.number ||
+    item.title !== p.officialTitle ||
+    !row.find('.summary').text().includes(p.guideTitle)
+  )
+    throw Error('分集编号或标题与配置不一致')
+  return [
+    [p.official, item.anime.text, 'official', item.title],
+    [
+      p.guide,
+      row.next('tr').find('.shortSummaryText').text(),
+      'guide',
+      p.guideTitle,
+    ],
+  ].map(([url, raw, key, title]) => {
+    const text = String(raw || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (text.length < 60 || text.length > 6000) throw Error('分集原文不完整')
+    const sentences = Array.from(
+      new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text),
+      (x) => x.segment.trim(),
+    ).filter(Boolean)
+    return {
+      id: key + '-' + p.number,
+      episode: p.number,
+      url,
+      locator: title + ' · Episode ' + p.number,
+      text,
+      sentences,
+      fetched_at: new Date().toISOString(),
+      sha256: createHash('sha256').update(text).digest('hex'),
+    }
   })
 }
 export function episodeOutline(p: EpisodePlan, docs: Doc[]) {

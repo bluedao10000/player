@@ -16,6 +16,8 @@ import { Route as ShelfRouteImport } from './routes/shelf'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as WorkbenchRouteImport } from './routes/workbench'
 import { Route as CharacterMioRouteImport } from './routes/character.mio'
+import { Route as EditorApiSplatRouteImport } from './routes/editor-api.$'
+import { Route as EditorPreviewIdRouteImport } from './routes/editor-preview.$id'
 import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as PlaySlugRouteImport } from './routes/play.$slug'
@@ -62,6 +64,16 @@ const WorkbenchRoute = WorkbenchRouteImport.update({
 const CharacterMioRoute = CharacterMioRouteImport.update({
   id: '/character/mio',
   path: '/character/mio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorApiSplatRoute = EditorApiSplatRouteImport.update({
+  id: '/editor-api/$',
+  path: '/editor-api/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorPreviewIdRoute = EditorPreviewIdRouteImport.update({
+  id: '/editor-preview/$id',
+  path: '/editor-preview/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KnowledgeIndexRoute = KnowledgeIndexRouteImport.update({
@@ -133,6 +145,8 @@ export interface FileRoutesByFullPath {
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
+  '/editor-api/$': typeof EditorApiSplatRoute
+  '/editor-preview/$id': typeof EditorPreviewIdRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-api/$': typeof ReaderApiSplatRoute
@@ -154,6 +168,8 @@ export interface FileRoutesByTo {
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
+  '/editor-api/$': typeof EditorApiSplatRoute
+  '/editor-preview/$id': typeof EditorPreviewIdRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-api/$': typeof ReaderApiSplatRoute
@@ -176,6 +192,8 @@ export interface FileRoutesById {
   '/stories': typeof StoriesRoute
   '/workbench': typeof WorkbenchRoute
   '/character/mio': typeof CharacterMioRoute
+  '/editor-api/$': typeof EditorApiSplatRoute
+  '/editor-preview/$id': typeof EditorPreviewIdRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-api/$': typeof ReaderApiSplatRoute
@@ -199,6 +217,8 @@ export interface FileRouteTypes {
     | '/stories'
     | '/workbench'
     | '/character/mio'
+    | '/editor-api/$'
+    | '/editor-preview/$id'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-api/$'
@@ -220,6 +240,8 @@ export interface FileRouteTypes {
     | '/stories'
     | '/workbench'
     | '/character/mio'
+    | '/editor-api/$'
+    | '/editor-preview/$id'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-api/$'
@@ -241,6 +263,8 @@ export interface FileRouteTypes {
     | '/stories'
     | '/workbench'
     | '/character/mio'
+    | '/editor-api/$'
+    | '/editor-preview/$id'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-api/$'
@@ -263,6 +287,8 @@ export interface RootRouteChildren {
   StoriesRoute: typeof StoriesRoute
   WorkbenchRoute: typeof WorkbenchRoute
   CharacterMioRoute: typeof CharacterMioRoute
+  EditorApiSplatRoute: typeof EditorApiSplatRoute
+  EditorPreviewIdRoute: typeof EditorPreviewIdRoute
   KnowledgeIdRoute: typeof KnowledgeIdRoute
   PlaySlugRoute: typeof PlaySlugRoute
   ReaderApiSplatRoute: typeof ReaderApiSplatRoute
@@ -326,6 +352,20 @@ declare module '@tanstack/react-router' {
       path: '/character/mio'
       fullPath: '/character/mio'
       preLoaderRoute: typeof CharacterMioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor-api/$': {
+      id: '/editor-api/$'
+      path: '/editor-api/$'
+      fullPath: '/editor-api/$'
+      preLoaderRoute: typeof EditorApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor-preview/$id': {
+      id: '/editor-preview/$id'
+      path: '/editor-preview/$id'
+      fullPath: '/editor-preview/$id'
+      preLoaderRoute: typeof EditorPreviewIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/knowledge/': {
@@ -423,6 +463,8 @@ const rootRouteChildren: RootRouteChildren = {
   StoriesRoute: StoriesRoute,
   WorkbenchRoute: WorkbenchRoute,
   CharacterMioRoute: CharacterMioRoute,
+  EditorApiSplatRoute: EditorApiSplatRoute,
+  EditorPreviewIdRoute: EditorPreviewIdRoute,
   KnowledgeIdRoute: KnowledgeIdRoute,
   PlaySlugRoute: PlaySlugRoute,
   ReaderApiSplatRoute: ReaderApiSplatRoute,

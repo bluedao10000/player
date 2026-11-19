@@ -164,6 +164,7 @@ func adminRoutes(r *gin.Engine, db *pgxpool.Pool) {
 		c.Header("Cache-Control", "no-store")
 		c.Next()
 	})
+	editorRoutes(r, g, db)
 	matchAIRoutes(g, db)
 	usageRoutes(g, db)
 	billing.AdminRoutes(g, db)

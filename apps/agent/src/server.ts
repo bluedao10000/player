@@ -8,7 +8,9 @@ import { createRegistry, Harness } from '@earendil-works/pi-durable'
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node'
 import { mediaExtension, mediaStatus } from './media.ts'
 import { openUsage, pendingUsage, acknowledgeUsage } from './model-api.ts'
-import { research } from './research.ts'
+import { editText } from './editor.ts'
+import { readEpisodeDocuments } from './episode-plan.ts'
+import { research, page } from './research.ts'
 import { knowledgeTools } from './knowledge.ts'
 import { health } from '@anime/shared'
 
@@ -79,6 +81,79 @@ const server = createServer(async (req, res) => {
         .end(JSON.stringify(result))
     } catch {
       res.writeHead(503).end('media task unavailable')
+    }
+    return
+  }
+  if (
+    req.method === 'POST' &&
+    req.url === '/internal/editor/evidence/naruto-1'
+  ) {
+    // Only the two registered episode origins may be fetched; editorial instructions never provide a URL.
+    try {
+      let input = ''
+      for await (const chunk of req) {
+        input += chunk
+        if (input.length > 4096) {
+          res.writeHead(413).end()
+          return
+        }
+      }
+      const p = JSON.parse(input)
+      if (
+        p.number !== 1 ||
+        p.official !==
+          'https://naruto-official.com/en/anime/naruto1/list/01_225' ||
+        p.guide !== 'https://en.wikipedia.org/wiki/Naruto_season_1#ep1'
+      ) {
+        res.writeHead(422).end()
+        return
+      }
+      const docs = await readEpisodeDocuments(p, page)
+      res
+        .writeHead(200, { 'Content-Type': 'application/json' })
+        .end(JSON.stringify(docs))
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '来源暂不可用'
+      res.writeHead(/编号|标题|原文不完整/.test(msg) ? 422 : 503).end()
+    }
+    return
+  }
+  const edit =
+    /^\/internal\/editor\/([0-9a-f-]{36})\/(\d+)\/(\d+)\/(drafting|checking)$/.exec(
+      req.url ?? '',
+    )
+  if (req.method === 'POST' && edit) {
+    try {
+      const parts: Buffer[] = []
+      let bytes = 0
+      for await (const part of req) {
+        bytes += part.length
+        if (bytes > 100000) {
+          res.writeHead(413).end()
+          return
+        }
+        parts.push(part)
+      }
+      const result = await editText(
+        dirname(path),
+        edit[1],
+        Number(edit[2]),
+        Number(edit[3]),
+        edit[4],
+        Buffer.concat(parts).toString(),
+      )
+      res
+        .writeHead(200, { 'Content-Type': 'application/json' })
+        .end(JSON.stringify(result))
+    } catch (e) {
+      res
+        .writeHead(502)
+        .end(
+          JSON.stringify({
+            error:
+              e instanceof Error ? e.message.slice(0, 240) : '编辑模型调用失败',
+          }),
+        )
     }
     return
   }

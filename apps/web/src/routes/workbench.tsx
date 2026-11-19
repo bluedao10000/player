@@ -5,18 +5,27 @@ import { ScopeReport } from '../features/workbench/scope-report'
 import { MediaGallery } from '../features/workbench/media-gallery'
 import { ResearchHistory } from '../features/workbench/research-history'
 import { WorldInventory } from '../features/workbench/world-inventory'
+import { EditorDesk, DeskNav } from '../features/workbench/editor-desk'
+import editorCss from '../features/workbench/editor.css?url'
 import css from '../features/workbench/board.css?url'
 
 export const Route = createFileRoute('/workbench')({
-  loader: () => readFeed(),
+  validateSearch: (s: Record<string, unknown>) => ({
+    view: s.view === 'data' ? 'data' : 'editor',
+  }),
+  loaderDeps: ({ search }) => ({ view: search.view }),
+  loader: ({ deps }) => (deps.view === 'data' ? readFeed() : null),
   head: () => ({
     meta: [
-      { title: '数据工作台 · 潮汐邮局' },
+      { title: '编辑与数据工作台 · 潮汐邮局' },
       { name: 'robots', content: 'noindex' },
     ],
-    links: [{ rel: 'stylesheet', href: css }],
+    links: [
+      { rel: 'stylesheet', href: css },
+      { rel: 'stylesheet', href: editorCss },
+    ],
   }),
-  component: Board,
+  component: Workbench,
 })
 const flows = {
   sync: [
@@ -60,9 +69,12 @@ const states = {
 }
 const time = (v: string) => new Date(v).toISOString().slice(11, 19)
 const date = (v: string) => new Date(v).toISOString().slice(0, 10)
-function Board() {
-  const feed = Route.useLoaderData(),
-    router = useRouter()
+function Workbench() {
+  const feed = Route.useLoaderData()
+  return feed ? <Board feed={feed} /> : <EditorDesk />
+}
+function Board({ feed }: { feed: Awaited<ReturnType<typeof readFeed>> }) {
+  const router = useRouter()
   const [flow, setFlow] = useState<'sync' | 'media'>('sync'),
     [node, setNode] = useState(0),
     [auto, setAuto] = useState(true),
@@ -127,12 +139,16 @@ function Board() {
       </header>
       <div className="wb-heading">
         <div>
-          <small>DATA OPERATIONS</small>
+          <DeskNav data />
           <h1>数据工作台</h1>
         </div>
         <code>UTC　{time(feed.checked)}</code>
       </div>
-      {[...new Set(feed.media?.filter(c=>c.art).map(c=>c.batch))].map(batch=><MediaGallery key={batch} items={feed.media} batch={batch} />)}
+      {[...new Set(feed.media?.filter((c) => c.art).map((c) => c.batch))].map(
+        (batch) => (
+          <MediaGallery key={batch} items={feed.media} batch={batch} />
+        ),
+      )}
       <MediaGallery items={feed.media} batch="bebop-e3" />
       <MediaGallery items={feed.media} batch="bebop-portrait" />
       <MediaGallery items={feed.media} batch="bebop" />

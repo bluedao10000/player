@@ -28,7 +28,7 @@ const guide = 'https://en.wikipedia.org/wiki/List_of_Cowboy_Bebop_episodes'
 const titles = ['Asteroid Blues', 'Stray Dog Strut', 'Honky Tonk Women']
 const normalized = (s: string) => s.replace(/\s+/g, ' ').trim()
 
-async function page(url: string) {
+export async function page(url: string) {
   const response = await fetch(url, {
     redirect: 'error',
     signal: AbortSignal.timeout(25000),
