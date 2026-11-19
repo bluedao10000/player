@@ -73,7 +73,8 @@ func (e episodeSpec) validate() error {
 	aniplexPremiere := e.Number == 1 && (e.Official == "https://www.aniplex.co.jp/lineup/majieku/story/" ||
 		e.Official == "https://www.aniplex.co.jp/lineup/saikyosoubi/story/")
 	yukionnaPremiere := e.Number == 1 && e.Official == "https://anime-yukionna.af-original.com/story/"
-	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romeliaPremiere || aniplexPremiere || yukionnaPremiere) && official.Fragment == ""
+	lastBossPremiere := e.Number == 1 && e.SourceNumber == 13 && e.Official == "https://www.lastboss-anime.com/story/13.html"
+	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romeliaPremiere || aniplexPremiere || yukionnaPremiere || lastBossPremiere) && official.Fragment == ""
 	if !naruto && !takopi && !lookBack && !apothecary && !council && !press {
 		return errors.New("官方来源或标题无效")
 	}
@@ -97,6 +98,8 @@ func (e episodeSpec) validate() error {
 				(guide.Host == "tv-times.jp" && tvTimesEpisodePath.MatchString(guide.Path)) ||
 				((guide.Host == "saisokustory.com" || guide.Host == "animenoyakata.com") && pressGuidePath.MatchString(guide.Path)) ||
 				(yukionnaPremiere && e.Guide == "https://ani-chara.net/18988/") ||
+				(e.Official == "https://www.animatetimes.com/news/details.php?id=1789112810" && e.Guide == "https://sayo.blog/tenken13/") ||
+				(lastBossPremiere && e.Guide == "https://ani-chara.net/18776/") ||
 				((guide.Host == "anime-no-mikata.com" || guide.Host == "mahoyaku.net") && numericArchivePath.MatchString(guide.Path))) {
 			return errors.New("新闻稿分集补充来源不匹配")
 		}

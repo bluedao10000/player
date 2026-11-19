@@ -94,11 +94,12 @@ export async function readEpisodeDocuments(
     !guideTitle.includes(p.guideTitle)
   )
     throw Error('分集编号或标题与配置不一致')
+  const guideBlocks = press ? readGuideParagraphs(wiki, p.guideParagraphs!) : undefined
   return [
     [p.official, item.text, 'official', item.title],
     [
       p.guide,
-      film ? filmText.toArray().map((x) => wiki(x).text()).join(' ') : press ? readGuideParagraphs(wiki, p.guideParagraphs!) : council ? schoolSynopsis : row.next('tr').find('.shortSummaryText').text(),
+      film ? filmText.toArray().map((x) => wiki(x).text()).join(' ') : guideBlocks ? guideBlocks.join(' ') : council ? schoolSynopsis : row.next('tr').find('.shortSummaryText').text(),
       'guide',
       p.guideTitle,
     ],
@@ -108,9 +109,13 @@ export async function readEpisodeDocuments(
       .replace(/\s+/g, ' ')
       .trim()
     if (Buffer.byteLength(text) < 60 || text.length > 6000) throw Error('分集原文不完整')
-    const sentences = Array.from(
-      new Intl.Segmenter((key === 'official' && japanese) || council || press ? 'ja' : 'en', { granularity: 'sentence' }).segment(text),
-      (x) => x.segment.trim(),
+    const segmenter = new Intl.Segmenter((key === 'official' && japanese) || council || press ? 'ja' : 'en', { granularity: 'sentence' })
+    // This recap omits sentence punctuation between its short paragraph notes.
+    const blocks = key === 'guide' && guideBlocks && p.guide === 'https://sayo.blog/tenken13/'
+      ? guideBlocks.map((block) => block.normalize('NFKC').replace(/\s+/g, ' ').trim())
+      : [text]
+    const sentences = blocks.flatMap((block) =>
+      Array.from(segmenter.segment(block), (x) => x.segment.trim()),
     ).filter(Boolean)
     return {
       id: key + '-' + p.number,
@@ -148,10 +153,10 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
       throw Error('官方剧集数据缺少第一季首集')
     return { number: Number(first.index), title: first.title, text: first.story }
   }
-  const item = site('#cms_block .line_00 .epHead b')
+  const item = site('#cms_block .line_00 .epHead b, #cms_block .line_01 .storyHead__ep')
   if (item.length === 1) return {
-    number: Number(item.text()),
-    title: site('#cms_block .line_00 .articleHead').text().trim(),
+    number: Number(item.text().normalize('NFKC')),
+    title: site('#cms_block .line_00 .articleHead, #cms_block .line_01 .storyHead__title').text().trim(),
     text: site('#cms_block .line_02 .read').text().trim(),
   }
   const heading = site('.news-content h2, .news-content h3')
@@ -173,7 +178,7 @@ function readGuideParagraphs(page: CheerioAPI, starts: string[]) {
     .map((x) => page(x).text().trim().replace(/\s+/g, ' '))
   const matches = starts.map((start) => paragraphs.find((text) => text.startsWith(start)))
   if (matches.some((text) => !text)) throw Error('分集补充资料缺少指定原文段落')
-  return matches.join(' ')
+  return matches as string[]
 }
 
 export function episodeOutline(p: EpisodePlan, docs: Doc[]) {

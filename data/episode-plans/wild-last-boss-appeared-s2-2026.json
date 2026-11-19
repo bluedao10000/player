@@ -1,0 +1,117 @@
+{
+  "world": "wild-last-boss-appeared-s2-2026",
+  "title": "野生的大魔王出现了！第二季",
+  "edition": "2026 · TV 动画第二季",
+  "provider": "bangumi",
+  "externalID": "616808",
+  "year": 2026,
+  "type": "TV",
+  "intro": "露法斯一行原本只想找回旧部，但对世界的了解越深，露法斯就越难分清自己的意志。新的同行者加入之际，一座能移动的王都正受到威胁。",
+  "people": [
+    {
+      "slug": "luphas",
+      "name": "露法斯",
+      "role": "重聚旧部，想知道女神意图的黑翼霸王",
+      "portrait": {
+        "referenceURL": "https://www.lastboss-anime.com/core_sys/images/contents/00000034/block/00000171/00000156.jpg",
+        "sourceSHA": "6c6067560105c29af24219d61f4e47a02eda32fb1423b83fefada362502bd3f7",
+        "brief": "按参考中的成年露法斯保留金色长发、红紫眼与红黑配色的领口，完全穿着得体。单人头肩像，纯色背景，神情镇静。"
+      }
+    },
+    {
+      "slug": "scorpius",
+      "name": "斯科尔皮乌斯",
+      "role": "朝机动王都进攻的十二星天之一",
+      "portrait": {
+        "referenceURL": "https://www.lastboss-anime.com/core_sys/images/main/cont/chara/chara17-stand.png",
+        "sourceSHA": "20f56d342338da0d70e513039cf2a0c450f8f8c6302075aa24b0b0c2a26bc1de",
+        "brief": "画官网立绘中的成年女角色斯科尔皮乌斯。深紫色短刘海、向上弯曲的大型深紫色编辫、翠绿眼睛，靠画面右侧的脸颊有官方的红色心形印记，浅灰白毛领。得体的深紫高领外套，胸肩覆盖完全，纯色背景、单人头肩像。头部和辫子主要轮廓适应小头像。无武器或文字。",
+        "box": [
+          0.12,
+          0,
+          0.87,
+          0.49
+        ]
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "mobile-capital-blutgang",
+      "title": "机动王都布鲁特冈格出现了！",
+      "intro": "露法斯带着新加入的同伴前往布鲁特冈格。昔日部下中，有人在等她回来，也有人把这座王都视作下一个目标。",
+      "official": "https://www.lastboss-anime.com/story/13.html",
+      "officialTitle": "機動王都ブルートガングが現れた！",
+      "guide": "https://ani-chara.net/18776/",
+      "guideTitle": "『野生のラスボスが現れた！ 第2期』第13話",
+      "guideParagraphs": [
+        "そこでルファスが見つけた最大の目的が",
+        "一方で、公式のあらすじにもあるとおり",
+        "一緒に行けないことを詫びる声とともに",
+        "七英雄の鍛冶王ミザールが建国した",
+        "店主の正体は、十二星天の蟹のカルキノスだった",
+        "それでも、人間の中に紛れて暮らし",
+        "そのとき、ブルートガングに緊急の放送が流れる",
+        "追い詰められたブルートガングは"
+      ],
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "そこでルファスが見つけた最大の目的が",
+          "question": "用露法斯的名字交代她想追问女神、自己又担心被原本的露法斯意识吞没。避免将女神的所有动机当作事实。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "一緒に行けないことを詫びる声とともに",
+          "question": "说清「处女」维尔戈随队，众人为什么转向斯科尔皮乌斯的目标布鲁特冈格。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "cause",
+          "needle": "七英雄の鍛冶王ミザールが建国した",
+          "question": "说明锻冶王米扎尔建立的「机动王都」本身就是巨大的魔像，也是矮人居住的地方。"
+        },
+        {
+          "kind": "turn",
+          "needle": "店主の正体は、十二星天の蟹のカルキノスだった",
+          "question": "写店主卡尔基诺斯是露法斯的旧部，他为什么开店，又为什么归队。不要补未证实的身份。"
+        },
+        {
+          "kind": "cause",
+          "needle": "そのとき、ブルートガングに緊急の放送が流れる",
+          "question": "写斯科尔皮乌斯发起进攻，王都陷入危机，露法斯安排同伴防守并决定亲自阻止她。保持故事层概述，无战斗技术细节，无第14话结果。"
+        }
+      ],
+      "people": [
+        {
+          "slug": "luphas",
+          "name": "露法斯",
+          "role": "重聚旧部，想知道女神意图的黑翼霸王",
+          "beat": 1
+        },
+        {
+          "slug": "scorpius",
+          "name": "斯科尔皮乌斯",
+          "role": "朝机动王都进攻的十二星天之一",
+          "beat": 5
+        }
+      ],
+      "setting": [
+        "机动王都",
+        3
+      ],
+      "sceneSlug": "first-look-at-blutgang",
+      "sceneName": "会移动的王都",
+      "place": "机动王都布鲁特冈格外",
+      "sceneBeat": 3,
+      "art": {
+        "referenceURL": "https://www.lastboss-anime.com/core_sys/images/contents/00000034/block/00000171/00000156.jpg",
+        "sourceSHA": "6c6067560105c29af24219d61f4e47a02eda32fb1423b83fefada362502bd3f7",
+        "brief": "画金色长发和红紫眼的成年露法斯站在高处第一次看见移动的王都布鲁特冈格。穿参考配色的红黑高领斗篷，近景是她的正侧脸，远处机械要塞有城楼和连成片的建筑，光线清晰，手机裁切能辨认人物和都市。无战斗、武器或文字。"
+      },
+      "sourceNumber": 13
+    }
+  ]
+}
