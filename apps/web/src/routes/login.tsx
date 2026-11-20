@@ -6,6 +6,11 @@ import { siteTitle } from '../site'
 export const Route = createFileRoute('/login')({
   validateSearch: (s: Record<string, unknown>) => ({
     returnTo: returnPath(s.returnTo),
+    wechat:
+      typeof s.wechat === 'string' &&
+      ['conflict', 'cancelled', 'expired', 'failed'].includes(s.wechat)
+        ? s.wechat
+        : undefined,
   }),
   loader: () => libraryCatalog(),
   headers: () => ({
@@ -20,6 +25,7 @@ export const Route = createFileRoute('/login')({
   }),
   component: () => (
     <ReaderLogin
+      wechat={Route.useSearch().wechat}
       returnTo={Route.useSearch().returnTo}
       chapters={Route.useLoaderData() ?? []}
     />

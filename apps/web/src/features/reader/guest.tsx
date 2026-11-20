@@ -1,3 +1,5 @@
+import { Membership } from './membership'
+import { LinkEmail, WechatButton } from './wechat'
 import { useState } from 'react'
 import { Button, Layout, SectionHeader } from '../post/design'
 import { Icon } from '../post/icons'
@@ -54,7 +56,7 @@ export function GuestLibrary({
             {reader === null
               ? '访客 · 阅读记录保存在此浏览器'
               : reader && reader !== 'error'
-                ? reader.email
+                ? reader.email || '微信读者'
                 : reader === 'error'
                   ? '读者服务暂时无法连接'
                   : '正在打开阅读账户…'}
@@ -74,6 +76,12 @@ export function GuestLibrary({
           )}
           {reader && reader !== 'error' && (
             <>
+              {!full && <Membership key={reader.id} readerId={reader.id} />}
+              {!full && !reader.wechatLinked && (
+                <WechatButton readerId={reader.id} returnTo="/me" />
+              )}
+              {!full && !reader.email && <LinkEmail readerId={reader.id} />}
+              {!full && reader.wechatLinked && <small>微信已绑定</small>}
               {reader.pending && (
                 <a className="return" href="/login">
                   选择是否导入本机记录

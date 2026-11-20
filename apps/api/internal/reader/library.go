@@ -3,6 +3,7 @@ package reader
 import (
 	"context"
 	"encoding/json"
+
 	"regexp"
 	"time"
 	"unicode/utf8"
@@ -35,9 +36,11 @@ func (e entry) valid() bool {
 func (s service) state(c *gin.Context) {
 	var result json.RawMessage
 	err := s.db.QueryRow(c.Request.Context(), `SELECT jsonb_build_object('id',r.id,'email',r.email,'pending',r.import_choice IS NULL,
+ 'plan',m.plan,'planUntil',m.valid_until,
+ 'wechatLinked',EXISTS(SELECT FROM reader_wechat WHERE reader_id=r.id),
  'bookmarks',COALESCE((SELECT jsonb_agg(jsonb_build_object('href',href,'title',title,'work',work,'recordedAt',recorded_at) ORDER BY recorded_at DESC,href) FROM reader_bookmarks WHERE reader_id=r.id),'[]'),
  'positions',COALESCE((SELECT jsonb_agg(jsonb_build_object('href',href,'title',title,'work',work,'percent',percent,'anchor',anchor,'excerpt',excerpt,'recordedAt',recorded_at) ORDER BY recorded_at DESC,href) FROM reader_positions WHERE reader_id=r.id),'[]'))
- FROM reader_identities r WHERE r.id=$1`, c.GetString("reader")).Scan(&result)
+ FROM reader_identities r JOIN reader_memberships m ON m.reader_id=r.id WHERE r.id=$1`, c.GetString("reader")).Scan(&result)
 	if err != nil {
 		unavailable(c)
 		return

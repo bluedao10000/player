@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { WechatButton } from './wechat'
 import { Layout } from '../post/design'
 import { guestPositions } from '../post/progress'
 import { identityChanged, refresh, request, useAccount } from './account'
@@ -37,8 +38,10 @@ function remember(c: Challenge | null) {
 export function ReaderLogin({
   returnTo,
   chapters,
+  wechat,
 }: {
   returnTo: string
+  wechat?: string
   chapters: { href: string; work: string; title: string; image: string }[]
 }) {
   const reader = useAccount()
@@ -68,9 +71,9 @@ export function ReaderLogin({
     return () => clearInterval(interval)
   }, [challenge])
   useEffect(() => {
-    if (reader && reader !== 'error' && !reader.pending)
+    if (!wechat && reader && reader !== 'error' && !reader.pending)
       location.replace(returnTo)
-  }, [reader, returnTo])
+  }, [reader, returnTo, wechat])
   async function run(fn: () => Promise<void>) {
     setBusy(true)
     setError('')
@@ -129,6 +132,18 @@ export function ReaderLogin({
             ← 返回{chapter ? '章节' : '阅读'}
           </a>
           <h1>{pending ? '带上本机的阅读记录' : '读者登录'}</h1>
+          {wechat && (
+            <p role="alert">
+              {{
+                conflict: '该微信已绑定其他读者账户。',
+                cancelled: '已取消微信授权。',
+                expired: '授权已过期，请重新登录。',
+              }[wechat] || '微信授权未完成，请重新登录。'}
+            </p>
+          )}
+          {reader === null && !challenge && (
+            <WechatButton returnTo={returnTo} />
+          )}
           {reader === undefined && <p role="status">正在读取会话…</p>}
           {reader === 'error' && (
             <button onClick={() => void refresh()}>重新连接</button>
@@ -145,7 +160,11 @@ export function ReaderLogin({
                   await request('verify', { email: challenge.email, code })
                   remember(null)
                   setCode('')
-                  await identityChanged()
+                  if (wechat)
+                    location.replace(
+                      '/login?returnTo=' + encodeURIComponent(returnTo),
+                    )
+                  else await identityChanged()
                 })
               }}
             >
@@ -222,7 +241,8 @@ export function ReaderLogin({
             <>
               <p>
                 本机有 {localBookmarks.length} 篇收藏、{positions.length}{' '}
-                篇阅读进度。合并后可用 {reader.email} 在其他设备接着读。
+                篇阅读进度。合并后可用 {reader.email || '微信'}{' '}
+                在其他设备接着读。
               </p>
               <button
                 className="reader-primary"

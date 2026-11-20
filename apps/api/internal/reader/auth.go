@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"anime-agent/api/internal/billing"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -29,7 +31,13 @@ func Routes(r *gin.Engine, db *pgxpool.Pool) {
 	})
 	g.POST("/code", s.issue)
 	g.POST("/verify", s.verify)
+	g.GET("/methods", func(c *gin.Context) { c.JSON(200, gin.H{"wechat": wechatEnabled()}) })
+	g.POST("/wechat/start", s.startWechat)
+	g.POST("/wechat/finish", s.finishWechat)
 	g.Use(s.authenticate)
+	billing.PlanRoutes(g, db)
+	g.POST("/wechat/link", s.startWechat)
+	g.POST("/email/link", s.verify)
 	g.GET("/state", s.state)
 	g.POST("/logout", s.logout)
 	g.POST("/merge", s.merge)
@@ -130,13 +138,7 @@ func (s service) verify(c *gin.Context) {
 		return
 	}
 	ctx := c.Request.Context()
-	raw := make([]byte, 32)
-	if _, err := rand.Read(raw); err != nil {
-		unavailable(c)
-		return
-	}
-	token := hex.EncodeToString(raw)
-	digest := sha256.Sum256([]byte(token))
+	var token string
 	verified := false
 	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
 		var hash []byte
@@ -154,16 +156,32 @@ func (s service) verify(c *gin.Context) {
 			return err
 		}
 		var id string
+		if owner := c.GetString("reader"); owner != "" {
+			tag, err := tx.Exec(ctx, "UPDATE reader_identities SET email=$2 WHERE id=$1 AND (email IS NULL OR email=$2)", owner, email)
+			var conflict *pgconn.PgError
+			if errors.As(err, &conflict) && conflict.Code == "23505" {
+				return errLinked
+			}
+			if err != nil {
+				return err
+			}
+			if tag.RowsAffected() == 0 {
+				return errLinked
+			}
+			verified = true
+			return nil
+		}
 		if err = tx.QueryRow(ctx, "INSERT INTO reader_identities(email) VALUES($1) ON CONFLICT(email) DO UPDATE SET email=excluded.email RETURNING id", email).Scan(&id); err != nil {
 			return err
 		}
-		if _, err = tx.Exec(ctx, "DELETE FROM reader_sessions WHERE expires_at<=now()"); err != nil {
-			return err
-		}
-		_, err = tx.Exec(ctx, "INSERT INTO reader_sessions(digest,reader_id,expires_at) VALUES($1,$2,now()+interval '30 days')", digest[:], id)
+		token, err = newSession(ctx, tx, id)
 		verified = err == nil
 		return err
 	})
+	if errors.Is(err, errLinked) {
+		fail(c, 409, "该邮箱已属于其他账户，或当前账户已有邮箱。")
+		return
+	}
 	if err != nil {
 		unavailable(c)
 		return
@@ -172,7 +190,30 @@ func (s service) verify(c *gin.Context) {
 		invalid()
 		return
 	}
+	if token == "" {
+		c.Status(204)
+		return
+	}
 	c.JSON(200, gin.H{"token": token})
+}
+
+func randomToken() (string, error) {
+	raw := make([]byte, 32)
+	_, err := rand.Read(raw)
+	return hex.EncodeToString(raw), err
+}
+
+func newSession(ctx context.Context, tx pgx.Tx, id string) (string, error) {
+	token, err := randomToken()
+	if err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256([]byte(token))
+	if _, err = tx.Exec(ctx, "DELETE FROM reader_sessions WHERE expires_at<=now()"); err != nil {
+		return "", err
+	}
+	_, err = tx.Exec(ctx, "INSERT INTO reader_sessions(digest,reader_id,expires_at) VALUES($1,$2,now()+interval '30 days')", digest[:], id)
+	return token, err
 }
 
 func (s service) authenticate(c *gin.Context) {

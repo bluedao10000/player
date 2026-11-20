@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -164,4 +165,88 @@ func TestAlipayWapTopup(t *testing.T) {
 		t.Fatal(count, amount, e)
 	}
 	checkout(k, 1234, 409)
+
+	t.Run("reader membership receipt", func(t *testing.T) {
+		var owner string
+		if err := db.QueryRow(ctx, "INSERT INTO reader_identities(email) VALUES('membership@example.test') RETURNING id").Scan(&owner); err != nil {
+			t.Fatal(err)
+		}
+		session := strings.Repeat("1", 64)
+		hash := sha256.Sum256([]byte(session))
+		if _, err := db.Exec(ctx, "INSERT INTO reader_sessions VALUES($1,$2,now()+interval '1 hour')", hash[:], owner); err != nil {
+			t.Fatal(err)
+		}
+		api := func(method, path, body string, want int) map[string]any {
+			t.Helper()
+			req := httptest.NewRequest(method, "/api/v1/reader/"+path, strings.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer "+session)
+			req.Header.Set("X-Reader-ID", owner)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			if w.Code != want {
+				t.Fatalf("%s %d %s", path, w.Code, w.Body.String())
+			}
+			var v map[string]any
+			if want == 200 {
+				if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
+					t.Fatal(err)
+				}
+			}
+			return v
+		}
+		if free := api("GET", "membership", "", 200); free["credits"] != float64(10) || free["plan"] != "free" {
+			t.Fatal("missing Free allowance")
+		}
+		api("POST", "membership/checkout", `{"plan":"plus","expectedFen":1}`, 409)
+		buy := func() string {
+			data := api("POST", "membership/checkout", `{"plan":"plus","expectedFen":2000}`, 200)
+			u, err := url.Parse(data["checkout_url"].(string))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var biz map[string]string
+			err = json.Unmarshal([]byte(u.Query().Get("biz_content")), &biz)
+			if err != nil || biz["total_amount"] != "20.00" || u.Query().Get("return_url") != "https://reader.example/me?payment=return" {
+				t.Fatal("invalid plan checkout")
+			}
+			return biz["out_trade_no"]
+		}
+		number := buy()
+		if !strings.HasPrefix(number, "MP") || buy() != number {
+			t.Fatal("duplicate checkout")
+		}
+		api("POST", "membership/checkout", `{"plan":"pro","expectedFen":9900}`, 409)
+		v.Set("trade_status", "TRADE_SUCCESS")
+		v.Set("out_trade_no", number)
+		v.Set("trade_no", "2026001235")
+		v.Set("gmt_payment", time.Now().In(time.FixedZone("CST", 8*3600)).Format(time.DateTime))
+		v.Set("total_amount", "99.00")
+		sign()
+		notify(v.Encode(), 400)
+		v.Set("total_amount", "20.00")
+		sign()
+		raw := v.Encode()
+		for range 4 {
+			wg.Add(1)
+			go func() { defer wg.Done(); notify(raw, 200) }()
+		}
+		wg.Wait()
+		data := api("GET", "membership", "", 200)
+		if data["plan"] != "plus" || data["credits"] != float64(125) || len(data["orders"].([]any)) != 1 {
+			t.Fatal("membership not activated exactly once", data)
+		}
+		api("POST", "membership/checkout", `{"plan":"plus","expectedFen":2000}`, 409)
+		var n int
+		if err := db.QueryRow(ctx, "SELECT count(*) FROM reader_plan_orders WHERE reader_id=$1 AND ends_at=starts_at+interval '720 hours'", owner).Scan(&n); err != nil || n != 1 {
+			t.Fatal(n, err)
+		}
+		v.Set("trade_status", "TRADE_CLOSED")
+		v.Set("refund_fee", "20.00")
+		sign()
+		notify(v.Encode(), 200)
+		if got := api("GET", "membership", "", 200); got["plan"] != "free" {
+			t.Fatal("refunded term still active")
+		}
+	})
 }

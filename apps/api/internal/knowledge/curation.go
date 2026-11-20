@@ -2,6 +2,7 @@ package knowledge
 
 import (
 	"anime-agent/api/internal/billing"
+	"anime-agent/api/internal/reader"
 	"context"
 	"crypto/subtle"
 	"encoding/json"
@@ -168,6 +169,7 @@ func adminRoutes(r *gin.Engine, db *pgxpool.Pool) {
 	matchAIRoutes(g, db)
 	usageRoutes(g, db)
 	billing.AdminRoutes(g, db)
+	reader.AdminRoutes(g, db)
 	g.POST("/quality", func(c *gin.Context) {
 		work := c.Query("work_id")
 		if work != "" && !uuid(work) {

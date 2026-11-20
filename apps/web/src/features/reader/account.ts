@@ -14,7 +14,10 @@ export type Position = Bookmark & {
 }
 type Reader = {
   id: string
-  email: string
+  email: string | null
+  plan: 'free' | 'plus' | 'pro'
+  planUntil: string | null
+  wechatLinked: boolean
   pending: boolean
   bookmarks: Bookmark[]
   positions: Position[]

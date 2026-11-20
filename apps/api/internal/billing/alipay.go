@@ -89,14 +89,18 @@ func (m *wapMerchant) checkout(c *gin.Context, db *pgxpool.Pool) {
 		c.JSON(409, gin.H{"error": "checkout is no longer payable"})
 		return
 	}
+	m.wapURL(c, id, expires, "TP", "Folio 时光 · 读者余额充值", m.returnURL, v.Fen)
+}
+
+func (m *wapMerchant) wapURL(c *gin.Context, id string, expires time.Time, prefix, subject, returnURL string, fen int) {
 	p := alipay.TradeWapPay{}
 	p.NotifyURL = m.notify
-	p.ReturnURL = m.returnURL
-	p.QuitURL = m.returnURL
-	p.Subject = "Folio 时光 · 读者余额充值"
+	p.ReturnURL = returnURL
+	p.QuitURL = returnURL
+	p.Subject = subject
 	p.ProductCode = "QUICK_WAP_WAY"
-	p.OutTradeNo = "TP" + strings.ReplaceAll(id, "-", "")
-	p.TotalAmount = fenText(v.Fen)
+	p.OutTradeNo = prefix + strings.ReplaceAll(id, "-", "")
+	p.TotalAmount = fenText(fen)
 	p.SellerId = m.seller
 	p.TimeExpire = expires.In(chinaTime).Format(time.DateTime)
 	redirect, err := m.client.TradeWapPay(p)
@@ -124,8 +128,12 @@ func (m *wapMerchant) notifyPayment(ctx context.Context, db *pgxpool.Pool, value
 	if err != nil {
 		return ErrConflict
 	}
-	if !merchantOrder.MatchString(n.OutTradeNo) || !tradeNumber.MatchString(n.TradeNo) {
+	membership := planOrderNumber.MatchString(n.OutTradeNo)
+	if (!membership && !merchantOrder.MatchString(n.OutTradeNo)) || !tradeNumber.MatchString(n.TradeNo) {
 		return ErrConflict
+	}
+	if membership {
+		return m.applyPlanNotification(ctx, db, n)
 	}
 	if n.OutBizNo != "" || n.GmtRefund != "" || n.RefundFee != "" || n.RefundAmount != "" {
 		return errors.New("Alipay refund notification requires channel reconciliation")
