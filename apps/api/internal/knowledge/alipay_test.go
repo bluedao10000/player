@@ -37,7 +37,7 @@ func signText(v url.Values, skipType bool) []byte {
 	return h[:]
 }
 
-func TestAlipayWapTopup(t *testing.T) {
+func TestAlipayPageCheckout(t *testing.T) {
 	db := testStore(t)
 	ctx := context.Background()
 	merchant, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -100,8 +100,8 @@ func TestAlipayWapTopup(t *testing.T) {
 		if err = json.Unmarshal([]byte(q.Get("biz_content")), &b); err != nil {
 			t.Fatal(err)
 		}
-		if u.Host != "openapi.alipay.com" || q.Get("method") != "alipay.trade.wap.pay" || q.Get("return_url") != "https://reader.example/commissions" || b["product_code"] != "QUICK_WAP_WAY" || b["total_amount"] != "12.34" {
-			t.Fatal("wrong WAP contract")
+		if u.Host != "openapi.alipay.com" || q.Get("method") != "alipay.trade.page.pay" || q.Get("return_url") != "https://reader.example/commissions" || b["product_code"] != "FAST_INSTANT_TRADE_PAY" || b["total_amount"] != "12.34" {
+			t.Fatal("wrong Page Pay contract")
 		}
 		return b["out_trade_no"]
 	}
@@ -207,7 +207,7 @@ func TestAlipayWapTopup(t *testing.T) {
 			}
 			var biz map[string]string
 			err = json.Unmarshal([]byte(u.Query().Get("biz_content")), &biz)
-			if err != nil || biz["total_amount"] != "20.00" || u.Query().Get("return_url") != "https://reader.example/me?payment=return" {
+			if err != nil || u.Query().Get("method") != "alipay.trade.page.pay" || biz["product_code"] != "FAST_INSTANT_TRADE_PAY" || biz["total_amount"] != "20.00" || u.Query().Get("return_url") != "https://reader.example/me?payment=return" {
 				t.Fatal("invalid plan checkout")
 			}
 			return biz["out_trade_no"]

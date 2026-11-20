@@ -87,11 +87,11 @@ func PlanRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 			fail(c, err)
 			return
 		}
-		m.wapURL(c, id, expires, "MP", "Folio 时光 · "+in.Plan+" 会员（30天）", strings.TrimSuffix(m.returnURL, "/commissions")+"/me?payment=return", fen)
+		m.checkoutURL(c, id, expires, "MP", "Folio 时光 · "+in.Plan+" 会员（30天）", strings.TrimSuffix(m.returnURL, "/commissions")+"/me?payment=return", fen)
 	})
 }
 
-func (m *wapMerchant) applyPlanNotification(ctx context.Context, db *pgxpool.Pool, n *alipay.Notification) error {
+func (m *alipayMerchant) applyPlanNotification(ctx context.Context, db *pgxpool.Pool, n *alipay.Notification) error {
 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
 		id := n.OutTradeNo[2:]
 		var reader string

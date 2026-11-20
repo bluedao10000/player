@@ -23,12 +23,12 @@ const notifyPath = "/api/billing/alipay/notify"
 
 var chinaTime = time.FixedZone("UTC+8", 8*3600)
 
-type wapMerchant struct {
+type alipayMerchant struct {
 	client                         *alipay.Client
 	app, seller, notify, returnURL string
 }
 
-func configuredMerchant() (*wapMerchant, error) {
+func configuredMerchant() (*alipayMerchant, error) {
 	env := func(k string) string { return strings.TrimSpace(os.Getenv("ALIPAY_" + k)) }
 	app, seller, notify, private, public := env("APP_ID"), env("SELLER_ID"), env("NOTIFY_URL"), env("PRIVATE_KEY"), env("PUBLIC_KEY")
 	if app+seller+notify+private+public == "" {
@@ -45,7 +45,7 @@ func configuredMerchant() (*wapMerchant, error) {
 	if err = client.LoadAliPayPublicKey(strings.ReplaceAll(public, `\n`, "\n")); err != nil {
 		return nil, errors.New("invalid ALIPAY_PUBLIC_KEY")
 	}
-	return &wapMerchant{client, app, seller, notify, u.Scheme + "://" + u.Host + "/commissions"}, nil
+	return &alipayMerchant{client, app, seller, notify, u.Scheme + "://" + u.Host + "/commissions"}, nil
 }
 
 func fenText(fen int) string { return fmt.Sprintf("%d.%02d", fen/100, fen%100) }
@@ -62,7 +62,7 @@ func parsesFen(raw string, want int) bool {
 	return yuan*100+frac == want
 }
 
-func (m *wapMerchant) checkout(c *gin.Context, db *pgxpool.Pool) {
+func (m *alipayMerchant) checkout(c *gin.Context, db *pgxpool.Pool) {
 	var v struct {
 		Key string `json:"client_key" binding:"required,uuid"`
 		Fen int    `json:"amount_fen" binding:"min=1,max=1000000"`
@@ -89,21 +89,20 @@ func (m *wapMerchant) checkout(c *gin.Context, db *pgxpool.Pool) {
 		c.JSON(409, gin.H{"error": "checkout is no longer payable"})
 		return
 	}
-	m.wapURL(c, id, expires, "TP", "Folio 时光 · 读者余额充值", m.returnURL, v.Fen)
+	m.checkoutURL(c, id, expires, "TP", "Folio 时光 · 读者余额充值", m.returnURL, v.Fen)
 }
 
-func (m *wapMerchant) wapURL(c *gin.Context, id string, expires time.Time, prefix, subject, returnURL string, fen int) {
-	p := alipay.TradeWapPay{}
+func (m *alipayMerchant) checkoutURL(c *gin.Context, id string, expires time.Time, prefix, subject, returnURL string, fen int) {
+	p := alipay.TradePagePay{}
 	p.NotifyURL = m.notify
 	p.ReturnURL = returnURL
-	p.QuitURL = returnURL
 	p.Subject = subject
-	p.ProductCode = "QUICK_WAP_WAY"
+	p.ProductCode = "FAST_INSTANT_TRADE_PAY"
 	p.OutTradeNo = prefix + strings.ReplaceAll(id, "-", "")
 	p.TotalAmount = fenText(fen)
 	p.SellerId = m.seller
 	p.TimeExpire = expires.In(chinaTime).Format(time.DateTime)
-	redirect, err := m.client.TradeWapPay(p)
+	redirect, err := m.client.TradePagePay(p)
 	if err != nil {
 		fail(c, err)
 		return
@@ -115,7 +114,7 @@ var merchantOrder = regexp.MustCompile(`^TP[0-9a-f]{32}$`)
 var tradeNumber = regexp.MustCompile(`^[0-9]{1,64}$`)
 
 // Payment confirmation and the prepaid credit commit together. A browser return never calls this function.
-func (m *wapMerchant) notifyPayment(ctx context.Context, db *pgxpool.Pool, values url.Values) error {
+func (m *alipayMerchant) notifyPayment(ctx context.Context, db *pgxpool.Pool, values url.Values) error {
 	for _, v := range values {
 		if len(v) != 1 {
 			return ErrConflict
