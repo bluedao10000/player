@@ -6,7 +6,7 @@
 
 ## 首次安装
 
-1. 在仓库根目录运行 `CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go -C apps/api build -o /tmp/reader-release ./cmd/reader-release`，将二进制安装到硅谷的 `~/folio-data/bin` 和阿里云的 `/opt/codeiy/reader-release`。目录属主分别是调度账号和 root。
+1. 在仓库根目录运行 `CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go -C apps/sync build -o /tmp/reader-release ./cmd/reader-release`，将二进制安装到硅谷的 `~/folio-data/bin` 和阿里云的 `/opt/codeiy/reader-release`。目录属主分别是调度账号和 root。
 2. 广州制作库应用迁移 046 并执行已有的 [媒体角色授权](../first-phase/mesh/media-grants.sql)。硅谷沿用其受限 socket 连接。
 3. 阿里云读库新建专用登录角色 `folio_release`，运行 [receiver.sql](receiver.sql)。在接收目录以 0600 权限写入 receiver.env，内含该角色连接容器网络 db 的 DATABASE_URL。安装可执行的 [receive.sh](receive.sh)。脚本从运行中的公开 API 查询 archive 挂载位置，容器以归档属主 UID 501 运行。
 4. 硅谷用独立 Ed25519 密钥。只把公钥加入阿里云的 authorized_keys，前缀为 `restrict,command="/opt/codeiy/reader-release/receive.sh"`。在硅谷的 `~/folio-data/publish/ssh_config` 定义 Host folio-reader，配置 HostName、User、IdentityFile、IdentitiesOnly、UserKnownHostsFile 和 StrictHostKeyChecking yes。通过管理连接核对服务器主机公钥并写入专用 known_hosts。

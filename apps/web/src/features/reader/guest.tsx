@@ -223,17 +223,12 @@ export function GuestLibrary({
             })}
           </ul>
         )}
-        {full && (
-          <a className="return guest-commission-link" href="/commissions">
-            我的约稿 <Icon name="arrow" size={16} />
-          </a>
-        )}
         {!full && (
-          <section className="guest-orders">
-            <SectionHeader>我的创作</SectionHeader>
-            <a href="/commissions">
+          <section className="guest-characters">
+            <SectionHeader>角色互动</SectionHeader>
+            <a href="/character/mio">
               <span>
-                我的约稿<small>查看订单与余额</small>
+                阿澪<small>潮汐邮局 · 进入角色剧情</small>
               </span>
               <Icon name="arrow" size={18} />
             </a>

@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { readBody } from '../features/billing/proxy.server'
+import { readBody } from '../lib/request-body.server'
 
 const gets = ['state', 'membership', 'native/challenge']
 const posts = ['code', 'verify', 'logout', 'email/link', 'bookmark', 'progress', 'merge', 'native/apple', 'native/wechat',
-  'native/link/apple', 'native/link/wechat', 'native/store/receipt', 'native/store/wallet', 'native/store/notifications']
+  'native/link/apple', 'native/link/wechat', 'native/store/receipt', 'native/store/notifications']
 
 async function forward(request: Request, path: string) {
   const headers = {'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex', 'Content-Type': 'application/json'}

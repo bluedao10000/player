@@ -1,0 +1,1 @@
+INSERT INTO scope SELECT id FROM works w WHERE active AND ($1='all' OR EXISTS(SELECT FROM knowledge_source_records r JOIN knowledge_sources s ON s.id=r.source_id WHERE r.active AND r.work_id=w.id AND s.name=$1)) AND ($2='' OR id=nullif($2,'')::uuid)

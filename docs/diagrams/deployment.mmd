@@ -24,10 +24,10 @@ flowchart TB
 %% site | TanStack 和 Gin 提供网页及原生阅读数据。 | apps/ios/server/reader.server.ts
 %% online | 线上读者查询自己的数据库和归档。每集有唯一投递回执。 | deploy/reader-release/receiver.sql
 %% receive | 发布专用公钥受来源地址和强制命令约束。接收器事务写入章节。 | deploy/reader-release/receive.sh
-%% text | 广州负责选题准入、文本取证、写作与复核。 | apps/api/cmd/knowledge-sync/production.go
-%% pg | 制作库保存来源、任务、验收、发布历史及模型计量。 | apps/api/internal/knowledge/sql
+%% text | 广州负责选题准入、文本取证、写作与复核。 | apps/sync/internal/service/scheduler/production.go
+%% pg | 制作库保存来源、任务、验收、发布历史及模型计量。 | database/migrations/legacy
 %% media | 专用数据角色通过本地 Unix socket 使用共享制作库。 | deploy/first-phase/mesh/compose.yaml
 %% archive | 硅谷保管候选原图及公开衍生图。 | apps/agent/src/media.ts
-%% push | 选择显式登记且五维通过的分集，投递后检查 H5 和原生阅读接口。 | apps/api/cmd/reader-release/send.go
+%% push | 选择显式登记且五维通过的分集，投递后检查 H5 和原生阅读接口。 | apps/sync/cmd/reader-release/send.go
 %% cron | 03:15 为北京时间。备份任务使用主机上的受限 socket，只读访问广州。 | deploy/pg-backup/resources.yaml
 %% copy | K3s 本地磁盘保留七份成功备份，独立 PostgreSQL 保存最近恢复的数据库。 | deploy/pg-backup/backup.sh

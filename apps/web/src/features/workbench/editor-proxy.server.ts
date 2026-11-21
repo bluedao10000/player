@@ -1,4 +1,4 @@
-import { readBody } from '../billing/proxy.server'
+import { readBody } from '../../lib/request-body.server'
 const headers = {
   'Cache-Control': 'private, no-store',
   'X-Content-Type-Options': 'nosniff',

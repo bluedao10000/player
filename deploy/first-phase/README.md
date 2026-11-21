@@ -10,7 +10,7 @@
 
 ## 部署
 
-服务根目录是两台主机上的 /home/ubuntu/folio-data。compose.yaml 的两个 profile 分别描述两台主机的容器。镜像使用 apps/agent/Dockerfile，agent-src 固定到与调度器一致的源码版本。Go 二进制由 apps/api/cmd/knowledge 和 knowledge-sync 编译到 bin/。state、media 持久化并允许容器内的 node 用户写入。数据库和模型配置文件权限为 0600。
+服务根目录是两台主机上的 /home/ubuntu/folio-data。compose.yaml 的两个 profile 分别描述两台主机的容器。镜像使用 apps/agent/Dockerfile，agent-src 固定到与调度器一致的源码版本。Go 二进制分别由 apps/sync/cmd/knowledge 和 apps/sync/cmd/sync 编译到 bin/。在仓库根执行 `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go -C apps/sync build -o /tmp/knowledge-sync ./cmd/sync` 可生成 systemd 使用的调度器。state、media 持久化并允许容器内的 node 用户写入。数据库和模型配置文件权限为 0600。
 
 广州首次部署生成独立的数据库管理员口令和知识库所有者 folio 的登录口令。postgres.env 供 Docker 初始化实例，database.env 供调度器读取 DATABASE_URL。恢复经过筛选的作品知识库、验图凭证与前三集定稿。episode-lane 不执行读者订单、编辑队列或其他来源的全量清洗。lane.env 在广州设置 EPISODE_EXTERNAL_CAPTURE=true。
 

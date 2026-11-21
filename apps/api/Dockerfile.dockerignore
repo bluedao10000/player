@@ -1,0 +1,16 @@
+**
+!database/
+!database/go.mod
+!database/go.sum
+!database/migrations/
+!database/migrations/**
+!database/queries/
+!database/queries/**
+!apps/
+!apps/api/
+!apps/api/go.mod
+!apps/api/go.sum
+!apps/api/internal/
+!apps/api/internal/**
+!apps/api/cmd/
+!apps/api/cmd/**

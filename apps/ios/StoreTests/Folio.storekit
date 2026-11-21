@@ -1,27 +1,6 @@
 {
   "identifier": "78aa63c8-aeba-4447-b159-d057cc50ac5d",
-  "products": [
-    {
-      "referenceName": "约稿余额20元",
-      "productID": "com.kmszz.starWiki.commission.20",
-      "internalID": "6F53AB20",
-      "displayPrice": "20.00",
-      "type": "Consumable",
-      "localizations": [
-        {
-          "description": "约稿预付余额",
-          "displayName": "充值20元",
-          "locale": "zh_CN"
-        },
-        {
-          "description": "Commission credit",
-          "displayName": "Wallet top-up",
-          "locale": "en_US"
-        }
-      ],
-      "familyShareable": false
-    }
-  ],
+  "products": [],
   "nonRenewingSubscriptions": [
     {
       "displayPrice": "20",

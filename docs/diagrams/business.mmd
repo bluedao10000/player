@@ -11,14 +11,14 @@ flowchart TB
     gap -->|可重写的正文缺项| proof
     gate -->|通过| freeze["冻结分集、锚点与选图"]
     freeze -->|前置集已发布| h5["H5 连续完成范围"]
-%% probe | 每个来源按自己的间隔检查。失败原因与跳过结果写入同步运行表。 | apps/api/internal/knowledge/sync.go
-%% skip | 相同远程版本保留上次发布投影。 | apps/api/internal/knowledge/sync.go
-%% stage | 校验下载与格式，暂存完整批次后才进入归并事务。 | apps/api/internal/knowledge/parse.go
-%% works | 普通作品停在可查询的 canonical 档案。 | apps/api/internal/knowledge/merge.sql
-%% plan | 挂载配置绑定版本、集号、来源和美术任务。 | apps/api/internal/knowledge/episode_plan.go
+%% probe | 每个来源按自己的间隔检查。失败原因与跳过结果写入同步运行表。 | apps/api/internal/service/knowledge/sync.go
+%% skip | 相同远程版本保留上次发布投影。 | apps/api/internal/service/knowledge/sync.go
+%% stage | 校验下载与格式，暂存完整批次后才进入归并事务。 | apps/api/internal/service/knowledge/parse.go
+%% works | 普通作品停在可查询的 canonical 档案。 | database/queries/knowledge/merge.sql
+%% plan | 挂载配置绑定版本、集号、来源和美术任务。 | apps/api/internal/service/knowledge/episode_plan.go
 %% proof | 收集来源快照，按句定位事件，保留校对和退回记录。 | apps/agent/src/research.ts
-%% media | 记录参考指纹、原图、手机预览和两轮内的处置结果。 | apps/api/internal/knowledge/media.go
-%% gate | 按人物、剧情、世界观、时间线与图片核验。 | apps/api/internal/knowledge/episode_plan.go
+%% media | 记录参考指纹、原图、手机预览和两轮内的处置结果。 | apps/api/internal/service/knowledge/media.go
+%% gate | 按人物、剧情、世界观、时间线与图片核验。 | apps/api/internal/service/knowledge/episode_plan.go
 %% gap | 可以查看每个缺项、证据及历史记录；超出自动重试上限时保留失败。 | apps/web/src/features/workbench/scope-report.tsx
-%% freeze | 保存本次正文、阅读锚点及入选图片的内容地址。 | apps/api/internal/knowledge/acceptance.go
-%% h5 | 读模型聚合相同作品版本的连续公开范围。 | apps/api/internal/knowledge/sql/026.sql
+%% freeze | 保存本次正文、阅读锚点及入选图片的内容地址。 | apps/api/internal/service/knowledge/acceptance.go
+%% h5 | 读模型聚合相同作品版本的连续公开范围。 | database/migrations/legacy/026.sql

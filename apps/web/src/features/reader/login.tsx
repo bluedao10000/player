@@ -17,7 +17,7 @@ export function returnPath(raw: unknown) {
     const url = new URL(raw, 'https://local.invalid')
     if (
       url.origin === 'https://local.invalid' &&
-      /^\/(?:$|(?:me|shelf|works|stories|characters|commissions)$|(?:story|work|character|scene|world)\/[a-z0-9/-]+$)/.test(
+      /^\/(?:$|(?:me|shelf|works|stories|characters)$|(?:story|work|character|scene|world)\/[a-z0-9/-]+$)/.test(
         url.pathname,
       )
     )

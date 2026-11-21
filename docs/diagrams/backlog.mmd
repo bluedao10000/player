@@ -47,18 +47,18 @@ flowchart LR
     classDef todo fill:#fff3e6,stroke:#ad7545,color:#56361d;
     class metering,play,kb,picks,edit,desk,seo,app,ops done
     class bill,rp,expand,pilot,cms,console,growth,ios,cloud todo
-%% metering | 私有试稿订单锁定零售价，交付后按去重回执扣款，支持退款与供应商日账单对账。 | apps/api/internal/billing/api.go
+%% metering | 此图记录 2026-11-19 的历史能力。旧约稿账本保留供核账，当前功能见功能地图。 | database/migrations/legacy/030.sql
 %% bill | 接入自助开户并完成支付宝实付验收与原路退款，将供应商自动拉单与真实合同费率校验接入现有账本。 | docs/模型用量与计费.md
 %% play | RoleplayComposer 从预设 options 选择下一步；原创故事的书架与进度保存在本机。 | apps/web/src/features/post/roleplay-controls.tsx
 %% rp | 当前 Pi 的持久任务服务于内容生产；面向读者的自由输入、服务端多轮会话、跨端身份与进度仍待接通。 | docs/产品架构.md
-%% kb | 数据服务按配置登记分集、调度取证与素材处理，验收后冻结已完成范围。 | apps/api/cmd/knowledge-sync/main.go
+%% kb | 数据服务按配置登记分集、调度取证与素材处理，验收后冻结已完成范围。 | apps/sync/cmd/sync/main.go
 %% expand | episodeSources 依赖 Naruto 官网页面结构及维基分集表；目录 API 按标题与别名查作品，接入另一种来源和剧情向量检索仍需开发。 | apps/agent/src/episode-plan.ts
 %% picks | 热度榜 20 项按 Bangumi ID 命中本地目录，其中 19 项符合现有 TV 与年份校验。 | docs/热门作品建库计划-2026-11-19.md
 %% pilot | 计划先验证续季集号与集内短篇，四集验收后用真实模型回执核算成本。《黑暗召唤师在地下恋爱中》的 TV/ONA 归属待核。 | docs/热门作品建库计划-2026-11-19.md
 %% edit | 审稿人提交一句话，在同一任务对照来源、手机预览并按任务发布章节、场景、人物介绍或世界观。 | apps/web/src/features/workbench/editor-desk.tsx
 %% cms | 两个样板已支持人物与世界观修订；更多作品、互动片段与首页推荐待开发。 | docs/产品架构.md
 %% desk | 工作台 feed 汇集同步、质检、作品、研究、图片与范围记录，暂未消费管理端用量接口。 | apps/web/src/features/workbench/feed.ts
-%% console | 当前由已授权的 Gin 请求触发判同、部分质检和重算；跨云时数据服务需要异步命令和结果协议。 | apps/api/internal/knowledge/curation.go
+%% console | 当前由已授权的 Gin 请求触发判同、部分质检和重算；跨云时数据服务需要异步命令和结果协议。 | apps/api/internal/service/knowledge/curation.go
 %% seo | H5 内容可 SSR，若干路由已有 head 元信息。 | apps/web/src/routes
 %% growth | 补齐可索引公开内容的 sitemap、统一结构化数据与传播摘要；索引和引用由搜索平台决定。 | docs/功能地图.md
 %% app | 角色、阅读、互动与书架路由已经支持移动 H5。 | apps/web/src/features/post

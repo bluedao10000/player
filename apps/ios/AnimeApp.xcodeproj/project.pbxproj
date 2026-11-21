@@ -17,7 +17,6 @@
 		52D9503D4E2D489CDAA2ADF1 /* Reading.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC30C9917CBF4145AEFC5BEE /* Reading.swift */; };
 		5CAE4BE87A84FEB668EA24EC /* WebReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E18D092E0EA3C95DD0D4E7C4 /* WebReader.swift */; };
 		6F3912EF15C64EC0D5BAE2D3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9D93BF5D61B038B2C6E14685 /* PrivacyInfo.xcprivacy */; };
-		848D327733CBB79DF2C4067E /* CommissionPurchase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3B9644F9DE2CA9755D808A1 /* CommissionPurchase.swift */; };
 		9632B70D79D87A8162CF020E /* ReaderAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18EBE3D26BE77D670B3A41C /* ReaderAccount.swift */; };
 		A6EBF5360BFD06BE853707BF /* MembershipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0FBD77A55D49ADB8BA4F9B5 /* MembershipTests.swift */; };
 		AA8652E0D07F9E5A664242C5 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0CDB96325EF61173A93ACC /* libz.tbd */; };
@@ -59,7 +58,6 @@
 		B18EBE3D26BE77D670B3A41C /* ReaderAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderAccount.swift; sourceTree = "<group>"; };
 		D22AF4031EA93A2A6312F1DE /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		E18D092E0EA3C95DD0D4E7C4 /* WebReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebReader.swift; sourceTree = "<group>"; };
-		E3B9644F9DE2CA9755D808A1 /* CommissionPurchase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommissionPurchase.swift; sourceTree = "<group>"; };
 		E4D654DA3EDFFDC188CC0A88 /* ReaderLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderLogin.swift; sourceTree = "<group>"; };
 		E795F24191893772013783B7 /* Membership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Membership.swift; sourceTree = "<group>"; };
 		EC3E40B5A83DC085DB73E720 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
@@ -150,7 +148,6 @@
 			isa = PBXGroup;
 			children = (
 				FF5A25401FB25E808D3F3ADC /* Assets.xcassets */,
-				E3B9644F9DE2CA9755D808A1 /* CommissionPurchase.swift */,
 				5D378327B31A8324EE2B462B /* Components.swift */,
 				EF4BE4C529054EEF9BFBEC45 /* FolioApp.swift */,
 				EC3E40B5A83DC085DB73E720 /* Library.swift */,
@@ -321,7 +318,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				848D327733CBB79DF2C4067E /* CommissionPurchase.swift in Sources */,
 				1CEEBA87D9B1FD74B9E99684 /* Components.swift in Sources */,
 				09DC8B1DFB1FEEED9E62D47A /* FolioApp.swift in Sources */,
 				0AD0723E1ABB0B8A2855AEE1 /* Library.swift in Sources */,

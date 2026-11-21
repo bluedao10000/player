@@ -27,15 +27,6 @@ final class MembershipTests: XCTestCase {
             XCTAssertEqual(transaction.productType, .nonRenewable)
             await transaction.finish()
         }
-        let products = try await Product.products(for: [CommissionPurchase.productID])
-        let topup = try XCTUnwrap(products.first)
-        XCTAssertEqual(topup.type, .consumable)
-        let wallet = UUID()
-        guard case .success(.verified(let payment)) = try await topup.purchase(options: [.appAccountToken(wallet)]) else {
-            return XCTFail("Expected a verified commission top-up")
-        }
-        XCTAssertEqual(payment.appAccountToken, wallet)
-        await payment.finish()
-        XCTAssertEqual(session.allTransactions().count, 3)
+        XCTAssertEqual(session.allTransactions().count, 2)
     }
 }

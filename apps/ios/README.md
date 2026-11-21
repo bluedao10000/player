@@ -58,7 +58,6 @@ xcodebuild -project AnimeApp.xcodeproj -scheme AnimeApp-Prod -destination 'gener
 | 我的 → 邮箱验证码 | 复用网页发码、绑定及读者会话 | 登录凭据保存在设备钥匙串 |
 | 首次登录 → 合并或跳过 | 导入本机书架及段落或保留访客记录，登录已有账户可绑定其他方式 | reader_bookmarks、reader_positions |
 | 我的 → 会员 | StoreKit 2 拉取当前商店实际价格，可购买、恢复、重试未完成交易、查看 App Store 购买记录 | Gin 验证 Apple JWS 和 appAccountToken 后更新 PostgreSQL，H5 读取同一会员期和积分 |
-| 我的 → 约稿 | 使用已有预付账户访问码，购买 ¥20 约稿余额、下单、查看结果和下载原图 | 网页约稿服务，余额独立于会员积分 |
 | 发现 → 作品知识库 | 查询已收录的作品，打开已发布的作品世界 | 线上知识库 |
 | 章节 → 进入剧情 | 展示 H5 已提供的互动分支及选项，在本机记住选择 | 沿用对应故事的剧本 |
 
@@ -83,10 +82,9 @@ Universal Link 域名需要提供 apple-app-site-association，包含 W2NL88VWXP
 | com.kmszz.starWiki.plus.30days | 30 天 | ¥20 | 125 |
 | com.kmszz.starWiki.pro.30days | 30 天 | ¥99 | 625 |
 
-另建消耗型商品 com.kmszz.starWiki.commission.20，中国区目标价 ¥20，面值为人民币 20 元约稿余额。付款时使用已登录约稿钱包的 UUID 作为 appAccountToken。App 回执与服务器通知可分别先到。每笔交易只入账一次，退款写负流水，撤销退款写正流水。已消费的充值发生退款时，余额可为负，后续下单仍需通过可用余额检查。
 
-使用 App Store Server Notifications V2，将生产通知指向 https://www.codeiy.com/ios-account/native/store/notifications 。沙盒需单独的可访问部署、数据库和通知地址，建议使用 ios-sandbox.codeiy.com 单独承接沙盒。deploy/compose.ios-sandbox.yaml 建立独立 PostgreSQL 容器、卷、数据库、网络和 API，API 绑定本机 14421。设置独立的 IOS_SANDBOX_DB_PASSWORD，使用第二个 H5 实例并将 KNOWLEDGE_API_URL 指向 http://127.0.0.1:14421 ，沙盒域名和沙盒通知地址路由到该 H5。Apple 沙盒测试使用 AnimeApp-Sandbox，保留 App Store 商品所属的正式 Bundle ID，通过独立钥匙串条目访问沙盒账户；目录和图像仍从正式内容站读取。在沙盒新建测试读者和人民币约稿账户。生产默认只接受 Production。交易验证采用 Apple Root CA G3，检查签名链、应用、环境、商品类型和账户。设备仅在服务端入账成功后结束交易。恢复使用原始购买时间，退款和撤销退款使用已签名事件的先后顺序。
+使用 App Store Server Notifications V2，将生产通知指向 https://www.codeiy.com/ios-account/native/store/notifications 。沙盒需单独的可访问部署、数据库和通知地址，建议使用 ios-sandbox.codeiy.com 单独承接沙盒。deploy/compose.ios-sandbox.yaml 建立独立 PostgreSQL 容器、卷、数据库、网络和 API，API 绑定本机 14421。设置独立的 IOS_SANDBOX_DB_PASSWORD，使用第二个 H5 实例并将 KNOWLEDGE_API_URL 指向 http://127.0.0.1:14421 ，沙盒域名和沙盒通知地址路由到该 H5。Apple 沙盒测试使用 AnimeApp-Sandbox，保留 App Store 商品所属的正式 Bundle ID，通过独立钥匙串条目访问沙盒账户；目录和图像仍从正式内容站读取。在沙盒新建测试读者账户。生产默认只接受 Production。交易验证采用 Apple Root CA G3，检查签名链、应用、环境、商品类型和账户。设备仅在服务端入账成功后结束交易。恢复使用原始购买时间，退款和撤销退款使用已签名事件的先后顺序。
 
 ### 本地验收范围
 
-根目录运行 npm run check，并运行开发规范中的隔离 PostgreSQL 测试。测试环境保留数据库连接参数，取消本地 MATCH_AI_PROVIDER 与 TYPESAFE_API_KEY 的覆盖可使匹配测试使用其内置服务。使用 AnimeApp-Dev 连接本机 H5 和 Gin，执行 ⌘U。StoreTests 覆盖两档会员与消耗型约稿充值，分别检查读者和钱包的 UUID。服务端验签、重投、退款和权益期限另有 Go / PostgreSQL 测试。本地 StoreKit 测试收据与 App Store 沙盒签名相互独立。最终真机验收需要在已登记的微信客户端、真实 Apple 账号和已配置商品的 Apple 沙盒中完成。
+根目录运行 npm run check，并运行开发规范中的隔离 PostgreSQL 测试。测试环境保留数据库连接参数，取消本地 MATCH_AI_PROVIDER 与 TYPESAFE_API_KEY 的覆盖可使匹配测试使用其内置服务。使用 AnimeApp-Dev 连接本机 H5 和 Gin，执行 ⌘U。StoreTests 覆盖两档会员购买，检查交易绑定的读者 UUID。服务端验签、重投、退款和权益期限另有 Go / PostgreSQL 测试。本地 StoreKit 测试收据与 App Store 沙盒签名相互独立。最终真机验收需要在已登记的微信客户端、真实 Apple 账号和已配置商品的 Apple 沙盒中完成。

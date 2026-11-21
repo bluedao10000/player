@@ -1,0 +1,1 @@
+SELECT coalesce(jsonb_agg(to_jsonb(a)||jsonb_build_object('current_evidence',a.evidence=e.doc) ORDER BY a.id DESC),'[]') FROM knowledge_ai_match_assessments a LEFT JOIN (SELECT id,jsonb_build_object('reason',reason,'incoming',incoming,'candidates',candidates) doc FROM knowledge_match_evidence) e ON e.id=a.candidate_id WHERE a.candidate_id=$1

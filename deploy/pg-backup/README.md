@@ -27,7 +27,7 @@ pg_dump 与逐表计数使用同一导出快照。任务写入独立快照卷，
 2. 在仓库根目录构建节点架构对应的二进制，把二进制和 [Dockerfile](Reporter.Dockerfile) 复制到节点上的独立构建目录。当前节点为 linux/amd64。
 
    ```sh
-   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go -C apps/api build -trimpath -o /tmp/backup-report ./cmd/backup-report
+   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go -C apps/sync build -trimpath -o /tmp/backup-report ./cmd/backup-report
    ```
 
 3. 在节点构建目录制作镜像并导入 K3s。改版时同步更新镜像标签与 [CronJob](reporter.yaml) 的 image 字段。

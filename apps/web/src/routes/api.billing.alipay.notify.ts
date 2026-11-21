@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { readBody } from '../features/billing/proxy.server'
+import { readBody } from '../lib/request-body.server'
 
 export const Route = createFileRoute('/api/billing/alipay/notify')({
   server: {

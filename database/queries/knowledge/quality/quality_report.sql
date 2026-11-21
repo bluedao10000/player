@@ -1,0 +1,1 @@
+SELECT jsonb_build_object('works',count(*),'mean_score',round(avg(score),2),'issues',coalesce((SELECT jsonb_object_agg(rule_id,n) FROM (SELECT rule_id,count(*) n FROM knowledge_quality_issues JOIN scope ON entity_id=work_id WHERE status='open' GROUP BY 1) a),'{}')) FROM knowledge_quality_scores JOIN scope USING(work_id)

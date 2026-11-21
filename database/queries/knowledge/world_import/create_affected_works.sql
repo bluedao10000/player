@@ -1,0 +1,1 @@
+CREATE TEMP TABLE affected(work_id uuid PRIMARY KEY) ON COMMIT DROP

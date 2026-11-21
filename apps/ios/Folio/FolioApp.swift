@@ -94,7 +94,7 @@ struct DirectoryView: View {
             }
           }
           NavigationLink {
-            ReaderWebPage(section: .knowledge)
+            ReaderWebPage()
           } label: {
             Label("作品知识库", systemImage: "books.vertical").foregroundStyle(mist)
           }
@@ -152,11 +152,6 @@ struct MyShelf: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 26) {
         ReaderAccountPanel()
-        NavigationLink {
-          ReaderWebPage(section: .commissions)
-        } label: {
-          EntryRow(title: "我的约稿", subtitle: "私人试稿、订单与余额")
-        }
         if let last = shelf.records.recent.first {
           ReaderSection(title: "继续阅读") {
             NavigationLink(value: last.page) {

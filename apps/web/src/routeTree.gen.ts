@@ -11,9 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CharactersRouteImport } from './routes/characters'
-import { Route as CommissionsRouteImport } from './routes/commissions'
 import { Route as HealthzRouteImport } from './routes/healthz'
-import { Route as IosCommissionsRouteImport } from './routes/ios-commissions'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -30,7 +28,6 @@ import { Route as IosDataSplatRouteImport } from './routes/ios-data.$'
 import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as PlaySlugRouteImport } from './routes/play.$slug'
-import { Route as ReaderApiSplatRouteImport } from './routes/reader-api.$'
 import { Route as ReaderAuthSplatRouteImport } from './routes/reader-auth.$'
 import { Route as StorySlugRouteImport } from './routes/story.$slug'
 import { Route as WorkbenchArtFileRouteImport } from './routes/workbench-art.$file'
@@ -51,19 +48,9 @@ const CharactersRoute = CharactersRouteImport.update({
   path: '/characters',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CommissionsRoute = CommissionsRouteImport.update({
-  id: '/commissions',
-  path: '/commissions',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const HealthzRoute = HealthzRouteImport.update({
   id: '/healthz',
   path: '/healthz',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IosCommissionsRoute = IosCommissionsRouteImport.update({
-  id: '/ios-commissions',
-  path: '/ios-commissions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -146,11 +133,6 @@ const PlaySlugRoute = PlaySlugRouteImport.update({
   path: '/play/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReaderApiSplatRoute = ReaderApiSplatRouteImport.update({
-  id: '/reader-api/$',
-  path: '/reader-api/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ReaderAuthSplatRoute = ReaderAuthSplatRouteImport.update({
   id: '/reader-auth/$',
   path: '/reader-auth/$',
@@ -200,9 +182,7 @@ const WorkWorkKindSlugRoute = WorkWorkKindSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/characters': typeof CharactersRoute
-  '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
-  '/ios-commissions': typeof IosCommissionsRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -218,7 +198,6 @@ export interface FileRoutesByFullPath {
   '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
-  '/reader-api/$': typeof ReaderApiSplatRoute
   '/reader-auth/$': typeof ReaderAuthSplatRoute
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
@@ -233,9 +212,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/characters': typeof CharactersRoute
-  '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
-  '/ios-commissions': typeof IosCommissionsRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -251,7 +228,6 @@ export interface FileRoutesByTo {
   '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
-  '/reader-api/$': typeof ReaderApiSplatRoute
   '/reader-auth/$': typeof ReaderAuthSplatRoute
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
@@ -267,9 +243,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/characters': typeof CharactersRoute
-  '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
-  '/ios-commissions': typeof IosCommissionsRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -285,7 +259,6 @@ export interface FileRoutesById {
   '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
-  '/reader-api/$': typeof ReaderApiSplatRoute
   '/reader-auth/$': typeof ReaderAuthSplatRoute
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
@@ -302,9 +275,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/characters'
-    | '/commissions'
     | '/healthz'
-    | '/ios-commissions'
     | '/login'
     | '/me'
     | '/robots.txt'
@@ -320,7 +291,6 @@ export interface FileRouteTypes {
     | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
-    | '/reader-api/$'
     | '/reader-auth/$'
     | '/story/$slug'
     | '/workbench-art/$file'
@@ -335,9 +305,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/characters'
-    | '/commissions'
     | '/healthz'
-    | '/ios-commissions'
     | '/login'
     | '/me'
     | '/robots.txt'
@@ -353,7 +321,6 @@ export interface FileRouteTypes {
     | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
-    | '/reader-api/$'
     | '/reader-auth/$'
     | '/story/$slug'
     | '/workbench-art/$file'
@@ -368,9 +335,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/characters'
-    | '/commissions'
     | '/healthz'
-    | '/ios-commissions'
     | '/login'
     | '/me'
     | '/robots.txt'
@@ -386,7 +351,6 @@ export interface FileRouteTypes {
     | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
-    | '/reader-api/$'
     | '/reader-auth/$'
     | '/story/$slug'
     | '/workbench-art/$file'
@@ -402,9 +366,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CharactersRoute: typeof CharactersRoute
-  CommissionsRoute: typeof CommissionsRoute
   HealthzRoute: typeof HealthzRoute
-  IosCommissionsRoute: typeof IosCommissionsRoute
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -420,7 +382,6 @@ export interface RootRouteChildren {
   IosDataSplatRoute: typeof IosDataSplatRoute
   KnowledgeIdRoute: typeof KnowledgeIdRoute
   PlaySlugRoute: typeof PlaySlugRoute
-  ReaderApiSplatRoute: typeof ReaderApiSplatRoute
   ReaderAuthSplatRoute: typeof ReaderAuthSplatRoute
   StorySlugRoute: typeof StorySlugRoute
   WorkbenchArtFileRoute: typeof WorkbenchArtFileRoute
@@ -449,25 +410,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CharactersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/commissions': {
-      id: '/commissions'
-      path: '/commissions'
-      fullPath: '/commissions'
-      preLoaderRoute: typeof CommissionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/healthz': {
       id: '/healthz'
       path: '/healthz'
       fullPath: '/healthz'
       preLoaderRoute: typeof HealthzRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ios-commissions': {
-      id: '/ios-commissions'
-      path: '/ios-commissions'
-      fullPath: '/ios-commissions'
-      preLoaderRoute: typeof IosCommissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -582,13 +529,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reader-api/$': {
-      id: '/reader-api/$'
-      path: '/reader-api/$'
-      fullPath: '/reader-api/$'
-      preLoaderRoute: typeof ReaderApiSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reader-auth/$': {
       id: '/reader-auth/$'
       path: '/reader-auth/$'
@@ -658,9 +598,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CharactersRoute: CharactersRoute,
-  CommissionsRoute: CommissionsRoute,
   HealthzRoute: HealthzRoute,
-  IosCommissionsRoute: IosCommissionsRoute,
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
@@ -676,7 +614,6 @@ const rootRouteChildren: RootRouteChildren = {
   IosDataSplatRoute: IosDataSplatRoute,
   KnowledgeIdRoute: KnowledgeIdRoute,
   PlaySlugRoute: PlaySlugRoute,
-  ReaderApiSplatRoute: ReaderApiSplatRoute,
   ReaderAuthSplatRoute: ReaderAuthSplatRoute,
   StorySlugRoute: StorySlugRoute,
   WorkbenchArtFileRoute: WorkbenchArtFileRoute,

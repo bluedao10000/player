@@ -33,13 +33,13 @@ flowchart TB
 %% h5 | 服务器端 loader 获取作品、角色、章节和场景。 | apps/web/src/features/worlds/api.ts
 %% ios | SwiftUI 使用正式站公开 JSON，支持从场景回到段落。 | apps/ios/server/reader.server.ts
 %% bench | 观察来源、选题、编辑与发布结果。 | apps/web/src/features/workbench/feed.ts
-%% api | 在线 Gin 提供正式站公开读模型和读者业务。 | apps/api/internal/knowledge/world_api.go
-%% admin | 管理接口读取制作库的补集、模型用量及投递历史。 | apps/api/internal/knowledge/usage.go
-%% worker | 两类调度器从共享 PostgreSQL 领取任务。 | apps/api/cmd/knowledge-sync/production.go
-%% publish | timer 驱动跨库投递，接收端按源定稿指纹幂等。 | apps/api/cmd/reader-release/main.go
+%% api | 在线 Gin 提供正式站公开读模型和读者业务。 | apps/api/internal/handler/knowledge/world_api.go
+%% admin | 管理接口读取制作库的补集、模型用量及投递历史。 | apps/api/internal/handler/knowledge/usage.go
+%% worker | 两类调度器从共享 PostgreSQL 领取任务。 | apps/sync/internal/service/scheduler/production.go
+%% publish | timer 驱动跨库投递，接收端按源定稿指纹幂等。 | apps/sync/cmd/reader-release/main.go
 %% pi | 工具编排及模型步骤由 Pi Durable 执行。 | apps/agent/src/server.ts
 %% state | Pi 保存恢复执行所需的检查点。 | compose.yaml
 %% models | Kimi 文本走 Magpie，硅谷使用 OpenAI 图像和视觉模型。 | docs/模型用量与计费.md
 %% pg | 广州持有制作数据库，候选与已选媒体文件存于硅谷。 | docs/部署架构.md
-%% online | 阿里云在一个事务中安装单集投影并记录回执。 | apps/api/cmd/reader-release/import.sql
+%% online | 阿里云在一个事务中安装单集投影并记录回执。 | database/queries/release/import.sql
 %% backup | 从同一源快照导出、恢复并逐表核对，成功后切换库名。 | deploy/pg-backup/backup.sh

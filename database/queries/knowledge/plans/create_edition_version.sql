@@ -1,0 +1,2 @@
+WITH r AS (INSERT INTO knowledge_sync_runs(source_id,status,finished_at,remote_version,checksum,records_read,records_created) SELECT id,'success',now(),$1,$2,1,1 FROM knowledge_sources WHERE name='episode-plans' RETURNING id,source_id)
+  INSERT INTO knowledge_source_versions(source_id,version,checksum,metadata,run_id,parser_type,asset_name) SELECT source_id,$1,$2,$3,id,'episode-manifest',$1||'.json' FROM r RETURNING id

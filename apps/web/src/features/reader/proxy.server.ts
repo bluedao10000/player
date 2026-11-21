@@ -1,4 +1,4 @@
-import { readBody } from '../billing/proxy.server'
+import { readBody } from '../../lib/request-body.server'
 
 export async function authRequest(request: Request, path: string) {
   const headers = new Headers({

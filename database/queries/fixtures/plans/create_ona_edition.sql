@@ -1,0 +1,1 @@
+WITH k AS (INSERT INTO works(canonical_title,type,season_year,status,episodes) VALUES('fixture','ONA',2025,'FINISHED',6) RETURNING id) INSERT INTO work_sources SELECT id,'bangumi','527620','https://bgm.tv/subject/527620' FROM k

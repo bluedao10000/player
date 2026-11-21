@@ -18,10 +18,6 @@ import SwiftUI
   }
   func deliver(_ result: VerificationResult<StoreKit.Transaction>, shelf: Shelf) async throws {
     guard case .verified(let tx) = result else { throw AccountError.message("App Store 签名未通过验证。") }
-    if tx.productID == CommissionPurchase.productID {
-      try await CommissionPurchase.deliver(result)
-      return
-    }
     guard Self.identifiers.contains(tx.productID), let owner = shelf.user?.id,
       let id = UUID(uuidString: owner), tx.appAccountToken == id
     else { return }

@@ -12,11 +12,11 @@
   "scripts": {
     "dev": "dotenv -e .env -- concurrently --kill-others --names web,api,agent \"npm run dev:web\" \"npm run dev:api\" \"npm run dev:agent\"",
     "dev:web": "npm run dev -w @anime/web",
-    "dev:api": "dotenv -e .env -- go -C apps/api run .",
+    "dev:api": "dotenv -e .env -- go -C apps/api run ./cmd/api",
     "dev:agent": "npm run dev -w @anime/agent",
     "build:web": "npm run build -w @anime/web",
-    "check": "npm run build:web && npm run check --workspaces --if-present && cd apps/api && go vet ./... && go test ./...",
-    "knowledge:sync": "dotenv -e .env -- go -C apps/api run ./cmd/knowledge-sync -once"
+    "check": "npm run build:web && npm run check --workspaces --if-present && go -C database vet ./... && go -C database test ./... && go -C apps/api vet ./... && go -C apps/api test ./... && go -C apps/sync vet ./... && go -C apps/sync test ./...",
+    "knowledge:sync": "dotenv -e .env -- go -C apps/sync run ./cmd/sync -once"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

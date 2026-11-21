@@ -56,9 +56,6 @@
   font: 16px/1.55 var(--display);
   color: var(--muted);
 }
-.guest-commission-link {
-  margin-top: 24px;
-}
 .guest-feature small,
 .guest-books small {
   color: var(--cyan);
@@ -75,7 +72,7 @@
 .guest-books li > a,
 .guest-books li > div,
 .guest-empty,
-.guest-orders a {
+.guest-characters a {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -96,7 +93,7 @@
   overflow-wrap: anywhere;
 }
 .guest-books small,
-.guest-orders small {
+.guest-characters small {
   display: block;
   font-size: 12px;
 }
@@ -130,15 +127,15 @@
   align-items: flex-start;
   color: var(--muted);
 }
-.guest-orders {
+.guest-characters {
   margin-top: 32px;
 }
-.guest-orders a {
+.guest-characters a {
   justify-content: space-between;
   padding-block: 14px;
   border-block: 1px solid var(--line);
 }
-.guest-orders small {
+.guest-characters small {
   color: var(--muted);
 }
 @media (max-width: 650px) {
