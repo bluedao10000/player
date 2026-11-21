@@ -34,3 +34,14 @@ Mesh 节点使用 folio-guangzhou-knowledge 和 folio-siliconvalley-media。mesh
 4. 确认 SQL 成功后，硅谷才启用 database.mesh.env 作为 database.env，启动 folio-episode@media、folio-refresh@evidence.timer，并运行 folio-refresh@inventory.service 补录积压。核对第 4 集生产回执和五维验收状态。需要停用时先停硅谷媒体调度，再停端口转发容器，保留工作库和执行卷。
 
 Cloudflare API 的 WARP Write 管理节点与注册令牌。Zero Trust 组织开通、客户端设备配置和 Gateway 网络规则是另外的账户资源。3007 出现在节点主机向 Cloudflare 注册阶段；403 出现在管理令牌读取账户设置阶段。排查时分别记录两次请求，使用脱敏错误摘要。
+
+部署验收应检查运行中容器的挂载和文件内容。硅谷执行以下命令，两份摘要应一致，健康检查和取证定时器均应正常。旧容器可能在服务器文件更新后仍运行镜像内的旧脚本。[两部作品的补集验收](../../docs/运行记录/2026-11-21-配置式补集验收.md)
+
+```sh
+cd ~/folio-data
+sha256sum agent-src/media.ts
+sudo docker exec folio-pi-image sha256sum /app/apps/agent/src/media.ts
+curl -fsS http://127.0.0.1:4312/healthz
+systemctl is-active folio-episode@media folio-refresh@evidence.timer
+systemctl is-enabled folio-refresh@evidence.timer
+```
