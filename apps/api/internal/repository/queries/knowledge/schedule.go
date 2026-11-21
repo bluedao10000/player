@@ -7,7 +7,18 @@ import resources "anime-agent/api/internal/repository/queries"
 var scheduleSource string
 
 var (
+	CompleteReleasedPlans = scheduleSourceQueries["CompleteReleasedPlans"]
+	ResumeBudgetWait      = scheduleSourceQueries["ResumeBudgetWait"]
 	scheduleSourceQueries = resources.Statements(scheduleSource)
+	ReserveSubject        = scheduleSourceQueries["ReserveSubject"]
+	ClaimPlanDraft        = scheduleSourceQueries["ClaimPlanDraft"]
+	MarkPlanDrafting      = scheduleSourceQueries["MarkPlanDrafting"]
+	SettlePlanDraft       = scheduleSourceQueries["SettlePlanDraft"]
+	SavePlanDraft         = scheduleSourceQueries["SavePlanDraft"]
+	PlanDesk              = scheduleSourceQueries["PlanDesk"]
+	SubmitPlan            = scheduleSourceQueries["SubmitPlan"]
+	RevisePlan            = scheduleSourceQueries["RevisePlan"]
+	InspectPlanInventory  = scheduleSourceQueries["InspectPlanInventory"]
 	MatchEdition          = scheduleSourceQueries["MatchEdition"]
 	SavePolicy            = scheduleSourceQueries["SavePolicy"]
 	PauseUnadmittedTopics = scheduleSourceQueries["PauseUnadmittedTopics"]

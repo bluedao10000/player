@@ -13,9 +13,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	catalog "anime-agent/api/internal/model/knowledge"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 	"anime-agent/api/internal/repository/workbench"
 	domain "anime-agent/api/internal/service/knowledge"
-	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 var editorScopes = []catalog.EditorScope{{World: "naruto-tv-2002", Chapter: "enter-naruto", Name: "火影忍者 · 第 1 集"}, {World: "tidepost", Chapter: "night-courier", Name: "潮汐邮局 · 海风里的夜班邮差"}}
@@ -63,6 +63,53 @@ func editorRoutes(r *gin.Engine, admin *gin.RouterGroup, db *pgxpool.Pool) {
 		c.Set("operator", op)
 		c.Set("edit_hash", h[:])
 		c.Next()
+	})
+	g.GET("/plans", func(c *gin.Context) {
+		var data []byte
+		err := db.QueryRow(c.Request.Context(), queries.PlanDesk).Scan(&data)
+		writeJSON(c, data, err)
+	})
+	g.POST("/plans", func(c *gin.Context) {
+		var v struct {
+			ID          string `binding:"required,uuid"`
+			World       string `binding:"required,max=128"`
+			First       int    `binding:"min=1,max=100000"`
+			Last        int    `binding:"gtefield=First,max=100000"`
+			Budget      int64  `binding:"min=1"`
+			Instruction string `binding:"required,max=1400"`
+		}
+		if !editorRequest(c, &v) {
+			return
+		}
+		if v.Last-v.First >= 1000 {
+			c.Status(400)
+			return
+		}
+		_, err := db.Exec(c.Request.Context(), queries.SubmitPlan, v.ID, v.World, v.First, v.Last, v.Budget, v.Instruction, c.GetString("operator"))
+		if err != nil {
+			c.Status(409)
+			return
+		}
+		c.Status(204)
+	})
+	g.POST("/plans/:id/messages", func(c *gin.Context) {
+		var v struct {
+			Revision    int    `binding:"min=1"`
+			Instruction string `binding:"required,max=1400"`
+		}
+		if !editorRequest(c, &v) {
+			return
+		}
+		if !catalog.ValidUUID(c.Param("id")) {
+			c.Status(400)
+			return
+		}
+		tag, err := db.Exec(c.Request.Context(), queries.RevisePlan, c.Param("id"), v.Revision, v.Instruction, c.GetString("operator"))
+		if err != nil || tag.RowsAffected() != 1 {
+			c.Status(409)
+			return
+		}
+		c.Status(204)
 	})
 	g.POST("/logout", func(c *gin.Context) {
 		_, err := db.Exec(c.Request.Context(), queries.DeleteEditorSession, c.MustGet("edit_hash"))

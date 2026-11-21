@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import { join } from 'node:path'
@@ -167,12 +168,41 @@ function start(m: Meta, idempotencyKey?: string | null) {
   }
 }
 
+async function budgetDispatch(meta:Meta, init:RequestInit) {
+  const noop = async (_body?:Receipt, _complete?:boolean) => {}
+  if((process.env.EPISODE_CALL_BUDGET !== 'required' && !existsSync('/state/episode-budget.required')) || !/^(research|media):/.test(meta.subject))return noop
+  const call=randomUUID()
+  const endpoint='http://127.0.0.1:14328'
+  const post=(path:string,body:unknown)=>fetch(endpoint+path,{method:'POST',body:JSON.stringify(body),signal:AbortSignal.timeout(10000)})
+  const text=typeof init.body==='string'?init.body:''
+  const allowance=meta.purpose==='content'?Buffer.byteLength(text)+5120:16000
+  const result=await post('/reserve',{subject:meta.subject,call,step:meta.operation,allowance})
+  if(!result.ok)throw Error('分集预算未获预留 HTTP '+result.status)
+  const owner=await result.json()
+  if(owner==='unmanaged')return noop
+  if(meta.purpose!=='image'){
+    const payload=JSON.parse(text)
+    const limit=meta.purpose==='vision'?1024:4096
+    if('max_completion_tokens' in payload)payload.max_completion_tokens=limit
+    else if('input' in payload)payload.max_output_tokens=limit
+    else payload.max_tokens=limit
+    init.body=JSON.stringify(payload)
+  }
+  return async (body?:Receipt,complete=true)=>{
+    const u=body?.usage
+    const tokens=u?.total_tokens??(typeof u?.input_tokens==='number'&&typeof u.output_tokens==='number'?u.input_tokens+u.output_tokens:null)
+    const reply=await post('/settle',{owner,call,tokens:complete&&typeof tokens==='number'&&tokens>0?tokens:null})
+    if(!reply.ok)throw Error('分集用量结算失败，预留已保留')
+  }
+}
+
 // Consume the provider response once. Record it before image validation or review parsing.
 export async function modelJSON(
   meta: Meta,
   url: string,
   init: RequestInit,
 ): Promise<Receipt> {
+  const settle=await budgetDispatch(meta,init)
   const finish = start(meta, new Headers(init.headers).get('idempotency-key'))
   let res: Response | undefined,
     body: Receipt | undefined,
@@ -194,6 +224,7 @@ export async function modelJSON(
     complete = true
     return result
   } finally {
+    await settle(body,complete)
     finish(
       res,
       body,
@@ -206,15 +237,30 @@ export async function modelJSON(
 // Pi can perform multiple turns and transport retries for one durable step.
 // Observe each actual HTTP dispatch, including a final streaming usage receipt.
 export function streamFetch(meta: Meta): typeof fetch {
+  let sent = false
   return async (input, init) => {
+    if (meta.subject.startsWith('plan:')) {
+      if (sent) throw Error('再次规划调用需要独立预算预留')
+      if (typeof init?.body !== 'string' || Buffer.byteLength(init.body) > 12000)
+        throw Error('规划输入超过预留范围')
+      const payload = JSON.parse(init.body)
+      if ('max_completion_tokens' in payload) payload.max_completion_tokens = 2048
+      else if ('max_output_tokens' in payload || String(input).endsWith('/responses')) payload.max_output_tokens = 2048
+      else payload.max_tokens = 2048
+      init = {...init, body:JSON.stringify(payload)}
+      sent = true
+    }
     const url = new URL(input instanceof Request ? input.url : String(input))
     if (url.origin !== new URL(meta.base).origin)
       throw Error('模型请求地址与配置不一致')
+    init={...init}
+    const settle=await budgetDispatch(meta,init)
     const finish = start(meta)
     let res: Response
     try {
       res = await fetch(input, { ...init, redirect: 'error' })
     } catch (e) {
+      await settle(undefined,false)
       finish(undefined, undefined, false)
       throw e
     }
@@ -223,10 +269,12 @@ export function streamFetch(meta: Meta): typeof fetch {
         .clone()
         .json()
         .catch(() => undefined)
+      await settle(body)
       finish(res, body)
       return res
     }
     if (!res.body) {
+      await settle(undefined,false)
       finish(res, undefined, false)
       return res
     }
@@ -270,9 +318,10 @@ export function streamFetch(meta: Meta): typeof fetch {
         /* Truncated SSE frames have no authoritative usage. */
       }
     }
-    function end() {
+    async function end() {
       if (!closed) {
         closed = true
+        await settle(receipt,terminal)
         finish(res, receipt, terminal, providerFailed)
       }
     }
@@ -282,7 +331,7 @@ export function streamFetch(meta: Meta): typeof fetch {
           const { done, value } = await reader.read()
           if (done) {
             observe(line + decoder.decode())
-            end()
+            await end()
             c.close()
             return
           }
@@ -291,10 +340,10 @@ export function streamFetch(meta: Meta): typeof fetch {
           )
           line = lines.pop()!
           for (const l of lines) observe(l)
-          if (terminal) end()
+          if (terminal) await end()
           c.enqueue(value)
         } catch (e) {
-          end()
+          await end()
           c.error(e)
         }
       },
@@ -302,7 +351,7 @@ export function streamFetch(meta: Meta): typeof fetch {
         try {
           await reader.cancel(reason)
         } finally {
-          end()
+          await end()
         }
       },
     })

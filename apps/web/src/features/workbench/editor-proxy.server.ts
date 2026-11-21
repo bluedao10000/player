@@ -12,8 +12,8 @@ export async function editorRequest(req: Request, path: string) {
     post = req.method === 'POST'
   if (
     !(post
-      ? ['login', 'logout', 'tasks'].includes(path) || write.test(path)
-      : path === 'tasks' || read.test(path))
+      ? ['login', 'logout', 'tasks','plans'].includes(path) || write.test(path) || new RegExp("^plans/"+id+"/messages$").test(path)
+      : path === 'plans' || path === 'tasks' || read.test(path))
   )
     return reply(404)
   if (

@@ -119,7 +119,7 @@ const server = createServer(async (req, res) => {
     return
   }
   const edit =
-    /^\/internal\/editor\/([0-9a-f-]{36})\/(\d+)\/(\d+)\/(drafting|checking)$/.exec(
+    /^\/internal\/editor\/([0-9a-f-]{36})\/(\d+)\/(\d+)\/(drafting|checking|planning|configuration)$/.exec(
       req.url ?? '',
     )
   if (req.method === 'POST' && edit) {

@@ -35,3 +35,90 @@ WITH next AS (SELECT p.* FROM episode_plans p JOIN research_topics t ON t.id=p.t
     ORDER BY pol.priority DESC NULLS LAST,p.number,p.world_slug LIMIT 1), lease AS (
     INSERT INTO episode_capture_attempts(topic) SELECT topic FROM next RETURNING id)
     SELECT jsonb_build_object('lease',lease.id,'world',next.world_slug,'spec',next.spec) FROM next,lease
+
+-- name: PlanDesk
+SELECT jsonb_build_object('works',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',slug,'name',name,'edition',edition) ORDER BY name),'[]') FROM work_worlds),
+'plans',(SELECT coalesce(jsonb_agg(to_jsonb(r) || jsonb_build_object('episodes',(SELECT coalesce(jsonb_agg(jsonb_build_object('number',s.number,'title',s.spec->>'title','scene',s.spec->>'sceneName','research',research.stage,'attempt',research.attempt,'error',coalesce(rel.error,research.error),'accepted',a.passed,'receipt',rel.target_id,'href',rel.href,'elapsed',extract(epoch from coalesce(rel.finished_at,now())-s.created_at),'retries',(SELECT count(*) FROM media_steps m JOIN media_candidates c ON c.slot=m.slot JOIN episode_art_jobs j ON j.id=c.art_job WHERE j.world_slug=s.world_slug AND j.slug=s.spec->>'sceneSlug' AND m.error IS NOT NULL),'blocker',(SELECT m.error FROM media_steps m JOIN media_candidates c ON c.slot=m.slot JOIN episode_art_jobs j ON j.id=c.art_job WHERE j.world_slug=s.world_slug AND j.slug=s.spec->>'sceneSlug' AND c.stage='failed' ORDER BY m.started_at DESC LIMIT 1)) ORDER BY s.number),'[]')
+ FROM episode_request_specs s LEFT JOIN episode_plans p ON p.world_slug=s.world_slug AND p.number=s.number
+ LEFT JOIN LATERAL (SELECT stage,attempt,error FROM research_runs WHERE topic=p.topic ORDER BY started_at DESC LIMIT 1)research ON true
+ LEFT JOIN scope_heads h ON h.topic=p.topic LEFT JOIN scope_acceptances a ON a.id=h.latest
+ LEFT JOIN LATERAL (SELECT target_id,href,error,finished_at FROM reader_release_attempts WHERE topic=p.topic ORDER BY started_at DESC LIMIT 1)rel ON true
+ WHERE s.request_id=r.id),'calls',(SELECT coalesce(jsonb_agg(jsonb_build_object('stage',stage,'actual',actual,'seconds',extract(epoch from settled_at-created_at)) ORDER BY created_at),'[]') FROM episode_call_reservations WHERE request_id=r.id),'messages',(SELECT jsonb_agg(instruction ORDER BY revision) FROM episode_plan_messages WHERE request_id=r.id)) ORDER BY created_at DESC),'[]') FROM (SELECT * FROM episode_production_requests ORDER BY created_at DESC LIMIT 100) r))
+
+-- name: SubmitPlan
+WITH request AS (INSERT INTO episode_production_requests(id,world,first_episode,last_episode,token_limit)
+VALUES($1,$2,$3,$4,$5) RETURNING id,revision)
+INSERT INTO episode_plan_messages(request_id,revision,instruction,author) SELECT id,revision,$6,$7 FROM request
+
+-- name: RevisePlan
+WITH request AS (
+ SELECT * FROM episode_production_requests WHERE id=$1 AND revision=$2 AND reserved=0 FOR UPDATE
+), failed AS (
+ SELECT c.slot,c.round,last_step.step,last_step.attempt FROM request r JOIN episode_request_specs p ON p.request_id=r.id
+ JOIN episode_art_jobs j ON j.world_slug=p.world_slug AND j.slug=p.spec->>'sceneSlug' AND j.kind='scene'
+ JOIN media_candidates c ON c.art_job=j.id
+ JOIN LATERAL (SELECT step,attempt,error FROM media_steps WHERE slot=c.slot AND round=c.round ORDER BY started_at DESC LIMIT 1)last_step ON last_step.error=c.reason
+ WHERE r.stage='executing' AND r.paused_reason IS NULL AND r.token_limit-r.consumed>=16000 AND c.stage='failed'
+ AND last_step.step IN ('generate','review','recheck') AND $3 ~ '(续跑|重试)'
+ AND NOT EXISTS(SELECT FROM reader_release_attempts rel JOIN episode_plans ep ON ep.topic=rel.topic
+ WHERE ep.world_slug=p.world_slug AND ep.number=p.number AND rel.target_id IS NOT NULL)
+), resumed AS (
+ UPDATE media_candidates c SET stage=f.step,attempt=f.attempt+1,reason='',updated_at=now()
+ FROM failed f WHERE c.slot=f.slot AND c.stage='failed' RETURNING c.slot
+), updated AS (
+ UPDATE episode_production_requests p SET revision=r.revision+1,stage=CASE WHEN r.stage='executing' THEN 'executing' ELSE 'inventory' END,updated_at=now()
+ FROM request r WHERE p.id=r.id AND (EXISTS(SELECT FROM resumed) OR (r.stage IN ('inventory','blocked','planning','plan_validated')
+ AND (r.paused_reason IS NULL OR r.stage='blocked' AND r.paused_reason IN ('缺少有效作品盘点','范围内没有已确认的分集缺口')))) RETURNING p.id,p.revision)
+INSERT INTO episode_plan_messages(request_id,revision,instruction,author) SELECT id,revision,$3,$4 FROM updated
+
+-- name: InspectPlanInventory
+WITH candidate AS (SELECT * FROM episode_production_requests WHERE stage='inventory' AND (paused_reason IS NULL OR paused_reason IN ('缺少有效作品盘点','范围内没有已确认的分集缺口')) ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED),
+inventory AS (SELECT works FROM episode_inventory_snapshots WHERE checked_at>=now()-interval '48 hours' ORDER BY checked_at DESC LIMIT 1),
+scope AS (SELECT r.id,w.item,ARRAY(SELECT n FROM generate_series(r.first_episode,r.last_episode)n
+WHERE w.item->'missing' @> to_jsonb(ARRAY[n]) ORDER BY n) AS gaps FROM candidate r
+LEFT JOIN LATERAL (SELECT item FROM inventory,jsonb_array_elements(works)item WHERE item->>'slug'=r.world)w ON true)
+UPDATE episode_production_requests r SET gaps=s.gaps,updated_at=now(),
+stage=CASE WHEN s.item IS NULL OR cardinality(s.gaps)=0 THEN 'blocked' ELSE 'planning' END,
+paused_reason=CASE WHEN s.item IS NULL THEN '缺少有效作品盘点' WHEN cardinality(s.gaps)=0 THEN '范围内没有已确认的分集缺口' END
+FROM scope s WHERE r.id=s.id AND r.paused_reason IS DISTINCT FROM 'token_limit_reached'
+
+-- name: ClaimPlanDraft
+WITH job AS (SELECT * FROM episode_production_requests WHERE stage='planning' AND paused_reason IS NULL ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED),
+reservation AS MATERIALIZED (SELECT job.*,gen_random_uuid() AS call FROM job),
+claimed AS (SELECT *,reserve_episode_call(id,call,'planning',16000) AS ok FROM reservation)
+SELECT id,revision,call,gaps,jsonb_build_object('world',world,'gaps',gaps,'instructions',
+(SELECT jsonb_agg(instruction ORDER BY revision) FROM episode_plan_messages WHERE request_id=id))
+FROM claimed WHERE ok
+
+-- name: MarkPlanDrafting
+UPDATE episode_production_requests SET stage='drafting_plan',updated_at=now() WHERE id=$1
+
+-- name: SettlePlanDraft
+SELECT settle_episode_call($1,$2,$3)
+
+-- name: SavePlanDraft
+UPDATE episode_production_requests SET stage=$3,plan_brief=$4,updated_at=now()
+WHERE id=$1 AND revision=$2 AND stage='drafting_plan'
+
+-- name: ReserveSubject
+SELECT reserve_episode_subject($1,$2,$3,$4)
+
+-- name: ResumeBudgetWait
+WITH candidate AS (
+ SELECT c.slot,c.round,s.step,s.attempt FROM episode_request_specs p JOIN episode_production_requests r ON r.id=p.request_id
+ JOIN episode_art_jobs j ON j.world_slug=p.world_slug AND j.kind='scene' AND j.slug=p.spec->>'sceneSlug'
+ JOIN media_candidates c ON c.art_job=j.id
+ JOIN LATERAL (SELECT step,attempt,error FROM media_steps WHERE slot=c.slot AND round=c.round ORDER BY started_at DESC LIMIT 1)s ON s.error=c.reason
+ WHERE c.stage='failed' AND c.reason='分集预算未获预留 HTTP 429' AND r.paused_reason IS NULL
+ AND r.reserved=0 AND r.token_limit-r.consumed>=16000 AND s.attempt<100
+ ORDER BY c.updated_at LIMIT 1 FOR UPDATE OF c SKIP LOCKED)
+UPDATE media_candidates c SET stage=k.step,attempt=k.attempt+1,reason='',updated_at=now()
+FROM candidate k WHERE c.slot=k.slot AND k.step IN ('generate','review','recheck')
+
+-- name: CompleteReleasedPlans
+UPDATE episode_production_requests r SET stage='published',updated_at=now()
+WHERE stage='executing' AND reserved=0 AND cardinality(gaps)>0 AND NOT EXISTS (
+ SELECT FROM unnest(r.gaps)n WHERE NOT EXISTS (
+ SELECT FROM episode_request_specs s JOIN episode_plans p ON p.world_slug=s.world_slug AND p.number=s.number
+ JOIN reader_release_attempts receipt ON receipt.topic=p.topic AND receipt.target_id IS NOT NULL
+ WHERE s.request_id=r.id AND s.number=n))

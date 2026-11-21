@@ -1350,6 +1350,115 @@ CREATE TABLE backup_failed_attempts (
 );
 CREATE INDEX backup_attempts_by_job ON backup_failed_attempts(job_uid, finished_at);
 
+-- name: 050.sql
+CREATE TABLE episode_production_requests (
+    id uuid PRIMARY KEY,
+    world text NOT NULL,
+    first_episode integer NOT NULL CHECK (first_episode > 0),
+    last_episode integer NOT NULL CHECK (last_episode >= first_episode),
+    token_limit bigint NOT NULL CHECK (token_limit > 0),
+    consumed bigint NOT NULL DEFAULT 0 CHECK (consumed >= 0),
+    reserved bigint NOT NULL DEFAULT 0 CHECK (reserved >= 0),
+    paused_reason text,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE episode_production_requests ADD FOREIGN KEY(world) REFERENCES work_worlds(slug),
+    ADD COLUMN plan_brief text,
+    ADD COLUMN revision integer NOT NULL DEFAULT 1,
+    ADD COLUMN stage text NOT NULL DEFAULT 'inventory',
+    ADD COLUMN gaps integer[] NOT NULL DEFAULT '{}',
+    ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
+CREATE TABLE episode_plan_messages (
+    request_id uuid NOT NULL REFERENCES episode_production_requests(id),
+    revision integer NOT NULL,
+    instruction text NOT NULL,
+    author text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY(request_id,revision)
+);
+
+CREATE TABLE episode_call_reservations (
+    request_id uuid NOT NULL REFERENCES episode_production_requests(id),
+    call_id uuid NOT NULL,
+    stage text NOT NULL,
+    ceiling bigint NOT NULL CHECK (ceiling > 0),
+    actual bigint CHECK (actual >= 0),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    settled_at timestamptz,
+    PRIMARY KEY (request_id, call_id)
+);
+
+-- Each physical dispatch, including a retry, needs its own call ID.
+CREATE FUNCTION reserve_episode_call(req uuid, call_key uuid, step text, allowance bigint)
+RETURNS boolean LANGUAGE plpgsql AS $$
+DECLARE budget episode_production_requests%ROWTYPE;
+BEGIN
+    IF allowance IS NULL OR allowance <= 0 THEN RAISE EXCEPTION 'invalid call allowance'; END IF;
+    SELECT * INTO STRICT budget FROM episode_production_requests WHERE id=req FOR UPDATE;
+    IF budget.paused_reason IS NOT NULL OR EXISTS (
+        SELECT FROM episode_call_reservations WHERE request_id=req AND call_id=call_key
+    ) THEN RETURN false; END IF;
+    IF budget.token_limit-budget.consumed-budget.reserved < allowance THEN
+        -- An in-flight reservation can still return unused capacity.
+        IF budget.reserved=0 THEN
+            UPDATE episode_production_requests SET paused_reason='insufficient_remaining_tokens' WHERE id=req;
+        END IF;
+        RETURN false;
+    END IF;
+    INSERT INTO episode_call_reservations(request_id,call_id,stage,ceiling)
+        VALUES(req,call_key,step,allowance);
+    UPDATE episode_production_requests SET reserved=reserved+allowance WHERE id=req;
+    RETURN true;
+END $$;
+
+CREATE FUNCTION settle_episode_call(req uuid, call_key uuid, used_tokens bigint)
+RETURNS void LANGUAGE plpgsql AS $$
+DECLARE receipt episode_call_reservations%ROWTYPE;
+BEGIN
+    PERFORM 1 FROM episode_production_requests WHERE id=req FOR UPDATE;
+    SELECT * INTO STRICT receipt FROM episode_call_reservations WHERE request_id=req AND call_id=call_key FOR UPDATE;
+    IF receipt.settled_at IS NOT NULL THEN
+        IF used_tokens IS DISTINCT FROM receipt.actual THEN RAISE EXCEPTION 'conflicting call receipt'; END IF;
+        RETURN;
+    END IF;
+    IF used_tokens IS NULL THEN
+        UPDATE episode_production_requests SET paused_reason='missing_usage_receipt' WHERE id=req;
+        RETURN;
+    END IF;
+    UPDATE episode_call_reservations SET actual=used_tokens,settled_at=now() WHERE request_id=req AND call_id=call_key;
+    UPDATE episode_production_requests SET consumed=consumed+used_tokens,reserved=reserved-receipt.ceiling,
+        paused_reason=CASE WHEN consumed+used_tokens>=token_limit THEN 'token_limit_reached'
+                           WHEN used_tokens>receipt.ceiling THEN 'provider_exceeded_allowance'
+                           ELSE paused_reason END WHERE id=req;
+END $$;
+
+-- name: 051.sql
+CREATE TABLE episode_request_specs (
+ request_id uuid NOT NULL REFERENCES episode_production_requests(id),
+ revision int NOT NULL, world_slug text NOT NULL, number int NOT NULL,
+ spec jsonb NOT NULL, documents jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(request_id,revision,number), UNIQUE(world_slug,number)
+);
+CREATE FUNCTION reserve_episode_subject(subject text,call_key uuid,step text,allowance bigint)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
+DECLARE req uuid;
+BEGIN
+ SELECT DISTINCT s.request_id INTO req FROM episode_request_specs s JOIN episode_plans p
+ ON p.world_slug=s.world_slug AND p.number=s.number WHERE EXISTS(
+ SELECT FROM research_runs r WHERE r.topic=p.topic AND 'research:'||r.id=subject)
+ OR EXISTS(SELECT FROM media_candidates c JOIN episode_art_jobs j ON j.id=c.art_job
+ WHERE j.world_slug=s.world_slug AND j.kind='scene' AND j.slug=p.spec->>'sceneSlug'
+ AND split_part(subject,':',1)='media' AND split_part(subject,':',2)=c.slot::text);
+ IF req IS NULL THEN RETURN 'unmanaged'; END IF;
+ IF reserve_episode_call(req,call_key,step,allowance) THEN RETURN req::text; END IF;
+ RETURN 'paused';
+END $$;
+ALTER FUNCTION settle_episode_call(uuid,uuid,bigint) SECURITY DEFINER;
+ALTER FUNCTION settle_episode_call(uuid,uuid,bigint) SET search_path=pg_catalog,public;
+REVOKE ALL ON FUNCTION settle_episode_call(uuid,uuid,bigint) FROM PUBLIC;
+REVOKE ALL ON FUNCTION reserve_episode_subject(text,uuid,text,bigint) FROM PUBLIC;
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,49) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,51) i;
 COMMIT;

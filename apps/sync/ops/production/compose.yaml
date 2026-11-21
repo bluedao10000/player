@@ -14,6 +14,7 @@ services:
     container_name: folio-pi-research
     network_mode: host
     environment:
+      EPISODE_CALL_BUDGET: required
       AGENT_HOST: 127.0.0.1
       AGENT_DB_PATH: /state/agent.sqlite
       MAGPIE_BASE_URL: http://127.0.0.1:3425/v1
@@ -30,6 +31,7 @@ services:
     container_name: folio-pi-image
     network_mode: host
     environment:
+      EPISODE_CALL_BUDGET: required
       AGENT_HOST: 127.0.0.1
       AGENT_DB_PATH: /state/agent.sqlite
     env_file:

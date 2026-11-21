@@ -26,12 +26,13 @@ export async function editText(
   stage: string,
   input: string,
 ) {
+  const budgeted = stage === 'planning' || stage === 'configuration'
   const name = `editor-${id}-${round}-${attempt}-${stage}`
   if (active.has(name)) throw Error('任务正在执行')
   active.add(name)
   try {
     const models = createModels()
-    models.setProvider(contentProvider(id, stage, 'editor'))
+    models.setProvider(contentProvider(id, stage, budgeted ? 'plan' : 'editor', budgeted))
     const storage = await openNodeSqliteStorage(join(dir, name + '.sqlite'))
     const harness = await Harness.open(
       storage,
@@ -58,9 +59,11 @@ export async function editText(
             type: 'input',
             requestId: name,
             content:
-              rules +
-              '\n' +
-              (stage === 'drafting' ? writer : critic) +
+              (stage === 'configuration'
+                ? '依据输入的本集官方和指南句子生成制作配置。只输出 JSON 对象，字段 slug,title,intro,place,sceneSlug,sceneName,sceneBeat,setting:[设定词,段号],artBrief,people:[{slug,beat}],beats:[{kind,needle,question,officialSentence?}]。标题中文，slug 英文短横线。4至6个节点按时间排列，kind覆盖motive,turn,cause。needle必须从各不相同且依次递增的英文指南句子摘录连续原文。至少一项用officialSentence对应日语官方句子编号。question中文明确要写什么。所有编号从1开始。people只选输入已有角色，按段落定位。场景图与artBrief只选有据场景和参考肖像所示人物。只介绍作品情节。'
+                : stage === 'planning'
+                ? '你负责分集制作规划。依据给定的作品、已核实缺口和历次修订意见，只返回 JSON 对象 {"episodes":[集号],"brief":"下一阶段执行的取证与制作要求"}。集号必须等于 gaps，按升序排列。不要补写未经取证的剧情，不得变更预算、授权或发布门槛。五维固定为人物、剧情、世界观、时间线和图片。'
+                : rules + '\n' + (stage === 'drafting' ? writer : critic)) +
               '\n' +
               input,
           },
@@ -86,7 +89,8 @@ export async function editText(
         .trim()
       if (!text || msg.stopReason === 'length')
         throw Error('内容模型未返回完整修订，终止原因：' + msg.stopReason)
-      return JSON.parse(text.replace(/^`{3}(?:json)?\s*|\s*`{3}$/g, ''))
+      const value = JSON.parse(text.replace(/^`{3}(?:json)?\s*|\s*`{3}$/g, ''))
+      return budgeted ? { value, tokens: msg.usage?.totalTokens } : value
     } finally {
       await harness.close(ctx)
     }

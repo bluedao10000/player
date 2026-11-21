@@ -42,7 +42,9 @@ func versions() []migration {
 			return tx.Exec(section(version)).Error
 		}})
 	}
-	return append(steps, migration{"049.sql", addBackupAttempts})
+	return append(steps, migration{"049.sql", addBackupAttempts}, migration{"050.sql", func(tx *gorm.DB) error {
+		return tx.Exec(section("050.sql")).Error
+	}}, migration{"051.sql", func(tx *gorm.DB) error { return tx.Exec(section("051.sql")).Error }})
 }
 
 // Apply and the previous pgx migrator share a lock and immutable version IDs.
