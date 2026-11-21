@@ -19,3 +19,4 @@ GRANT INSERT ON research_events TO folio_media;
 GRANT USAGE ON SEQUENCE research_events_id_seq TO folio_media;
 GRANT SELECT ON episode_policies,episode_admissions,episode_capture_attempts TO folio_media;
 GRANT INSERT, UPDATE ON episode_capture_attempts TO folio_media;
+GRANT SELECT, INSERT, UPDATE ON reader_release_attempts TO folio_media;

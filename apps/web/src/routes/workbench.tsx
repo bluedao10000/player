@@ -158,6 +158,17 @@ function Board({ feed }: { feed: Awaited<ReturnType<typeof readFeed>> }) {
       <MediaGallery items={feed.media} batch="mio" />
       <ResearchHistory runs={feed.research} />
       <ProductionReport works={feed.usage} />
+      {feed.releases && feed.releases.length > 0 && <section className="wb-inventory">
+        <h2>正式站发布</h2>
+        {feed.releases.map(row => <details key={row.topic + (row.started_at ?? '')}>
+          <summary>{feed.inventory?.works.find(w => w.slug === row.world_slug)?.title ?? row.world_slug} · 第 {row.number} 集 · {row.status}</summary>
+          <p>{row.title} · 本集已计量 {row.measured_tokens} token</p>
+          {row.started_at && <p>发布开始 {time(row.started_at)}</p>}
+          {row.finished_at && row.started_at && <p>本次发布 {((Date.parse(row.finished_at) - Date.parse(row.started_at)) / 1000).toFixed(1)} 秒 · 自准入起 {((Date.parse(row.finished_at) - Date.parse(row.admitted_at)) / 60000).toFixed(1)} 分钟</p>}
+          {row.error && <p>{row.error}</p>}
+          {row.status === '线上已验证' && row.href && <a href={new URL(row.href, 'https://www.codeiy.com').href}>打开正式章节</a>}
+        </details>)}
+      </section>}
       {feed.queue && feed.queue.length>0 && <section className="wb-inventory">
         <h2>自动补集</h2>
         {feed.queue.map(row=><details key={row.world_slug+row.number}>

@@ -1,0 +1,8 @@
+[Unit]
+Description=Check for accepted Folio reader releases
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=30s
+AccuracySec=5s
+[Install]
+WantedBy=timers.target
