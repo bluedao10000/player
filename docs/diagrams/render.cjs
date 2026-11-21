@@ -5,6 +5,7 @@ const { chromium } = require('playwright')
 const docs = path.resolve(__dirname, '..')
 const views = [
   ['product', '产品架构', 'diagrams/product.mmd'],
+  ['features', '功能地图', 'diagrams/features.mmd'],
   ['business', '知识库构建流程', 'diagrams/business.mmd'],
   ['technology', '当前技术架构', 'architecture.mmd'],
   ['deployment', '当前网络与部署', 'diagrams/deployment.mmd'],
@@ -48,7 +49,7 @@ async function build() {
         return new XMLSerializer().serializeToString(template.content.querySelector('svg'))
       },{key,code,nodes})
       fs.writeFileSync(path.join(__dirname,key+'.svg'),svg)
-      if(backlogOnly||key==='product'||key==='business'){
+      if(backlogOnly||key==='product'||key==='business'||key==='features'){
         await page.evaluate(svg=>{document.body.innerHTML=svg},svg)
         await page.locator('svg').screenshot({path:path.join(__dirname,key+'.png')})
       }

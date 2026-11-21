@@ -1,0 +1,16 @@
+[Unit]
+Description=Folio Guangzhou image library
+After=network.target
+
+[Service]
+User=folio-image
+WorkingDirectory=/var/lib/folio-image
+ExecStart=/usr/local/bin/folio-image
+Restart=on-failure
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
