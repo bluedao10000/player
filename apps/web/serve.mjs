@@ -4,7 +4,7 @@ import { staticMiddleware } from 'srvx/static'
 import app from './dist/server/server.js'
 
 serve({
-  hostname: '127.0.0.1',
+  hostname: process.env.WEB_HOST ?? '127.0.0.1',
   port: Number(process.env.PORT ?? 4310),
   trustProxy: 'loopback',
   gracefulShutdown: true,
