@@ -1,9 +1,12 @@
+import legacyGuideParagraphs from './legacy-guide-paragraphs.json' with {type:'json'}
+import {readConfiguredOfficial, type SourceRules} from './configured-sources.ts'
 import { createHash } from 'node:crypto'
 import { defineTool } from '@earendil-works/pi-durable'
 import { obj } from '@earendil-works/pi-schema'
 import type { CheerioAPI } from 'cheerio'
 
 export interface EpisodePlan {
+  sourceRules?: SourceRules
   number: number
   sourceNumber?: number
   official: string
@@ -22,6 +25,7 @@ type Doc = { id: string; sentences: string[] }
 export function episodeSources(
   p: EpisodePlan,
   page: (url: string) => Promise<CheerioAPI>,
+  capture?: Awaited<ReturnType<typeof readEpisodeDocuments>>,
 ) {
   return defineTool({
     name: 'read_episode_sources',
@@ -29,7 +33,7 @@ export function episodeSources(
       '读取选题指定的官方分集与独立分集资料，校验标题和集号并保存原文句子。',
     parameters: obj({}),
     async execute(_, api) {
-      const docs = await readEpisodeDocuments(p, page)
+      const docs = capture ?? await readEpisodeDocuments(p, page)
       api.output(JSON.stringify(docs))
       return {}
     },
@@ -38,7 +42,7 @@ export function episodeSources(
 export async function readEpisodeDocuments(
   p: Pick<
     EpisodePlan,
-    'official' | 'guide' | 'number' | 'sourceNumber' | 'officialTitle' | 'guideTitle' | 'guideParagraphs'
+    'official' | 'guide' | 'number' | 'sourceNumber' | 'officialTitle' | 'guideTitle' | 'guideParagraphs' | 'sourceRules'
   >,
   page: (url: string) => Promise<CheerioAPI>,
 ) {
@@ -46,18 +50,24 @@ export async function readEpisodeDocuments(
     page(p.official),
     page(p.guide.split('#')[0]),
   ])
+  const bebop = !p.sourceRules && p.official === "https://www.cowboy-bebop.net/story/"
   const fromTbs = new URL(p.official).hostname === 'www.tbs.co.jp'
-  const film = p.official === 'https://lookback-anime.com/'
-  const apothecary = /^https:\/\/www\.animatetimes\.com\/news\/details\.php\?id=(1790842934|1791440404|1792047363)$/.test(p.official)
-  const council = p.number <= 3 && p.official === 'https://nama-anaru.com/episode/?id=' + p.number
+  const film = !p.sourceRules && p.official === 'https://lookback-anime.com/'
+  const apothecary = !p.sourceRules && new URL(p.guide).hostname === 'en.wikipedia.org' && /^https:\/\/www\.animatetimes\.com\/news\/details\.php\?id=\d{10}$/.test(p.official)
+  const council = !p.sourceRules && p.official === 'https://nama-anaru.com/episode/?id=' + p.number
   const sourceNumber = p.sourceNumber ?? p.number
-  const press = !council && Boolean(p.guideParagraphs?.length)
-  const japanese = fromTbs || film || apothecary || council || press
+  const press = !p.sourceRules && !council && Boolean(p.guideParagraphs?.length)
+  const japanese = !!p.sourceRules || bebop || fromTbs || film || apothecary || council || press
   const paragraphText = ($: CheerioAPI, selector: string) =>
     $(selector).toArray().map((x) => $(x).text().trim()).join(' ')
   const apTitle = site('.news-content h2').filter((_, el) => site(el).text() === p.officialTitle)
   const box = site('.storypage-wrap')
-  const item = press ? readPressSynopsis(site, p) : apothecary ? {
+  const item = p.sourceRules ? readConfiguredOfficial(site,p.sourceRules,sourceNumber,p.officialTitle) : bebop ? (() => {
+    const entry = site('.storybox').filter((_, el) => site(el).find('img').attr('alt')?.split(/\s+/)[0] === '#' + p.number)
+    if (entry.length !== 1) throw Error('星际牛仔官方分集编号不唯一')
+    const [label, ...title] = entry.find('img').attr('alt')!.split(/\s+/)
+    return {number: Number(label.slice(1)), title: title.join(' '), text: entry.find('.storytxt').text()}
+  })() : press ? readPressSynopsis(site, p) : apothecary ? {
     number: Number(apTitle.text().match(/第(\d+)話/)?.[1]),
     title: apTitle.text(),
     text: apTitle.next('h3').nextUntil('h2,h3','p').toArray().map((x) => site(x).text()).join(' '),
@@ -79,11 +89,9 @@ export async function readEpisodeDocuments(
   })()
   const row = wiki('#ep' + sourceNumber).closest('tr')
   const plot = wiki('#Plot')
-  const guideTitle = film ? plot.text().trim() : (council || press) ? wiki('h1').text() : row.find('.summary').text()
+  const guideTitle = p.sourceRules ? (p.sourceRules.guide === 'wiki-episode' ? row.find('.summary').text() : wiki('h1').first().text()) : film ? plot.text().trim() : (council || press) ? wiki('h1').text() : row.find('.summary').text()
   const councilParagraphs = wiki('.entry-content p.wp-block-paragraph').toArray().map((x) => wiki(x).text())
-  const councilEpisodeOne = ['主人公の水之江梅は', '1本目では、梅が', '仕事の説明でも', '2本目は、朝のあいさつ運動', 'そして全校集会での生徒会の発表', 'ところが発表の最後に映像のトラブルが起き']
-  const councilEpisodeTwo = ['1本目「メシアたん」は', '本題はここからでした', '2本目は、夜の校舎の見回り', '青く沈んだ夜の校舎', '3本目で、ついにこまろが登場', 'そして会長は、先生が梅を']
-  const councilSections = p.number === 2 ? councilEpisodeTwo : councilEpisodeOne
+  const councilSections = legacyGuideParagraphs[String(p.number) as keyof typeof legacyGuideParagraphs] ?? []
   const schoolSynopsis = councilParagraphs.filter((text) => councilSections.some((start) => text.startsWith(start))).join(' ')
   const paragraphs = plot.closest('section').children('p')
   const filmText = paragraphs.length ? paragraphs : plot.parent().nextUntil('h2,.mw-heading','p')
@@ -142,13 +150,13 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
     }
   }
   if (plan.official === 'https://anime-yukionna.af-original.com/story/') {
-    const first = site('#story1')
+    const first = site('#story'+plan.number)
     const number = Number(first.find('.story-title .title-num').text().trim().match(/^#(\d+)$/)?.[1])
     first.find('.story-title .title-num').remove()
     return { number, title: first.find('.story-title').text().trim(), text: first.find('.story-txt').text().trim() }
   }
   if (plan.official === 'https://darksummoner.deregula.com/story/') {
-    const first = site('#js_story .story').filter((_, node) => site(node).find('.story_num span').text().trim() === '1')
+    const first = site('#js_story .story').filter((_, node) => site(node).find('.story_num span').text().trim() === String(plan.number))
     const main = first.find('.story_foot').first()
     return {
       number: first.length === 1 ? Number(first.find('.story_num span').text()) : NaN,
@@ -179,9 +187,9 @@ function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' 
   }
   if (plan.official === 'https://fxkurumi-info.com/story/episodes.json') {
     const records: { epID?: string; title?: string; text?: string }[] = JSON.parse(site.root().text())
-    const second = records.find((entry) => entry.epID === '02')
+    const second = records.find((entry) => Number(entry.epID) === plan.number)
     if (typeof second?.title !== 'string' || typeof second.text !== 'string')
-      throw Error('官方分集数据缺少第 2 集')
+      throw Error('官方分集数据缺少本集')
     return { number: Number(second.epID), title: second.title, text: second.text }
   }
   if (plan.official === 'https://romelia-senki.com/news/episode_data') {

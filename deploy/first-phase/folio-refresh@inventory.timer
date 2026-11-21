@@ -1,0 +1,8 @@
+[Unit]
+Description=Check published works against current episode schedules daily
+[Timer]
+OnCalendar=*-*-* 06:00:00 Asia/Shanghai
+Persistent=true
+Unit=folio-refresh@inventory.service
+[Install]
+WantedBy=timers.target

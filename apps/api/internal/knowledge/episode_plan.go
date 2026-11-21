@@ -18,9 +18,12 @@ import (
 type planCast struct {
 	Slug, Name, Role string
 	Beat             int
+	ReusePortrait    bool
 	Portrait         json.RawMessage
 }
+type sourceRules struct{ Entry, Heading, Attribute, Body, Guide string }
 type episodeSpec struct {
+	SourceRules                                                                                 *sourceRules
 	Number, SceneBeat, SourceNumber                                                             int
 	Slug, Title, Intro, OfficialTitle, GuideTitle, Official, Guide, SceneSlug, SceneName, Place string
 	People                                                                                      []planCast
@@ -33,6 +36,7 @@ type episodeSpec struct {
 	Setting         []json.RawMessage
 }
 type editionPlan struct {
+	Automation                                               *episodePolicy
 	World, Title, Edition, Provider, ExternalID, Intro, Type string
 	Complete                                                 bool
 	Year                                                     int
@@ -52,6 +56,42 @@ func (e episodeSpec) validate() error {
 	if e.Number < 1 || !planSlug.MatchString(e.Slug) || !planSlug.MatchString(e.SceneSlug) || e.Title == "" || e.SceneName == "" || e.Place == "" || e.Intro == "" {
 		return errors.New("缺少集号、稳定路由、标题或场景")
 	}
+	if e.SourceRules != nil {
+		if err := e.validateRules(); err != nil {
+			return err
+		}
+	} else if err := e.validateLegacySources(); err != nil {
+		return err
+	}
+	if e.GuideTitle == "" {
+		return errors.New("分集指南缺少标题")
+	}
+	if len(e.Beats) < 4 || len(e.Beats) > 6 || e.SceneBeat < 1 || e.SceneBeat > len(e.Beats) || len(e.People) == 0 {
+		return errors.New("需要人物、4–6 个剧情节点和有效场景段号")
+	}
+	kinds, needles := map[string]bool{}, map[string]bool{}
+	officialQuote := false
+	for _, b := range e.Beats {
+		if b.Needle == "" || needles[b.Needle] || b.Question == "" || (b.Kind != "motive" && b.Kind != "turn" && b.Kind != "cause") {
+			return errors.New("剧情节点缺少唯一的原文片段或取证问题")
+		}
+		kinds[b.Kind] = true
+		needles[b.Needle] = true
+		officialQuote = officialQuote || b.OfficialSentence > 0
+	}
+	if len(kinds) != 3 || !officialQuote {
+		return errors.New("剧情节点应覆盖动机、转折、因果并定位至少一处官方原文")
+	}
+	var term string
+	var beat int
+	if len(e.Setting) != 2 || json.Unmarshal(e.Setting[0], &term) != nil || term == "" || json.Unmarshal(e.Setting[1], &beat) != nil || beat < 1 || beat > len(e.Beats) {
+		return errors.New("世界设定缺少有效段号")
+	}
+	return nil
+}
+
+// Legacy manifests are immutable, including the source checks used at registration.
+func (e episodeSpec) validateLegacySources() error {
 	official, err := url.Parse(e.Official)
 	tbsPath := fmt.Sprintf("/anime/takopi_project/series/story/story%02d.html", e.Number)
 	if e.Number == 6 {
@@ -81,7 +121,8 @@ func (e episodeSpec) validate() error {
 	fxSecond := e.Number == 2 && e.Official == "https://fxkurumi-info.com/story/episodes.json"
 	witchSecond := e.Number == 2 && e.Official == "https://www.b-ch.com/titles/9932/002"
 	press := len(e.GuideParagraphs) > 0 && (pressRelease || itemPremiere || romelia || aniplex || yukionnaPremiere || lastBossPremiere || lastBossSecond || yukionnaSecond || darkSummonerPremiere || darkSummonerSecond || fxSecond || witchSecond) && official.Fragment == ""
-	if !naruto && !takopi && !lookBack && !apothecary && !council && !press {
+	bebop := e.Official == "https://www.cowboy-bebop.net/story/" && e.Guide == fmt.Sprintf("https://en.wikipedia.org/wiki/List_of_Cowboy_Bebop_episodes#ep%d", e.Number) && e.SourceNumber == 0
+	if !bebop && !naruto && !takopi && !lookBack && !apothecary && !council && !press {
 		return errors.New("官方来源或标题无效")
 	}
 	guide, err := url.Parse(e.Guide)
@@ -132,30 +173,6 @@ func (e episodeSpec) validate() error {
 		}
 	} else if err != nil || guide.Scheme != "https" || guide.Host != "en.wikipedia.org" || !strings.HasPrefix(guide.Path, "/wiki/") || guide.Fragment != guideAnchor {
 		return errors.New("分集指南与集号不一致")
-	}
-	if e.GuideTitle == "" {
-		return errors.New("分集指南缺少标题")
-	}
-	if len(e.Beats) < 4 || len(e.Beats) > 6 || e.SceneBeat < 1 || e.SceneBeat > len(e.Beats) || len(e.People) == 0 {
-		return errors.New("需要人物、4–6 个剧情节点和有效场景段号")
-	}
-	kinds, needles := map[string]bool{}, map[string]bool{}
-	officialQuote := false
-	for _, b := range e.Beats {
-		if b.Needle == "" || needles[b.Needle] || b.Question == "" || (b.Kind != "motive" && b.Kind != "turn" && b.Kind != "cause") {
-			return errors.New("剧情节点缺少唯一的原文片段或取证问题")
-		}
-		kinds[b.Kind] = true
-		needles[b.Needle] = true
-		officialQuote = officialQuote || b.OfficialSentence > 0
-	}
-	if len(kinds) != 3 || !officialQuote {
-		return errors.New("剧情节点应覆盖动机、转折、因果并定位至少一处官方原文")
-	}
-	var term string
-	var beat int
-	if len(e.Setting) != 2 || json.Unmarshal(e.Setting[0], &term) != nil || term == "" || json.Unmarshal(e.Setting[1], &beat) != nil || beat < 1 || beat > len(e.Beats) {
-		return errors.New("世界设定缺少有效段号")
 	}
 	return nil
 }
@@ -272,6 +289,16 @@ func registerEdition(ctx context.Context, tx pgx.Tx, w editionPlan) error {
 			p, ok := cast[c.Slug]
 			if !ok || c.Name != p.Name || c.Beat < 1 || c.Beat > len(e.Beats) {
 				return fmt.Errorf("第 %d 集的人物定位无效", e.Number)
+			}
+			if p.ReusePortrait {
+				var found bool
+				if err = tx.QueryRow(ctx, "SELECT EXISTS(SELECT FROM edition_reader_art WHERE world_slug=$1 AND kind='character' AND item_slug=$2)", w.World, p.Slug).Scan(&found); err != nil {
+					return err
+				}
+				if !found {
+					return fmt.Errorf("缺少待复用的肖像 %s/%s", w.World, p.Slug)
+				}
+				continue
 			}
 			if err = registerArt(ctx, tx, w, "portrait", p.Slug, p.Name, 0, p.Portrait); err != nil {
 				return err
@@ -459,6 +486,63 @@ func AcceptPlannedEpisodes(ctx context.Context, db *pgxpool.Pool) error {
 		if err != nil {
 			return fmt.Errorf("%s: %w", topic, err)
 		}
+	}
+	return nil
+}
+
+// These are publisher origins, not a per-episode URL whitelist. The database
+// stores the edition, source pair, DOM rules and independently printed titles.
+func (e episodeSpec) validateRules() error {
+	r := e.SourceRules
+	official, err := url.Parse(e.Official)
+	if err != nil || official.Scheme != "https" || official.User != nil || official.Fragment != "" || official.Path == "" {
+		return errors.New("官方来源无效")
+	}
+	switch official.Host {
+	case "www.cowboy-bebop.net", "mantan-web.jp", "www.animatetimes.com", "www.tbs.co.jp", "naruto-official.com", "nama-anaru.com", "www.aniplex.co.jp", "lookback-anime.com", "www.lastboss-anime.com", "fxkurumi-info.com", "romelia-senki.com", "www.b-ch.com", "animestore.docomo.ne.jp", "toaru-project.com", "anime-yukionna.af-original.com", "darksummoner.deregula.com":
+	default:
+		return errors.New("未登记的来源站点")
+	}
+	for _, s := range []string{r.Entry, r.Heading, r.Body, e.OfficialTitle} {
+		if len(s) == 0 || len(s) > 512 {
+			return errors.New("缺少来源定位或标题")
+		}
+	}
+	if r.Attribute != "" && r.Attribute != "alt" && r.Attribute != "title" && r.Attribute != "content" {
+		return errors.New("来源标题属性无效")
+	}
+	guide, err := url.Parse(e.Guide)
+	if err != nil || guide.Scheme != "https" || guide.User != nil || guide.RawQuery != "" {
+		return errors.New("分集资料无效")
+	}
+	n := e.Number
+	if e.SourceNumber != 0 {
+		n = e.SourceNumber
+	}
+	if n < 1 {
+		return errors.New("无效来源集号")
+	}
+	switch r.Guide {
+	case "wiki-episode":
+		if guide.Host != "en.wikipedia.org" || !strings.HasPrefix(guide.Path, "/wiki/") || guide.Fragment != fmt.Sprintf("ep%d", n) || len(e.GuideParagraphs) > 0 {
+			return errors.New("分集资料锚点与来源集号不符")
+		}
+	case "paragraphs":
+		switch guide.Host {
+		case "2jigen-otaku.com", "sayo.blog", "ani-chara.net", "tv-times.jp", "saisokustory.com", "animenoyakata.com", "anime-no-mikata.com", "mahoyaku.net", "biwaochan-blog.com":
+		default:
+			return errors.New("未登记的分集资料站点")
+		}
+		if guide.Fragment != "" || len(e.GuideParagraphs) < 3 || len(e.GuideParagraphs) > 18 {
+			return errors.New("分集资料需要 3–18 个段落定位")
+		}
+		for _, start := range e.GuideParagraphs {
+			if len(strings.TrimSpace(start)) < 8 || len(start) > 320 {
+				return errors.New("无效段落定位")
+			}
+		}
+	default:
+		return errors.New("未知分集资料解析规则")
 	}
 	return nil
 }

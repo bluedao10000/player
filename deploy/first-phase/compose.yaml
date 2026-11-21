@@ -1,0 +1,46 @@
+name: folio-data
+services:
+  postgres:
+    profiles: [guangzhou]
+    image: postgres:17-alpine
+    container_name: folio-postgres
+    restart: unless-stopped
+    env_file: [./postgres.env]
+    ports: ["127.0.0.1:15432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  research:
+    profiles: [guangzhou]
+    image: folio/pi:phase1
+    container_name: folio-pi-research
+    network_mode: host
+    environment:
+      AGENT_HOST: 127.0.0.1
+      AGENT_DB_PATH: /state/agent.sqlite
+      MAGPIE_BASE_URL: http://127.0.0.1:3425/v1
+      CONTENT_AI_MODE: magpie
+      MAGPIE_CONTENT_MODEL: volcengine/kimi-k3.1-pro
+    restart: unless-stopped
+    volumes:
+      - ./agent-src:/app/apps/agent/src:ro
+      - ./state:/state
+      - ./media:/media
+  image:
+    profiles: [silicon-valley]
+    image: folio/pi:phase1
+    container_name: folio-pi-image
+    network_mode: host
+    environment:
+      AGENT_HOST: 127.0.0.1
+      AGENT_DB_PATH: /state/agent.sqlite
+    env_file:
+      - path: ./pi.env
+        required: false
+    restart: unless-stopped
+    volumes:
+      - ./agent-src:/app/apps/agent/src:ro
+      - ./state:/state
+      - ./media:/media
+      - ./art/mio-invitation.webp:/mio-reference.webp:ro
+volumes:
+  pgdata:
+    name: folio-knowledge-pg17

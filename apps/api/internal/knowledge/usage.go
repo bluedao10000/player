@@ -14,6 +14,14 @@ var productionUsage string
 
 // The usage endpoints use the same half-open UTC window and server-side admin guard.
 func usageRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
+	g.GET("/episode-queue", func(c *gin.Context) {
+		queryJSON(c, db, `SELECT coalesce(jsonb_agg(to_jsonb(q)||jsonb_build_object('capture_failures',
+  (SELECT jsonb_agg(jsonb_build_object('at',finished_at,'reason',error) ORDER BY finished_at)
+   FROM episode_capture_attempts a WHERE a.topic=q.topic AND a.error IS NOT NULL)) ORDER BY priority DESC,number,world_slug),'[]') FROM episode_policy_queue q`)
+	})
+	g.GET("/episode-inventory", func(c *gin.Context) {
+		queryJSON(c, db, `SELECT coalesce(jsonb_agg(jsonb_build_object('checked',checked_at,'works',works)),'[]') FROM (SELECT * FROM episode_inventory_snapshots ORDER BY checked_at DESC LIMIT 1)s`)
+	})
 	g.GET("/production-usage", func(c *gin.Context) {
 		n := limit(c)
 		if n > 0 {

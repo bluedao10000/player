@@ -1,0 +1,21 @@
+-- Execute as the database owner after creating the folio_media login.
+GRANT CONNECT ON DATABASE folio TO folio_media;
+GRANT USAGE ON SCHEMA public TO folio_media;
+GRANT SELECT ON knowledge_migrations, episode_plans, episode_art_jobs,
+  episode_extensions, research_runs, research_topics, published_worlds,
+  visible_reader_scopes, work_worlds, edition_reader_intros, edition_reader_art,
+  edition_reader_chapters, work_chapters, work_characters, work_scenes,
+  chapter_appearances, work_storyline_chapters, media_withdrawals,
+  scope_heads, scope_acceptances, media_steps, media_candidates, model_calls,
+  episode_source_captures, episode_inventory_snapshots TO folio_media;
+GRANT INSERT, UPDATE ON media_steps, edition_reader_art, scope_heads, model_calls,
+  episode_source_captures TO folio_media;
+GRANT UPDATE ON media_candidates TO folio_media;
+GRANT UPDATE (policy) ON research_topics TO folio_media;
+GRANT UPDATE (image) ON work_worlds TO folio_media;
+GRANT INSERT ON scope_acceptances, episode_inventory_snapshots TO folio_media;
+GRANT USAGE ON SEQUENCE scope_acceptances_id_seq, model_calls_seq_seq TO folio_media;
+GRANT INSERT ON research_events TO folio_media;
+GRANT USAGE ON SEQUENCE research_events_id_seq TO folio_media;
+GRANT SELECT ON episode_policies,episode_admissions,episode_capture_attempts TO folio_media;
+GRANT INSERT, UPDATE ON episode_capture_attempts TO folio_media;

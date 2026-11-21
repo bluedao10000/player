@@ -1,0 +1,8 @@
+[Unit]
+Description=Check for new episode source captures
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=5min
+Unit=folio-refresh@evidence.service
+[Install]
+WantedBy=timers.target

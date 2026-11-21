@@ -153,7 +153,9 @@ async function configuredReference(j: Job): Promise<Result> {
   if (
     url.protocol !== 'https:' ||
     url.username || url.password ||
-    !(['cmsapi-frontend.naruto-official.com', 'lain.bgm.tv'].includes(url.host)
+    !((url.href === 'https://www.codeiy.com/art/bebop/spike.webp' && a.series === '星际牛仔')
+      || (url.host === 'www.codeiy.com' && /^\/art\/portraits\/[a-f0-9]{64}\.webp$/.test(url.pathname) && url.pathname.endsWith('/' + a.sourceSHA + '.webp'))
+      || ['cmsapi-frontend.naruto-official.com', 'lain.bgm.tv'].includes(url.host)
       || (url.host === 'img2.animatetimes.com' && /^\/2026\/(07|09|10|11)\//.test(url.pathname))
       || (url.host === 'nama-anaru.com' && (/^\/teaser_assets\/img\/(episode|chara)\//.test(url.pathname) || /^\/episode\/SYS\/CONTENTS\/story_\d+_photo_\d+$/.test(url.pathname)))
       || (url.host === 'toaru-project.com' && /^\/item\/core_sys\/images\/contents\/\d+\/block\/\d+\/\d+\.jpg$/.test(url.pathname))

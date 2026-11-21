@@ -20,6 +20,7 @@ func main() {
 	source := flag.String("source", "", "optional source name")
 	refresh := flag.Bool("refresh", false, "with -once: revalidate and reconcile the current snapshot")
 	resumeImages := flag.String("resume-image-work", "", "requeue failed image provider requests for one work after upstream recovery")
+	lane := flag.String("episode-lane", "", "run the research or media episode scheduler against its local Pi")
 	flag.Parse()
 	if *refresh && !*once {
 		log.Fatal("-refresh requires -once")
@@ -31,6 +32,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	if *lane != "" {
+		runProductionLane(ctx, db, *lane, os.Getenv("KNOWLEDGE_RESEARCH_URL"))
+		return
+	}
 	if *resumeImages != "" {
 		count, err := knowledge.ResumeImageProviderFailures(ctx, db, *resumeImages)
 		if err != nil {

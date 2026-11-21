@@ -1,29 +1,27 @@
 flowchart TB
-    subgraph local["已实现 · 单机开发环境"]
-      browser["宿主机浏览器"] -->|4310| web["H5 SSR"]
-      web -->|127.0.0.1:4321 → 4311| api["Compose · api"]
-      api -->|5432| pg[("postgres")]
-      sync["Compose · sync"] -->|5432| pg
-      sync -->|内部 4312| pi["research-agent"]
-      api --- vols["本地归档与媒体卷"]
-      sync --- vols
-      pi --- vols
+    reader["H5 与 iOS 读者"] -->|HTTPS| ali["阿里云 · 公开读模型"]
+    subgraph gz["腾讯云广州 · 已运行"]
+      w["Go 研究调度器"] -->|研究请求| pi["Pi Durable · Magpie / 火山 Kimi"]
+      w -->|快照、稿件、用量| pg[("PostgreSQL 17 · 制作库")]
     end
-    subgraph cloud["待部署 · 双云目标"]
-      ali["阿里云 · H5 / Gin"] -.-> cloudpg[("建议阿里云 PostgreSQL")]
-      tencent["腾讯云 · 数据服务 / Pi"] -.->|私网 TLS| cloudpg
-      tencent -.->|写入与分发| assets["共享或复制已发布资产"]
-      ali -.->|按摘要读取| assets
+    subgraph sv["腾讯云硅谷"]
+      q["已运行 · 每日盘点 / 来源采集"] --> out["已运行 · 本机快照"]
+      m["已运行 · 媒体调度与五维验收"] -->|参考图与裁切| img["Pi Durable · OpenAI 已就绪"]
+      m -->|仅在本机可用| sock["受限 Unix socket"]
     end
-    local ~~~ cloud
-%% browser | 阅读和工作台共用本地 H5，端口可配置。 | apps/web/vite.config.ts
-%% web | H5 在宿主机运行，通过宿主机回环映射访问 Gin。 | packages/shared/knowledge.ts
-%% api | 对宿主机只绑定 127.0.0.1。内部服务名为 api。 | compose.yaml
-%% pg | 容器内为 5432，本机管理端口默认为 5434。 | compose.yaml
-%% sync | 常驻 worker 读取分集清单，出站取来源并调用内部 Agent。 | compose.yaml
-%% pi | 4312 只在 Compose 网络内使用；状态卷、媒体卷分别持久化。 | compose.yaml
-%% vols | Gin 和 sync 读取媒体；Pi 写媒体。sync 保存快照与场景衍生图。 | compose.yaml
-%% ali | 阿里云承载在线 API；H5 与主库靠近读侧是建议布局。 | docs/部署架构.md
-%% cloudpg | 跨云前需独立凭据、证书校验及可恢复备份。 | docs/部署架构.md
-%% tencent | 数据服务放腾讯云，Pi 同地是目标方案；云主机尚未配置。 | docs/部署架构.md
-%% assets | 本机卷须替换为跨机可读资产，发布前验证摘要与可达性。 | docs/部署架构.md
+    sock -->|两端已注册 · 跨机 SQL 已验证| mesh["Cloudflare Mesh"]
+    mesh -->|仅硅谷节点可访问 TCP 5432| pg
+    out -.->|定时补录经同一连接| sock
+    pg -.->|验收后增量发布| ali
+    img -.->|入选文件校验后同步| ali
+%% reader | 读者使用原有作品、章节及段落链接。 | apps/ios/README.md
+%% ali | 正式站经原有 Cloudflare Tunnel 提供公开 H5 与 iOS 接口。 | docs/部署架构.md
+%% w | 广州将选题、来源、研究结果和模型回执写入制作库。 | apps/api/cmd/knowledge-sync/production.go
+%% pi | 广州 Pi 在本机调用 Magpie 火山 Kimi，经实调完成第 4 集写作和复核。 | apps/agent/src/research.ts
+%% pg | 共享制作状态的权威数据库。宿主机管理端口仅监听回环。 | deploy/first-phase/compose.yaml
+%% q | 硅谷从公共来源读取分集快照；盘点定时器每天北京时间 06:00 启动。 | deploy/first-phase/refresh.sh
+%% out | 数据库连接暂不可用时留存盘点快照。 | deploy/first-phase/refresh.sh
+%% m | 硅谷调度 OpenAI 生成与验图，检验原图、裁切和角色肖像。 | apps/api/cmd/knowledge-sync/production.go
+%% img | 图片与验图模型凭据位于硅谷。第 4 集三张候选均首轮通过，制作库已选候选 1。 | apps/agent/src/media.ts
+%% sock | 硅谷本机 worker 通过目录权限和专用数据库身份访问制作库。 | deploy/first-phase/mesh/compose.yaml
+%% mesh | 两端节点已连接。硅谷经 100.96.0.2 到广州 100.96.0.1 完成数据库查询。仅广州接收硅谷 Mesh IP 的数据库流量。 | deploy/first-phase/mesh/compose.yaml

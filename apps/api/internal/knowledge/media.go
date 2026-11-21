@@ -192,7 +192,7 @@ func SyncMedia(ctx context.Context, db *pgxpool.Pool, base string) error {
 		return err
 	}
 	defer pc.Exec(context.Background(), "SELECT pg_advisory_unlock(82045120)")
-	rows, err := pc.Query(ctx, `SELECT (SELECT spec FROM episode_art_jobs WHERE id=art_job),batch,position,reference_sha,attempt,slot,round,stage,focus,reason FROM media_candidates WHERE stage NOT IN ('passed','held','failed') ORDER BY (position-1)%3,slot LIMIT 3`)
+	rows, err := pc.Query(ctx, `SELECT (SELECT spec FROM episode_art_jobs WHERE id=art_job),batch,position,reference_sha,attempt,slot,round,stage,focus,reason FROM media_candidates WHERE stage NOT IN ('passed','held','failed') ORDER BY (SELECT priority FROM episode_policies pol JOIN episode_art_jobs art ON art.world_slug=pol.world_slug WHERE art.id=media_candidates.art_job) DESC NULLS LAST,(position-1)%3,slot LIMIT 3`)
 	if err != nil {
 		return err
 	}
@@ -226,6 +226,10 @@ var assetName = regexp.MustCompile(`^((mio|bebop|bebop-portrait|bebop-e3|cfg-[1-
 var publicPortraitName = regexp.MustCompile(`^[a-f0-9]{64}\.webp$`)
 
 func mediaRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
+	mediaDir := os.Getenv("KNOWLEDGE_MEDIA_DIR")
+	if mediaDir == "" {
+		mediaDir = "/media"
+	}
 	g.GET("/media-candidates", func(c *gin.Context) {
 		queryJSON(c, db, `SELECT jsonb_agg(to_jsonb(x) ORDER BY x.slot) FROM (
     SELECT c.*,a.spec AS art,CASE WHEN c.batch='bebop-portrait' AND c.stage='passed' THEN
@@ -251,7 +255,7 @@ func mediaRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 			return
 		}
 		c.Header("Cache-Control", "public, max-age=31536000, immutable")
-		c.File(filepath.Join("/media", name))
+		c.File(filepath.Join(mediaDir, name))
 	})
 	g.GET("/media-assets/:file", func(c *gin.Context) {
 		name := c.Param("file")
@@ -259,7 +263,7 @@ func mediaRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 			c.Status(404)
 			return
 		}
-		path := filepath.Join("/media", name)
+		path := filepath.Join(mediaDir, name)
 		if _, err := os.Stat(path); err != nil {
 			c.Status(404)
 			return

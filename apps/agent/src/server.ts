@@ -160,12 +160,14 @@ const server = createServer(async (req, res) => {
   const route = /^\/internal\/research\/([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\/(collect|write)$/.exec(req.url ?? '')
   if (req.method === 'POST' && route) {
     try {
-      let body = ''
+      const chunks: Buffer[] = []
+      let size = 0
       for await (const chunk of req) {
-        body += chunk.toString()
-        if (body.length > 16000) { res.writeHead(413).end(); return }
+        size += chunk.length
+        if (size > 160 * 1024) { res.writeHead(413).end(); return }
+        chunks.push(chunk)
       }
-      const result = await research(dirname(path), route[1], route[2], body)
+      const result = await research(dirname(path), route[1], route[2], Buffer.concat(chunks).toString('utf8'))
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result))
     } catch (err) {
       const message = err instanceof Error ? err.message : '取证失败'

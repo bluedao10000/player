@@ -35,7 +35,7 @@ export async function page(url: string) {
       const response = await fetch(url, {
         redirect: 'error',
         signal: AbortSignal.timeout(25000),
-        headers: { 'User-Agent': 'Tidepost-Knowledge/1.0' },
+        headers: { 'User-Agent': 'FolioKnowledge/1.0 (+https://www.codeiy.com/)' },
       })
       if (!response.ok || !response.body)
         throw Error('来源 HTTP ' + response.status)
@@ -126,11 +126,12 @@ export async function research(
   try {
     const models = createModels()
     const registry = createRegistry()
-    const third = JSON.parse(catalog).first_episode === 3
-    const plan: EpisodePlan | undefined = JSON.parse(catalog).plan
+    const { source_documents, ...selection } = JSON.parse(catalog)
+    const third = selection.first_episode === 3
+    const plan: EpisodePlan | undefined = selection.plan
     models.setProvider(contentProvider(run, phase, 'research', Boolean(plan) && phase === 'write'))
     const collect = plan
-      ? episodeSources(plan, page)
+      ? episodeSources(plan, page, source_documents)
       : sourceTool(third ? 3 : 1, third ? 3 : 2)
     registry.install(
       defineExtension({ name: 'episode-research', tools: [collect] }),
@@ -200,7 +201,7 @@ export async function research(
             : writing) +
         JSON.stringify(outline.map((b, i) => ({ n: i + 1, ...b }))) +
         '\n清洗资料：' +
-        catalog
+        JSON.stringify(selection)
       const draft = await (
         await root.submit(
           { type: 'input', requestId: 'write', content: prompt },

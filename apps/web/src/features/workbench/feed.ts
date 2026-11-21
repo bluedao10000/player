@@ -2,6 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 
 import type { ScopeAcceptance, MediaCandidate, ResearchRun, WorkKnowledgeStatus, ProductionUsage } from "@anime/shared/knowledge";
 
+type QueueRow = {world_slug:string; number:number; status:string; priority:number; token_budget:number; committed:number; measured_tokens:number|null; capture_failures?:{at:string;reason:string}[];capture_error?:string; capture_started?:string; capture_finished?:string}
+
+type Inventory = {checked: string; works: {slug:string; title:string; published:number; missing?:number[]; today?:number[]; source?:string; note?:string}[]}
+
 type Status = "running" | "pending" | "success" | "failed";
 type Sync = {
   id: string;
@@ -44,7 +48,7 @@ async function get<T>(path: string, adminToken?: string): Promise<T[] | null> {
 export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
   if (process.env.PLAYER_PUBLIC_ONLY === 'true') throw new Error('工作台限内部访问')
   const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
-  const [sync, quality, worlds, research, media, scopes, usage] = await Promise.all([
+  const [sync, quality, worlds, research, media, scopes, usage, inventory, queue] = await Promise.all([
     get<Sync>("sync-runs"),
     get<Quality>("quality-runs"),
     get<WorkKnowledgeStatus>("world-statuses"),
@@ -52,6 +56,8 @@ export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
     get<MediaCandidate>("media-candidates"),
     get<ScopeAcceptance>("scope-acceptances"),
     admin ? get<ProductionUsage>("production-usage", admin) : Promise.resolve(null),
+    admin ? get<Inventory>("episode-inventory", admin) : Promise.resolve(null),
+    admin ? get<QueueRow>("episode-queue", admin) : Promise.resolve(null),
   ]);
   const runs = [
     ...(sync ?? []).map((r) => ({
@@ -87,6 +93,8 @@ export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
   ].sort((a, b) => Date.parse(b.start) - Date.parse(a.start));
   return {
     runs,
+    queue,
+    inventory: inventory?.[0],
     worlds,
     research,
     scopes,
