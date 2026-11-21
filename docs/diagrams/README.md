@@ -15,3 +15,5 @@ NODE_PATH="$diagram_tools/node_modules" CHROME_CHANNEL=chrome node docs/diagrams
 单独更新[待开发功能 PNG](backlog.png) 时，编辑 [backlog.mmd](backlog.mmd)，在上述渲染命令末尾加上 `backlog`，即可一起导出对应的 SVG 和 PNG。
 
 [功能地图](features.png) 按领域列出开发状态；更新时同步维护[图源](features.mmd)与[功能明细](../功能地图.md)。
+
+[本地工作台功能地图](workbench.svg) · [PNG](workbench.png) · [Mermaid 源文件](workbench.mmd)

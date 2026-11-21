@@ -15,11 +15,19 @@ func MailConfigured() bool {
 	return os.Getenv("READER_LOCAL_MAIL") == "mailpit" || (os.Getenv("AUTH_RESEND_API_KEY") != "" && os.Getenv("AUTH_EMAIL_FROM") != "")
 }
 
-func SendCode(ctx context.Context, email, code string) error {
+func SendLoginCode(ctx context.Context, email, code string, workbench bool) error {
 	subject := "Folio 时光 · 登录验证码"
 	message := "你的读者登录验证码为 " + code + "，5 分钟内有效。如非本人操作，请忽略这封邮件。"
+	if workbench {
+		subject = "Folio 时光 · 工作台验证码"
+		message = "你的工作台验证码为 " + code + "，5 分钟内有效。首次验证后将创建账户。"
+	}
 	if os.Getenv("READER_LOCAL_MAIL") == "mailpit" {
-		return smtp.SendMail("mailpit:1025", nil, "reader@folio.test", []string{email}, []byte("From: reader@folio.test\r\nTo: "+email+"\r\nSubject: "+subject+"\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n"+message))
+		address := os.Getenv("READER_LOCAL_SMTP_ADDR")
+		if address == "" {
+			address = "mailpit:1025"
+		}
+		return smtp.SendMail(address, nil, "reader@folio.test", []string{email}, []byte("From: reader@folio.test\r\nTo: "+email+"\r\nSubject: "+subject+"\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n"+message))
 	}
 	body, err := json.Marshal(map[string]any{"from": os.Getenv("AUTH_EMAIL_FROM"), "to": []string{email}, "subject": subject, "text": message})
 	if err != nil {

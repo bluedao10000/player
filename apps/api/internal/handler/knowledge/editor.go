@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -60,9 +61,54 @@ func editorRoutes(r *gin.Engine, admin *gin.RouterGroup, db *pgxpool.Pool) {
 			}
 			return
 		}
+		email, mailLogin := strings.CutPrefix(op, "email:")
+		editor := !mailLogin
+		if mailLogin {
+			if err := db.QueryRow(c.Request.Context(), queries.WorkbenchEditorGranted, email).Scan(&editor); err != nil {
+				c.AbortWithStatus(503)
+				return
+			}
+
+		}
+		c.Set("superadmin", !mailLogin)
+		c.Set("email", email)
+		c.Set("editor", editor)
+		if !editor && c.FullPath() != "/api/v1/editor/account" && c.FullPath() != "/api/v1/editor/logout" {
+			c.AbortWithStatusJSON(403, gin.H{"error": "当前账户尚未开通编辑权限"})
+			return
+		}
 		c.Set("operator", op)
 		c.Set("edit_hash", h[:])
 		c.Next()
+	})
+	g.GET("/account", func(c *gin.Context) {
+		email := c.GetString("email")
+		if !strings.Contains(email, "@") {
+			email = ""
+		}
+		c.JSON(200, gin.H{"email": email, "editor": c.GetBool("editor"), "superadmin": c.GetBool("superadmin")})
+	})
+	g.POST("/editor-access", func(c *gin.Context) {
+		if !c.GetBool("superadmin") {
+			c.AbortWithStatusJSON(403, gin.H{"error": "仅超级管理员可管理编辑权限"})
+			return
+		}
+		var v struct {
+			Email  string `binding:"required,email,max=254"`
+			Action string `binding:"required,oneof=grant revoke"`
+		}
+		if !editorRequest(c, &v) {
+			return
+		}
+		query := queries.GrantWorkbenchEditor
+		if v.Action == "revoke" {
+			query = queries.RevokeWorkbenchEditor
+		}
+		if _, err := db.Exec(c.Request.Context(), query, strings.ToLower(strings.TrimSpace(v.Email))); err != nil {
+			c.Status(503)
+			return
+		}
+		c.Status(204)
 	})
 	g.GET("/plans", func(c *gin.Context) {
 		var data []byte

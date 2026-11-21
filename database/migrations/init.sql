@@ -1459,6 +1459,12 @@ ALTER FUNCTION settle_episode_call(uuid,uuid,bigint) SET search_path=pg_catalog,
 REVOKE ALL ON FUNCTION settle_episode_call(uuid,uuid,bigint) FROM PUBLIC;
 REVOKE ALL ON FUNCTION reserve_episode_subject(text,uuid,text,bigint) FROM PUBLIC;
 
+-- name: 052.sql
+CREATE TABLE workbench_accounts(email text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT now());
+
+-- name: 053.sql
+CREATE TABLE workbench_editor_grants(email text PRIMARY KEY, granted_at timestamptz NOT NULL DEFAULT now());
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,51) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,53) i;
 COMMIT;

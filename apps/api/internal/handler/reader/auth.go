@@ -19,8 +19,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"anime-agent/api/internal/handler/billing"
-	mailer "anime-agent/api/internal/service/reader"
+	desk "anime-agent/api/internal/repository/queries/knowledge"
 	queries "anime-agent/api/internal/repository/queries/reader"
+	mailer "anime-agent/api/internal/service/reader"
 )
 
 type service struct{ db *pgxpool.Pool }
@@ -32,6 +33,8 @@ func Routes(r *gin.Engine, db *pgxpool.Pool) {
 		c.Header("X-Robots-Tag", "noindex")
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 512<<10)
 	})
+	g.POST("/workbench/code", s.issue)
+	g.POST("/workbench/verify", s.verify)
 	g.POST("/code", s.issue)
 	g.POST("/verify", s.verify)
 	g.GET("/methods", func(c *gin.Context) { c.JSON(200, gin.H{"wechat": wechatEnabled()}) })
@@ -85,6 +88,11 @@ func (s service) issue(c *gin.Context) {
 		return
 	}
 	ctx := c.Request.Context()
+	key := email
+	workbench := strings.HasPrefix(c.FullPath(), "/api/v1/reader/workbench/")
+	if workbench {
+		key = "workbench:" + email
+	}
 	number, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
 		unavailable(c)
@@ -112,7 +120,7 @@ func (s service) issue(c *gin.Context) {
 		if busy {
 			return limited
 		}
-		tag, err := tx.Exec(ctx, queries.IssueCode, email, hash)
+		tag, err := tx.Exec(ctx, queries.IssueCode, key, hash)
 		if err == nil && tag.RowsAffected() == 0 {
 			return limited
 		}
@@ -127,8 +135,8 @@ func (s service) issue(c *gin.Context) {
 		unavailable(c)
 		return
 	}
-	if err = mailer.SendCode(ctx, email, code); err != nil {
-		_, _ = s.db.Exec(context.WithoutCancel(ctx), queries.InvalidateUndeliveredCode, email, hash)
+	if err = mailer.SendLoginCode(ctx, email, code, workbench); err != nil {
+		_, _ = s.db.Exec(context.WithoutCancel(ctx), queries.InvalidateUndeliveredCode, key, hash)
 		fail(c, 503, "邮件暂时无法送达，请稍后重试。")
 		return
 	}
@@ -147,10 +155,15 @@ func (s service) verify(c *gin.Context) {
 	}
 	ctx := c.Request.Context()
 	var token string
+	workbench := strings.HasPrefix(c.FullPath(), "/api/v1/reader/workbench/")
+	key := email
+	if workbench {
+		key = "workbench:" + email
+	}
 	verified := false
 	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
 		var hash []byte
-		err := tx.QueryRow(ctx, queries.AttemptCode, email).Scan(&hash)
+		err := tx.QueryRow(ctx, queries.AttemptCode, key).Scan(&hash)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -160,7 +173,20 @@ func (s service) verify(c *gin.Context) {
 		if bcrypt.CompareHashAndPassword(hash, []byte(code)) != nil {
 			return nil
 		}
-		if _, err = tx.Exec(ctx, queries.ConsumeCode, email); err != nil {
+		if _, err = tx.Exec(ctx, queries.ConsumeCode, key); err != nil {
+			return err
+		}
+		if workbench {
+			if _, err = tx.Exec(ctx, desk.RegisterWorkbenchAccount, email); err != nil {
+				return err
+			}
+			token, err = randomToken()
+			if err != nil {
+				return err
+			}
+			digest := sha256.Sum256([]byte(token))
+			_, err = tx.Exec(ctx, desk.CreateEditorSession, digest[:], "email:"+email)
+			verified = err == nil
 			return err
 		}
 		var id string

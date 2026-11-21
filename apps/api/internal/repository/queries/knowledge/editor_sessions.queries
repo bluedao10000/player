@@ -6,3 +6,15 @@ SELECT operator FROM editor_sessions WHERE hash=$1 AND expires_at>now()
 
 -- name: DeleteEditorSession
 DELETE FROM editor_sessions WHERE hash=$1
+
+-- name: RegisterWorkbenchAccount
+INSERT INTO workbench_accounts(email) VALUES($1) ON CONFLICT DO NOTHING
+
+-- name: WorkbenchEditorGranted
+SELECT EXISTS(SELECT FROM workbench_editor_grants WHERE email=$1)
+
+-- name: GrantWorkbenchEditor
+INSERT INTO workbench_editor_grants(email) VALUES($1) ON CONFLICT DO NOTHING
+
+-- name: RevokeWorkbenchEditor
+DELETE FROM workbench_editor_grants WHERE email=$1

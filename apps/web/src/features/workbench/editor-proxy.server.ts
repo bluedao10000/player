@@ -8,12 +8,14 @@ const read = new RegExp('^tasks/' + id + '(?:/preview)?$'),
   write = new RegExp('^tasks/' + id + '/(approve|return)$')
 export async function editorRequest(req: Request, path: string) {
   const reply = (code: number) => new Response(null, { status: code, headers })
+  if(process.env.PLAYER_PUBLIC_ONLY==="true")return reply(404)
+  const emailAuth=path==="code" || path==="verify"
   const url = new URL(req.url),
     post = req.method === 'POST'
   if (
     !(post
-      ? ['login', 'logout', 'tasks','plans'].includes(path) || write.test(path) || new RegExp("^plans/"+id+"/messages$").test(path)
-      : path === 'plans' || path === 'tasks' || read.test(path))
+      ? ['editor-access','code','verify','login', 'logout', 'tasks','plans'].includes(path) || write.test(path) || new RegExp("^plans/"+id+"/messages$").test(path)
+      : path === 'account' || path === 'plans' || path === 'tasks' || read.test(path))
   )
     return reply(404)
   if (
@@ -23,9 +25,9 @@ export async function editorRequest(req: Request, path: string) {
   )
     return reply(403)
   const cookie = (value: string, ttl: number) =>
-    'tidepost_editor=' +
+    'folio_workbench=' +
     value +
-    '; HttpOnly; SameSite=Strict; Path=/editor-api; Max-Age=' +
+    '; HttpOnly; SameSite=Strict; Path=/; Max-Age=' +
     ttl +
     (url.protocol === 'https:' ||
     !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
@@ -33,7 +35,7 @@ export async function editorRequest(req: Request, path: string) {
       : '')
   let token = req.headers
     .get('cookie')
-    ?.match(/(?:^|;\s*)tidepost_editor=([a-f0-9]{64})(?:;|$)/)?.[1]
+    ?.match(/(?:^|;\s*)folio_workbench=([a-f0-9]{64})(?:;|$)/)?.[1]
   let body: string | undefined
   if (post) {
     try {
@@ -51,10 +53,10 @@ export async function editorRequest(req: Request, path: string) {
     if (typeof token !== 'string' || !/^[!-~]{32,512}$/.test(token))
       return reply(400)
   }
-  if (!token) return reply(401)
+  if (!token && !emailAuth) return reply(401)
   const target = new URL(
     '/api/v1/' +
-      (path === 'login' ? 'admin/knowledge/editor/session' : 'editor/' + path),
+      (emailAuth ? 'reader/workbench/'+path : path === 'login' ? 'admin/knowledge/editor/session' : 'editor/' + path),
     process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321',
   )
   if (path.endsWith('/preview'))
@@ -64,7 +66,7 @@ export async function editorRequest(req: Request, path: string) {
     const resp = await fetch(target, {
       method: req.method,
       headers: {
-        Authorization: 'Bearer ' + token,
+        Authorization: token&&!emailAuth?'Bearer '+token:'',
         'Content-Type': 'application/json',
       },
       body: path === 'login' ? undefined : body,
@@ -73,7 +75,7 @@ export async function editorRequest(req: Request, path: string) {
       signal: AbortSignal.timeout(15000),
     })
     const h = new Headers(headers)
-    if (path === 'login' && resp.ok) {
+    if ((path === 'login'||path==='verify') && resp.ok) {
       const { token: session } = await resp.json()
       if (!/^[a-f0-9]{64}$/.test(session)) return reply(502)
       h.set('Set-Cookie', cookie(session, 28800))

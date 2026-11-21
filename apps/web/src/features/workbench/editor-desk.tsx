@@ -75,7 +75,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
     } catch {}
     throw new DeskError(
       r.status,
-      r.status === 401 ? '请使用工作台管理凭证登录' : msg,
+      r.status === 401 ? (path === 'login' ? '管理凭证无效，请重新复制本地工作台凭证。' : '登录已过期，请重新登录。') : msg,
     )
   }
   return r.status === 204 ? (undefined as T) : r.json()
@@ -97,6 +97,12 @@ export function EditorDesk() {
     [login, setLogin] = useState(false),
     [selected, select] = useState(''),
     [task, setTask] = useState<Detail | null>(null)
+  const [superadmin,setSuperadmin]=useState(false)
+  const [notice,setNotice]=useState('')
+  const [member,setMember]=useState('')
+  const [email,setEmail]=useState('')
+  const [sent,setSent]=useState(false)
+  const [code,setCode]=useState('')
   const [scope, setScope] = useState('naruto-tv-2002'),
     [kind, setKind] = useState<Task['kind']>('chapter'),
     [input, setInput] = useState(''),
@@ -111,6 +117,11 @@ export function EditorDesk() {
       timer: ReturnType<typeof setTimeout>
     async function load() {
       try {
+        const account=await api<{email:string;editor:boolean;superadmin:boolean}>('account')
+        if(stopped)return
+        setSuperadmin(account.superadmin)
+        if(!account.editor){setMember(account.email);setLogin(false);setList(null);return}
+        setMember('')
         const all = await api<List>('tasks')
         if (stopped) return
         setLogin(false)
@@ -124,6 +135,7 @@ export function EditorDesk() {
       } catch (e) {
         if (stopped) return
         if (e instanceof DeskError && e.code === 401) {
+          setMember('')
           setLogin(true)
           setList(null)
           setTask(null)
@@ -206,12 +218,13 @@ export function EditorDesk() {
           {siteName}
         </a>
         <span>/ 内容运营</span>
-        {list && (
+        {(list || member) && (
           <button
             className="ed-out"
             onClick={() =>
               act(async () => {
                 await api('logout', {})
+                setMember('');setSent(false);setCode('')
                 setList(null)
                 setTask(null)
                 setLogin(true)
@@ -231,10 +244,27 @@ export function EditorDesk() {
           {error}
         </p>
       )}
+      {list && superadmin && <section className="ed-decision"><h2>超级管理员 · 编辑权限</h2>
+      <form onSubmit={e=>{e.preventDefault();const data=new FormData(e.currentTarget);setNotice('');void act(async()=>{
+        await api('editor-access',{email:data.get('email'),action:data.get('action')});setNotice('邮箱权限已更新。')
+      })}}><label>成员邮箱<input type="email" name="email" required/></label>
+      <label>权限操作<select name="action"><option value="grant">开通编辑权限</option><option value="revoke">撤销编辑权限</option></select></label>
+      <button disabled={busy}>保存权限</button></form><p role="status">{notice}</p></section>}
       {list && <ProductionPlans />}
-      {!list ? (
+      {member ? <section className="ed-login"><h2>我的工作台账户</h2><p>{member}</p><p>已登录，当前账户为普通成员。请将上方邮箱交给管理员开通编辑权限，开通后刷新本页即可。</p></section> : !list ? (
         <section className="ed-login">
-          <h2>登录编辑部</h2>
+          <h2>登录工作台</h2>
+          <p>首次验证邮箱后自动注册。</p>
+          <form onSubmit={e=>{e.preventDefault();void act(async()=>{
+            if(!sent){await api('code',{email});setSent(true)}
+            else{await api('verify',{email,code});setCode('');setSent(false);if(location.search.includes('view=data'))location.reload()}
+          })}}>
+            <label>邮箱<input type="email" autoComplete="email" required readOnly={sent} value={email} onChange={e=>setEmail(e.target.value)}/></label>
+            {sent&&<><p>验证码已发送，5 分钟内有效。</p><label>六位验证码<input value={code} onChange={e=>setCode(e.target.value)} required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code"/></label></>}
+            <button disabled={!login||busy}>{sent?'验证并登录':'获取验证码'}</button>
+            {sent&&<button type="button" disabled={busy} onClick={()=>{setSent(false);setCode('')}}>更换邮箱或重新发码</button>}
+          </form>
+          <details><summary>超级管理员凭证登录</summary>
           <form
             method="post"
             onSubmit={(e) => {
@@ -264,7 +294,7 @@ export function EditorDesk() {
             {login
               ? '使用本地 .env 中的 KNOWLEDGE_ADMIN_TOKEN。'
               : '正在读取会话…'}
-          </small>
+          </small></details>
         </section>
       ) : (
         <>

@@ -1,3 +1,4 @@
+import { getCookie } from '@tanstack/react-start/server'
 import { createServerFn } from "@tanstack/react-start";
 
 import type { ScopeAcceptance, MediaCandidate, ResearchRun, WorkKnowledgeStatus, ProductionUsage } from "@anime/shared/knowledge";
@@ -63,6 +64,10 @@ function get<T>(path: string, adminToken?: string) {
 }
 export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
   if (process.env.PLAYER_PUBLIC_ONLY === 'true') throw new Error('工作台限内部访问')
+  const session = getCookie('folio_workbench')
+  if (!session) return null
+  const check = await fetch(new URL('/api/v1/editor/account',process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'),{headers:{Authorization:'Bearer '+session},cache:'no-store',redirect:'error',signal:AbortSignal.timeout(5000)})
+  if(!check.ok || !(await check.json()).editor)return null
   const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
   const [sync, quality, worlds, research, media, scopes, usage, inventory, queue, releases, backup] = await Promise.all([
     get<Sync>("sync-runs"),

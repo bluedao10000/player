@@ -77,7 +77,7 @@ function Workbench() {
   const feed = Route.useLoaderData()
   return feed ? <Board feed={feed} /> : <EditorDesk />
 }
-function Board({ feed }: { feed: Awaited<ReturnType<typeof readFeed>> }) {
+function Board({ feed }: { feed: NonNullable<Awaited<ReturnType<typeof readFeed>>> }) {
   const router = useRouter()
   const [flow, setFlow] = useState<'sync' | 'media'>('sync'),
     [node, setNode] = useState(0),

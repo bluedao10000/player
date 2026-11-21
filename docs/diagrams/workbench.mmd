@@ -1,0 +1,25 @@
+---
+title: Folio 时光 · 本地工作台功能地图
+---
+flowchart LR
+  auth["邮箱验证码"] --> member["首次验证建号<br/>再次验证登录"]
+  member --> account["账户页与退出"]
+  member -->|已授权邮箱| desk["编辑工作台"]
+  admin["管理凭证<br/>超级管理员授权或撤销编辑"] --> desk
+  desk --> edit["编辑审稿 · 样板作品<br/>一句话意见 → 手机预览 → 审核发布"]
+  desk --> plan["分集计划<br/>范围、预算、缺口与对话修订"]
+  desk --> observe["数据运行"]
+  plan --> release["分集跟踪<br/>阶段、用量、耗时、返工与发布回执"]
+  observe --> assets["取证与媒体<br/>候选图、裁切、验图、五维缺项"]
+  observe --> ops["运行监控<br/>来源同步、数据质量与备份校验"]
+%% auth | 六位验证码与工作台专属挑战，五分钟有效。 | apps/api/internal/handler/reader/auth.go
+%% member | 验证成功后创建账户与独立会话。 | apps/api/internal/handler/reader/auth.go
+%% account | 普通账户显示已验证邮箱，可退出登录。 | apps/web/src/features/workbench/editor-desk.tsx
+%% admin | 保留管理员凭证登录。 | apps/web/src/features/workbench/editor-proxy.server.ts
+%% desk | Gin 根据数据库中的邮箱授权检查编辑权限。 | apps/api/internal/handler/knowledge/editor.go
+%% edit | 两部样板作品支持章节与人物设定修订。 | apps/web/src/features/workbench/editor-desk.tsx
+%% plan | 登记范围与预算，按版本保存修订意见。 | apps/api/internal/repository/queries/knowledge/schedule.queries
+%% release | 从制作账本与发布回执汇总每集状态。 | apps/web/src/features/workbench/editor-desk.tsx
+%% observe | 验证工作台编辑权限后读取私有数据。 | apps/web/src/features/workbench/feed.ts
+%% assets | 展示实际制作任务和运行证据。 | apps/web/src/routes/workbench.tsx
+%% ops | 汇总同步、质检与备份记录。 | apps/web/src/features/workbench/feed.ts
