@@ -1,27 +1,33 @@
 flowchart TB
-    reader["H5 与 iOS 读者"] -->|HTTPS| ali["阿里云 · 公开读模型"]
-    subgraph gz["腾讯云广州 · 已运行"]
-      w["Go 研究调度器"] -->|研究请求| pi["Pi Durable · Magpie / 火山 Kimi"]
-      w -->|快照、稿件、用量| pg[("PostgreSQL 17 · 制作库")]
+    reader["H5 与 iOS"] -->|www · HTTPS| edge["Cloudflare Tunnel"]
+    subgraph ali["阿里云杭州 · 100.96.0.3"]
+      site["读者站与 Gin"] -->|查询| online[("线上 PostgreSQL 与入选图片")]
+      receive["受限 SSH 接收端"] -->|校验摘要并提交定稿| online
     end
-    subgraph sv["腾讯云硅谷"]
-      q["已运行 · 每日盘点 / 来源采集"] --> out["已运行 · 本机快照"]
-      m["已运行 · 媒体调度与五维验收"] -->|参考图与裁切| img["Pi Durable · OpenAI 已就绪"]
-      m -->|仅在本机可用| sock["受限 Unix socket"]
+    edge --> site
+    subgraph gz["腾讯云广州 · 100.96.0.1"]
+      text["研究调度 · Pi 与 Kimi"] --> pg[("PostgreSQL 制作库")]
     end
-    sock -->|两端已注册 · 跨机 SQL 已验证| mesh["Cloudflare Mesh"]
-    mesh -->|仅硅谷节点可访问 TCP 5432| pg
-    out -.->|定时补录经同一连接| sock
-    pg -.->|验收后增量发布| ali
-    img -.->|入选文件校验后同步| ali
-%% reader | 读者使用原有作品、章节及段落链接。 | apps/ios/README.md
-%% ali | 正式站经原有 Cloudflare Tunnel 提供公开 H5 与 iOS 接口。 | docs/部署架构.md
-%% w | 广州将选题、来源、研究结果和模型回执写入制作库。 | apps/api/cmd/knowledge-sync/production.go
-%% pi | 广州 Pi 在本机调用 Magpie 火山 Kimi，经实调完成第 4 集写作和复核。 | apps/agent/src/research.ts
-%% pg | 共享制作状态的权威数据库。宿主机管理端口仅监听回环。 | deploy/first-phase/compose.yaml
-%% q | 硅谷从公共来源读取分集快照；盘点定时器每天北京时间 06:00 启动。 | deploy/first-phase/refresh.sh
-%% out | 数据库连接暂不可用时留存盘点快照。 | deploy/first-phase/refresh.sh
-%% m | 硅谷调度 OpenAI 生成与验图，检验原图、裁切和角色肖像。 | apps/api/cmd/knowledge-sync/production.go
-%% img | 图片与验图模型凭据位于硅谷。第 4 集三张候选均首轮通过，制作库已选候选 1。 | apps/agent/src/media.ts
-%% sock | 硅谷本机 worker 通过目录权限和专用数据库身份访问制作库。 | deploy/first-phase/mesh/compose.yaml
-%% mesh | 两端节点已连接。硅谷经 100.96.0.2 到广州 100.96.0.1 完成数据库查询。仅广州接收硅谷 Mesh IP 的数据库流量。 | deploy/first-phase/mesh/compose.yaml
+    subgraph sv["腾讯云硅谷 · 100.96.0.2"]
+      media["采集、媒体与五维验收"] -->|调用 Pi 和 OpenAI| archive["候选图与选图归档"]
+      archive --> push["自动发布定时器"]
+    end
+    media -->|Mesh TCP 5432| pg
+    push -->|Mesh TCP 5432 · 读取定稿| pg
+    push -->|Mesh TCP 2222 · SSH| receive
+    subgraph lan["局域网 192.168.1.7 · Mesh 100.96.0.4"]
+      cron["K3s CronJob · 每日 03:15"] -->|校验后轮换| copy[("恢复库与独立快照卷")]
+    end
+    cron -->|Mesh TCP 5433 · 只读快照| pg
+%% reader | H5 和原生阅读器沿用公开作品、章节和场景链接。 | apps/ios/Folio/Reading.swift
+%% edge | 正式站使用独立公网隧道承接读者 HTTPS 请求。 | deploy/player-tunnel.service
+%% site | TanStack 和 Gin 提供网页及原生阅读数据。 | apps/ios/server/reader.server.ts
+%% online | 线上读者查询自己的数据库和归档。每集有唯一投递回执。 | deploy/reader-release/receiver.sql
+%% receive | 发布专用公钥受来源地址和强制命令约束。接收器事务写入章节。 | deploy/reader-release/receive.sh
+%% text | 广州负责选题准入、文本取证、写作与复核。 | apps/api/cmd/knowledge-sync/production.go
+%% pg | 制作库保存来源、任务、验收、发布历史及模型计量。 | apps/api/internal/knowledge/sql
+%% media | 专用数据角色通过本地 Unix socket 使用共享制作库。 | deploy/first-phase/mesh/compose.yaml
+%% archive | 硅谷保管候选原图及公开衍生图。 | apps/agent/src/media.ts
+%% push | 选择显式登记且五维通过的分集，投递后检查 H5 和原生阅读接口。 | apps/api/cmd/reader-release/send.go
+%% cron | 03:15 为北京时间。备份任务使用主机上的受限 socket，只读访问广州。 | deploy/pg-backup/resources.yaml
+%% copy | K3s 本地磁盘保留七份成功备份，独立 PostgreSQL 保存最近恢复的数据库。 | deploy/pg-backup/backup.sh

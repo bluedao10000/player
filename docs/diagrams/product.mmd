@@ -4,13 +4,19 @@ flowchart TB
     cast --> chapter["章节正文与插画"]
     chapter --> scene["场景与在场人物"]
     scene -->|回到原段| chapter
-    chapter -->|原创故事| play["预设剧情 · 本地书架"]
-    play -.-> future["待开发 · 自由角色扮演与 iOS 壳"]
-    catalog["作品知识库"] -->|提供目录与定稿| world
+    chapter -->|原创故事| play["预设剧情"]
+    play -.-> future["待开发 · 自由多轮角色扮演"]
+    catalog["作品知识库"] -->|提供已发布内容| world
     desk["统一工作台 · 编辑与数据"] -->|观察五维验收| catalog
     desk -->|修订剧情、人物与世界观| edit["AI 取证、起草、自检与返工"]
     edit --> review["手机预览 · 按任务审核"]
     review -->|批准后发布| catalog
+    discovery --> shelf["我的 · 跨设备书架与进度"]
+    shelf -->|继续阅读| chapter
+    catalog -->|已验收且登记上线| release["正式站自动发布"]
+    release -->|H5 与原生 iOS| world
+    release -->|上线结果、耗时与用量| desk
+    catalog --> safeguard["制作数据每日备份与恢复校验"]
     classDef pending fill:#f4eaf2,stroke:#926581,stroke-dasharray:5 4
     class future pending
 %% discovery | 从首页作品栏或别名搜索确定要读的作品版本。 | apps/web/src/features/post/editorial.tsx
@@ -19,8 +25,11 @@ flowchart TB
 %% chapter | 定稿正文保存章节 slug、段落与插图的稳定锚点。 | apps/api/internal/knowledge/acceptance.go
 %% scene | 场景携带 return_to.href，可以回到故事中对应的段落。 | apps/api/internal/knowledge/world_api.go
 %% play | 原创故事有预设行动，进度与收藏保存在浏览器。 | apps/web/src/features/post/roleplay-controls.tsx
-%% future | 自由输入与服务器多轮角色扮演、原生壳仍待实现。 | docs/产品架构.md
+%% future | 预设分支之外的开放多轮剧情仍待实现。 | docs/产品架构.md
 %% catalog | 目录、已清洗身份、作品世界和范围定稿在 PostgreSQL 中分别建模。 | apps/api/internal/knowledge/sql
 %% desk | 工作台通过 Gin 读取来源、取证、试稿与自动验收记录。 | apps/web/src/features/workbench/feed.ts
 %% edit | 数据服务运行编辑任务，Go 校验引用，Pi 独立校对。 | apps/api/internal/knowledge/editor_worker.go
 %% review | 审批校验稿件轮次和定稿基线，事务内更新公开文字。 | apps/api/internal/knowledge/editor.go
+%% shelf | 访客可以保留本机进度，登录后按读者选择同步书架。 | apps/ios/Folio/ReaderAccount.swift
+%% release | 数据工作台区分制作库验收和正式站已验证，两端复用同一份正文与入选图。 | apps/api/cmd/reader-release/send.go
+%% safeguard | 运营可以按最近七份成功快照恢复制作数据，任务状态在备份集群查看。 | deploy/pg-backup/backup.sh

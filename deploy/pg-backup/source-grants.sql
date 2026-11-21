@@ -1,0 +1,8 @@
+-- The login and its password are provisioned separately. Run in the Guangzhou folio DB.
+ALTER ROLE folio_backup_read SET default_transaction_read_only = on;
+GRANT CONNECT ON DATABASE folio TO folio_backup_read;
+GRANT USAGE ON SCHEMA public TO folio_backup_read;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO folio_backup_read;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO folio_backup_read;
+ALTER DEFAULT PRIVILEGES FOR ROLE folio IN SCHEMA public GRANT SELECT ON TABLES TO folio_backup_read;
+ALTER DEFAULT PRIVILEGES FOR ROLE folio IN SCHEMA public GRANT SELECT ON SEQUENCES TO folio_backup_read;

@@ -1,0 +1,7 @@
+services:
+  mesh:
+    image: folio-local/mesh:cfg-e22c778caab1
+    pull_policy: never
+  backup-socket:
+    image: folio-local/socat:cfg-ec77a442f816
+    pull_policy: never

@@ -15,3 +15,7 @@
 ## 检查与暂停
 
 `systemctl list-timers folio-reader-release.timer` 查看下次运行，`journalctl -u folio-reader-release.service` 查看进程结果。在制作库以 topic 查询 reader_release_attempts，在读库查 reader_release_receipts 可核对两个环境的定稿 ID。暂停新发布使用 `systemctl stop folio-reader-release.timer`，进行中的事务完成后再处理故障。恢复 timer 会重新寻找符合条件的分集。
+
+## 正式站内网传输
+
+硅谷 ssh_config 的 folio-reader 指向阿里云 Mesh 地址，使用 `ProxyCommand /usr/bin/nc -U /home/ubuntu/folio-data/release-socket/reader.sock`。专用 relay 从硅谷 Mesh IP 连接阿里云 Mesh IP 的 TCP 2222，接收侧转发到本机 sshd。保留原 host key 的 HostKeyAlias 与严格校验。authorized_keys 里的发布专用公钥同时限定阿里云 Mesh Docker 网桥来源、restrict 和原接收命令。发布器只使用这个 socket，公网 HTTPS 用于验证读者看到的结果。地址与规则见[部署架构](../../docs/部署架构.md)。

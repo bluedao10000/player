@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: snapshots}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources: {requests: {storage: 16Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: postgres}
+spec:
+  selector: {app: folio-backup-postgres}
+  clusterIP: None
+  ports: [{name: postgres, port: 5432}]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: postgres}
+spec:
+  replicas: 1
+  serviceName: postgres
+  selector: {matchLabels: {app: folio-backup-postgres}}
+  template:
+    metadata: {labels: {app: folio-backup-postgres}}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: bruce-opt7020}
+      securityContext: {runAsUser: 70, runAsGroup: 70, fsGroup: 70, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: postgres
+        image: docker.io/library/postgres@sha256:e80acae3f1109e8e4533618b594918936f2858c63afc7204c4773148a673add8
+        imagePullPolicy: IfNotPresent
+        securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+        env:
+        - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+        - {name: POSTGRES_PASSWORD_FILE, value: /secrets/target-password}
+        volumeMounts:
+        - {name: data, mountPath: /var/lib/postgresql/data}
+        - {name: credentials, mountPath: /secrets, readOnly: true}
+        readinessProbe:
+          exec: {command: [pg_isready, -U, postgres]}
+          periodSeconds: 5
+        resources:
+          requests: {cpu: 100m, memory: 192Mi}
+      volumes:
+      - name: credentials
+        secret: {secretName: postgres-login, defaultMode: 0440}
+  volumeClaimTemplates:
+  - metadata: {name: data}
+    spec:
+      storageClassName: local-path
+      accessModes: [ReadWriteOnce]
+      resources: {requests: {storage: 16Gi}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: database-ingress}
+spec:
+  podSelector: {matchLabels: {app: folio-backup-postgres}}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {matchLabels: {app: folio-backup-job}}
+    ports: [{protocol: TCP, port: 5432}]
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: guangzhou-backup}
+spec:
+  schedule: "15 3 * * *"
+  timeZone: Asia/Shanghai
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 14400
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 4
+      activeDeadlineSeconds: 10800
+      template:
+        metadata: {labels: {app: folio-backup-job}}
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector: {kubernetes.io/hostname: bruce-opt7020}
+          securityContext: {runAsUser: 70, runAsGroup: 70, fsGroup: 70, seccompProfile: {type: RuntimeDefault}}
+          containers:
+          - name: backup
+            image: docker.io/library/postgres@sha256:e80acae3f1109e8e4533618b594918936f2858c63afc7204c4773148a673add8
+            imagePullPolicy: IfNotPresent
+            command: [/scripts/backup.sh]
+            securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+            resources: {requests: {cpu: 100m, memory: 96Mi}}
+            volumeMounts:
+            - {name: snapshots, mountPath: /snapshots}
+            - {name: scripts, mountPath: /scripts, readOnly: true}
+            - {name: source, mountPath: /source, readOnly: true}
+            - {name: credentials, mountPath: /secrets, readOnly: true}
+          volumes:
+          - name: snapshots
+            persistentVolumeClaim: {claimName: snapshots}
+          - name: scripts
+            configMap: {name: backup-scripts, defaultMode: 0555}
+          - name: source
+            hostPath: {path: /var/lib/folio-mesh/backup-socket, type: Directory}
+          - name: credentials
+            projected:
+              defaultMode: 0440
+              sources:
+              - secret: {name: postgres-login}
+              - secret: {name: guangzhou-login}

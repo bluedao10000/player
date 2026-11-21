@@ -45,3 +45,16 @@ curl -fsS http://127.0.0.1:4312/healthz
 systemctl is-active folio-episode@media folio-refresh@evidence.timer
 systemctl is-enabled folio-refresh@evidence.timer
 ```
+
+### 四节点 Mesh 的服务配置
+
+在每台机器的 mesh 目录安装 compose.yaml 和 operations.yaml，在 .env 中设置 COMPOSE_FILE 为 `compose.yaml:operations.yaml` 及对应的 COMPOSE_PROFILES。四个 profile 分别为 guangzhou、silicon-valley、aliyun、backup。局域网离线 Docker 额外在 COMPOSE_FILE 末尾追加 `:backup-offline.yaml`。各节点使用自己独立的 mesh-node.env 和 registration 卷。
+
+广州配置 GZ_MESH_IP、SV_MESH_IP、BACKUP_MESH_IP；硅谷配置 GZ_MESH_IP、ALI_MESH_IP 并创建仅调度用户可访问的 release-socket 目录；阿里云配置 ALI_MESH_IP、SV_MESH_IP、ALI_DOCKER_GATEWAY。备份节点配置 GZ_MESH_IP 及 UID 70 专属 socket 目录。地址以各节点实际注册结果为准，ALI_DOCKER_GATEWAY 取专用网桥的 IPv4 网关。用 `docker compose config --services` 核对服务清单。
+
+在管理端装入 Cloudflare 账户环境后，运行下列命令增量加入两个端口与 /32 路由。保留既有媒体连接许可和私网默认拒绝策略。每台机器在自己的 profile 下运行 `docker compose up -d`；轮换 mesh 容器时连同共享其网络命名空间的 relay 一起重建。按[发布手册](../reader-release/README.md)和[备份手册](../pg-backup/README.md)验证业务结果。
+
+```sh
+python3 deploy/first-phase/mesh/configure-peer.py release 100.96.0.2 100.96.0.3
+python3 deploy/first-phase/mesh/configure-peer.py backup 100.96.0.4 100.96.0.1
+```
