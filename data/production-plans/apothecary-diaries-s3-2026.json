@@ -1,0 +1,103 @@
+{
+  "world": "apothecary-diaries-s3-2026",
+  "title": "药屋少女的呢喃",
+  "edition": "2026 TV · 第三季",
+  "provider": "bangumi",
+  "externalID": "568244",
+  "year": 2026,
+  "type": "TV",
+  "intro": "子氏一族的风波平息后，猫猫回到花街，壬氏则以皇弟的身份走进朝堂。一顿早饭和一册旧书，把两条线重新接在了一起。",
+  "people": [
+    {
+      "slug": "jinshi",
+      "name": "壬氏",
+      "reusePortrait": true
+    },
+    {
+      "slug": "maomao",
+      "name": "猫猫",
+      "reusePortrait": true
+    }
+  ],
+  "episodes": [
+    {
+      "number": 4,
+      "sourceNumber": 52,
+      "slug": "the-last-volume",
+      "title": "最后一册 · 全剧第 52 话",
+      "intro": "要解开蝗灾的线索，猫猫还差一册书。阿多屋里的一场谈话，让她想起了那本曾经见过的图鉴。",
+      "official": "https://mantan-web.jp/article/20261022dog00m200066000a.html",
+      "officialTitle": "第52話「最後の一冊」",
+      "guide": "https://en.wikipedia.org/wiki/List_of_The_Apothecary_Diaries_episodes#ep52",
+      "guideTitle": "The Last Volume",
+      "sourceRules": {
+        "entry": "body",
+        "heading": "h1.article__title",
+        "body": "p.article__text:nth-of-type(2)",
+        "guide": "wiki-episode"
+      },
+      "place": "阿多的宅邸",
+      "sceneName": "记起图鉴的下落",
+      "sceneSlug": "remembering-the-volume",
+      "sceneBeat": 2,
+      "people": [
+        {
+          "slug": "maomao",
+          "name": "猫猫",
+          "beat": 1
+        },
+        {
+          "slug": "jinshi",
+          "name": "壬氏",
+          "beat": 3
+        }
+      ],
+      "setting": [
+        "蝗灾",
+        4
+      ],
+      "art": {
+        "referenceURL": "https://www.codeiy.com/art/portraits/6efbd97e68be1fd7f82dafcfecdcbc3245702485c4a0896fe6b59ab529c3af78.webp",
+        "sourceSHA": "6efbd97e68be1fd7f82dafcfecdcbc3245702485c4a0896fe6b59ab529c3af78",
+        "brief": "猫猫在阿多宅邸里听人谈话时忽然想到图鉴下落，抬眼看向窗边，手按着木案上的书卷。参考肖像中的绿发、眼睛和发型。"
+      },
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "At Ah-Duo's villa",
+          "question": "写猫猫去阿多的宅邸找翠苓，是要补哪一册图鉴。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "turn",
+          "needle": "Shisui's smarts",
+          "question": "阿多提到子翠留的后手，猫猫如何从旧事想起书在哪里？",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "Jinshi retrieves",
+          "question": "壬氏怎样把被查抄的书送回猫猫手里？"
+        },
+        {
+          "kind": "cause",
+          "needle": "distinguishing traits",
+          "question": "解释书中蝗灾的辨认方法、捕杀幼虫的建议及为什么要保护鸟类。"
+        },
+        {
+          "kind": "cause",
+          "needle": "three Verdigris princesses",
+          "question": "写花街听来的白仙女传闻和猫猫为什么担心官员被她迷惑。"
+        }
+      ]
+    }
+  ],
+  "automation": {
+    "first": 4,
+    "last": 4,
+    "priority": 80,
+    "maxEpisodes": 1,
+    "tokenBudget": 60000,
+    "reserveTokens": 60000
+  }
+}

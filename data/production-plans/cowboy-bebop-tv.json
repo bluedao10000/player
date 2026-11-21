@@ -1,0 +1,111 @@
+{
+  "world": "cowboy-bebop-tv",
+  "title": "星际牛仔",
+  "edition": "1998 TV",
+  "provider": "bangumi",
+  "externalID": "253",
+  "year": 1998,
+  "people": [
+    {
+      "slug": "spike",
+      "name": "斯派克",
+      "reusePortrait": true
+    },
+    {
+      "slug": "jet",
+      "name": "杰特",
+      "reusePortrait": true
+    },
+    {
+      "slug": "faye",
+      "name": "菲·瓦伦丁",
+      "reusePortrait": true
+    }
+  ],
+  "episodes": [
+    {
+      "number": 5,
+      "slug": "ballad-of-fallen-angels",
+      "title": "堕天使的叙事曲",
+      "intro": "一张悬赏令把斯派克带回红龙的旧账。等菲走进歌剧院，这场追捕已经成了一场赴约。",
+      "official": "https://www.cowboy-bebop.net/story/",
+      "officialTitle": "堕天使たちのバラッド",
+      "guide": "https://en.wikipedia.org/wiki/List_of_Cowboy_Bebop_episodes#ep5",
+      "guideTitle": "Ballad of Fallen Angels",
+      "sourceRules": {
+        "entry": ".storybox",
+        "heading": "img",
+        "attribute": "alt",
+        "body": ".storytxt",
+        "guide": "wiki-episode"
+      },
+      "place": "火星的大教堂",
+      "sceneName": "教堂彩窗前",
+      "sceneSlug": "cathedral-window",
+      "sceneBeat": 5,
+      "people": [
+        {
+          "slug": "jet",
+          "name": "杰特",
+          "beat": 2
+        },
+        {
+          "slug": "faye",
+          "name": "菲·瓦伦丁",
+          "beat": 4
+        },
+        {
+          "slug": "spike",
+          "name": "斯派克",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "红龙",
+        2
+      ],
+      "art": {
+        "brief": "斯派克独自站在废弃教堂的长椅之间，抬头注视破碎彩窗，光落在他蓝色西装的肩膀上。以斯派克参考肖像保持卷发和脸部轮廓。",
+        "referenceURL": "https://www.codeiy.com/art/bebop/spike.webp",
+        "sourceSHA": "22322eb5e5bd6d21763681a51805458d50748d7e4a7f27039cc628ff107fccdc"
+      },
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "Martian crime syndicates",
+          "question": "交代两派准备休战，为什么却发生了血案。",
+          "officialSentence": 3
+        },
+        {
+          "kind": "turn",
+          "needle": "Spike has past ties",
+          "question": "写出斯派克和红龙的过往，以及杰特为何因搭档的沉默而生气。"
+        },
+        {
+          "kind": "turn",
+          "needle": "old contact named Annie",
+          "question": "说明斯派克去找安妮以及她为何意外。"
+        },
+        {
+          "kind": "cause",
+          "needle": "pay back a debt",
+          "question": "说明菲·瓦伦丁如何落入圈套以及录像如何促使斯派克去赴约。",
+          "officialSentence": 2
+        },
+        {
+          "kind": "cause",
+          "needle": "at a cathedral",
+          "question": "从教堂的冲突写到坠落、回忆与回到比波普号。"
+        }
+      ]
+    }
+  ],
+  "automation": {
+    "first": 5,
+    "last": 5,
+    "priority": 90,
+    "maxEpisodes": 1,
+    "tokenBudget": 60000,
+    "reserveTokens": 60000
+  }
+}
