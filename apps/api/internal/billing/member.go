@@ -23,6 +23,9 @@ func PlanRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 		jsonRow(c, db, `SELECT jsonb_build_object('enabled',$2::boolean,'periodStart',period_start,'periodEnd',period_end,
  'plan',plan,'credits',credits,'usedMicro',coalesce((SELECT sum(microcredits) FROM reader_credit_usage WHERE reader_id=m.reader_id AND period_start=m.period_start),0),
  'plans',(SELECT jsonb_agg(jsonb_build_object('id',id,'fen',price_fen,'credits',credits) ORDER BY price_fen) FROM reader_plans),
+ 'storeOrders',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.purchased_at DESC),'[]') FROM
+ (SELECT transaction_id AS id,plan,purchased_at,currency,price_milli,revoked_at IS NOT NULL AS refunded
+ FROM reader_store_purchases WHERE reader_id=m.reader_id ORDER BY purchased_at DESC LIMIT 20)x),
  'orders',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.created_at DESC),'[]') FROM
  (SELECT id,plan,amount_fen,created_at,starts_at,ends_at,CASE WHEN refunded_at IS NOT NULL THEN 'refunded' WHEN paid_at IS NOT NULL THEN 'paid'
  WHEN expires_at<=now() OR closed THEN 'closed' ELSE 'pending' END status FROM reader_plan_orders WHERE reader_id=m.reader_id ORDER BY created_at DESC LIMIT 10)x))
@@ -135,7 +138,7 @@ func (m *alipayMerchant) applyPlanNotification(ctx context.Context, db *pgxpool.
 			return ErrConflict
 		}
 		// If two genuine payments arrive out of order, both earn their full, non-overlapping term.
-		_, err = tx.Exec(ctx, `WITH term AS (SELECT greatest($3::timestamptz,max(ends_at)) AS begins FROM reader_plan_orders WHERE reader_id=$4 AND refunded_at IS NULL)
+		_, err = tx.Exec(ctx, `WITH term AS (SELECT greatest($3::timestamptz,max(ends_at)) AS begins FROM reader_paid_periods WHERE reader_id=$4)
  UPDATE reader_plan_orders SET trade_no=$2,paid_at=$3,closed=false,starts_at=term.begins,ends_at=term.begins+interval '720 hours' FROM term WHERE id=$1`, id, n.TradeNo, paid, reader)
 		return err
 	})

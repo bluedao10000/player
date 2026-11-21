@@ -1,0 +1,904 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		09DC8B1DFB1FEEED9E62D47A /* FolioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF4BE4C529054EEF9BFBEC45 /* FolioApp.swift */; };
+		0AD0723E1ABB0B8A2855AEE1 /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3E40B5A83DC085DB73E720 /* Library.swift */; };
+		1B12B91C7248F1046EFBA3C0 /* ReadingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5EAF04D3AB2A4745EB48670 /* ReadingTests.swift */; };
+		1CEEBA87D9B1FD74B9E99684 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D378327B31A8324EE2B462B /* Components.swift */; };
+		2EEB21A0EDCD59CD7F5148C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FF5A25401FB25E808D3F3ADC /* Assets.xcassets */; };
+		359D7243E233849A52F62721 /* Membership.swift in Sources */ = {isa = PBXBuildFile; fileRef = E795F24191893772013783B7 /* Membership.swift */; };
+		3A51233CD633E89BF79106FA /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 342F5C7BCFEF7DBD66F033A2 /* libsqlite3.tbd */; };
+		52D9503D4E2D489CDAA2ADF1 /* Reading.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC30C9917CBF4145AEFC5BEE /* Reading.swift */; };
+		5CAE4BE87A84FEB668EA24EC /* WebReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E18D092E0EA3C95DD0D4E7C4 /* WebReader.swift */; };
+		6F3912EF15C64EC0D5BAE2D3 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9D93BF5D61B038B2C6E14685 /* PrivacyInfo.xcprivacy */; };
+		848D327733CBB79DF2C4067E /* CommissionPurchase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3B9644F9DE2CA9755D808A1 /* CommissionPurchase.swift */; };
+		9632B70D79D87A8162CF020E /* ReaderAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18EBE3D26BE77D670B3A41C /* ReaderAccount.swift */; };
+		A6EBF5360BFD06BE853707BF /* MembershipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0FBD77A55D49ADB8BA4F9B5 /* MembershipTests.swift */; };
+		AA8652E0D07F9E5A664242C5 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0CDB96325EF61173A93ACC /* libz.tbd */; };
+		BB4D9C0BD73A5117827D0C9F /* ReaderLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D654DA3EDFFDC188CC0A88 /* ReaderLogin.swift */; };
+		D76D894793F242D5B56BAF42 /* Folio.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 2EB35E9BAC275A820B1BE084 /* Folio.storekit */; };
+		E72489A5C0CE75E353173EBB /* WechatOpenSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 67A014080668CF905A34C510 /* WechatOpenSDK */; };
+		EB4980479667097961CA19BF /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D22AF4031EA93A2A6312F1DE /* WebKit.framework */; };
+		FB72ECB8C2C1A1770D90B655 /* libc++.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C335FCE0B6B9E97D525AB4C /* libc++.tbd */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1F7CABF10A08E2DE346C3125 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2EC1384916EE41FBF738C31A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 045C089F21C28CB297D45040;
+			remoteInfo = AnimeApp;
+		};
+		C11EEDEB52B06833161CF9F5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2EC1384916EE41FBF738C31A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 045C089F21C28CB297D45040;
+			remoteInfo = AnimeApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		011DDBCA07DC710F7FE7BBCE /* StoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		120097FD10F73D7EDDD5300C /* WeChat.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WeChat.xcconfig; sourceTree = "<group>"; };
+		1C6852FBAB62E1C4330D03CA /* AnimeApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AnimeApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2EB35E9BAC275A820B1BE084 /* Folio.storekit */ = {isa = PBXFileReference; path = Folio.storekit; sourceTree = "<group>"; };
+		342F5C7BCFEF7DBD66F033A2 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		5D378327B31A8324EE2B462B /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		671F5AB844D288182C93D3C2 /* ReadingUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ReadingUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7C335FCE0B6B9E97D525AB4C /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
+		9D93BF5D61B038B2C6E14685 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		AA0CDB96325EF61173A93ACC /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		B18EBE3D26BE77D670B3A41C /* ReaderAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderAccount.swift; sourceTree = "<group>"; };
+		D22AF4031EA93A2A6312F1DE /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		E18D092E0EA3C95DD0D4E7C4 /* WebReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebReader.swift; sourceTree = "<group>"; };
+		E3B9644F9DE2CA9755D808A1 /* CommissionPurchase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommissionPurchase.swift; sourceTree = "<group>"; };
+		E4D654DA3EDFFDC188CC0A88 /* ReaderLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderLogin.swift; sourceTree = "<group>"; };
+		E795F24191893772013783B7 /* Membership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Membership.swift; sourceTree = "<group>"; };
+		EC3E40B5A83DC085DB73E720 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
+		EF4BE4C529054EEF9BFBEC45 /* FolioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioApp.swift; sourceTree = "<group>"; };
+		F0FBD77A55D49ADB8BA4F9B5 /* MembershipTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembershipTests.swift; sourceTree = "<group>"; };
+		F5EAF04D3AB2A4745EB48670 /* ReadingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingTests.swift; sourceTree = "<group>"; };
+		FC30C9917CBF4145AEFC5BEE /* Reading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reading.swift; sourceTree = "<group>"; };
+		FEDB9F1D6B00881CB10882E1 /* WeChatSDK */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WeChatSDK; path = WeChatSDK; sourceTree = SOURCE_ROOT; };
+		FF5A25401FB25E808D3F3ADC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		50DF5FC950EF462BC3A5646D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E72489A5C0CE75E353173EBB /* WechatOpenSDK in Frameworks */,
+				EB4980479667097961CA19BF /* WebKit.framework in Frameworks */,
+				AA8652E0D07F9E5A664242C5 /* libz.tbd in Frameworks */,
+				3A51233CD633E89BF79106FA /* libsqlite3.tbd in Frameworks */,
+				FB72ECB8C2C1A1770D90B655 /* libc++.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		271CDE72233E8A027A95EA95 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				F5EAF04D3AB2A4745EB48670 /* ReadingTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		7624F2412A3CF0D43249E1C0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1C6852FBAB62E1C4330D03CA /* AnimeApp.app */,
+				671F5AB844D288182C93D3C2 /* ReadingUITests.xctest */,
+				011DDBCA07DC710F7FE7BBCE /* StoreTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		775F284DAD18910021E71142 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				FEDB9F1D6B00881CB10882E1 /* WeChatSDK */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		7B36E85E7FC82298A511C34E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7C335FCE0B6B9E97D525AB4C /* libc++.tbd */,
+				342F5C7BCFEF7DBD66F033A2 /* libsqlite3.tbd */,
+				AA0CDB96325EF61173A93ACC /* libz.tbd */,
+				D22AF4031EA93A2A6312F1DE /* WebKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		CB32B151700E354DC93FD493 /* StoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				2EB35E9BAC275A820B1BE084 /* Folio.storekit */,
+				F0FBD77A55D49ADB8BA4F9B5 /* MembershipTests.swift */,
+			);
+			path = StoreTests;
+			sourceTree = "<group>";
+		};
+		CE7D2554C32C0A7526562802 = {
+			isa = PBXGroup;
+			children = (
+				D7DB2D208056E288FB56D70D /* Config */,
+				D53E9528684915BBA7DB1B81 /* Folio */,
+				775F284DAD18910021E71142 /* Packages */,
+				CB32B151700E354DC93FD493 /* StoreTests */,
+				271CDE72233E8A027A95EA95 /* Tests */,
+				7B36E85E7FC82298A511C34E /* Frameworks */,
+				7624F2412A3CF0D43249E1C0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D53E9528684915BBA7DB1B81 /* Folio */ = {
+			isa = PBXGroup;
+			children = (
+				FF5A25401FB25E808D3F3ADC /* Assets.xcassets */,
+				E3B9644F9DE2CA9755D808A1 /* CommissionPurchase.swift */,
+				5D378327B31A8324EE2B462B /* Components.swift */,
+				EF4BE4C529054EEF9BFBEC45 /* FolioApp.swift */,
+				EC3E40B5A83DC085DB73E720 /* Library.swift */,
+				E795F24191893772013783B7 /* Membership.swift */,
+				9D93BF5D61B038B2C6E14685 /* PrivacyInfo.xcprivacy */,
+				B18EBE3D26BE77D670B3A41C /* ReaderAccount.swift */,
+				E4D654DA3EDFFDC188CC0A88 /* ReaderLogin.swift */,
+				FC30C9917CBF4145AEFC5BEE /* Reading.swift */,
+				E18D092E0EA3C95DD0D4E7C4 /* WebReader.swift */,
+			);
+			path = Folio;
+			sourceTree = "<group>";
+		};
+		D7DB2D208056E288FB56D70D /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				120097FD10F73D7EDDD5300C /* WeChat.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		045C089F21C28CB297D45040 /* AnimeApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0E9A4481585F9D8AC0B5572D /* Build configuration list for PBXNativeTarget "AnimeApp" */;
+			buildPhases = (
+				93DD8929A4E152E65A0785D2 /* Sources */,
+				800A19CBEC3A4DDCE6C0CD6E /* Resources */,
+				50DF5FC950EF462BC3A5646D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AnimeApp;
+			packageProductDependencies = (
+				67A014080668CF905A34C510 /* WechatOpenSDK */,
+			);
+			productName = AnimeApp;
+			productReference = 1C6852FBAB62E1C4330D03CA /* AnimeApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4C7EDB5218EFF9F9CD4FDE23 /* StoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D3FE66C2FF02BD5DB0FEA823 /* Build configuration list for PBXNativeTarget "StoreTests" */;
+			buildPhases = (
+				27A07CFDC827BCA4B9B7F76B /* Sources */,
+				D1D694465DF4E64241AEF093 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EBB79B87559C75EA49A5F7C1 /* PBXTargetDependency */,
+			);
+			name = StoreTests;
+			packageProductDependencies = (
+			);
+			productName = StoreTests;
+			productReference = 011DDBCA07DC710F7FE7BBCE /* StoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		8213DEC43C1D13DFBA95434C /* ReadingUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9195CFD58059F07D746A5A0D /* Build configuration list for PBXNativeTarget "ReadingUITests" */;
+			buildPhases = (
+				0040069CDD7B2B77E4F5E3AC /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59D88BD15689990E12A1A5C0 /* PBXTargetDependency */,
+			);
+			name = ReadingUITests;
+			packageProductDependencies = (
+			);
+			productName = ReadingUITests;
+			productReference = 671F5AB844D288182C93D3C2 /* ReadingUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		2EC1384916EE41FBF738C31A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					045C089F21C28CB297D45040 = {
+						DevelopmentTeam = W2NL88VWXP;
+						ProvisioningStyle = Automatic;
+					};
+					4C7EDB5218EFF9F9CD4FDE23 = {
+						DevelopmentTeam = W2NL88VWXP;
+						ProvisioningStyle = Automatic;
+					};
+					8213DEC43C1D13DFBA95434C = {
+						DevelopmentTeam = W2NL88VWXP;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 045C089F21C28CB297D45040;
+					};
+				};
+			};
+			buildConfigurationList = 195AE7FD4C2039DA6172B5CA /* Build configuration list for PBXProject "AnimeApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CE7D2554C32C0A7526562802;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AA05822D853A41A60B018E75 /* XCLocalSwiftPackageReference "WeChatSDK" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 7624F2412A3CF0D43249E1C0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				045C089F21C28CB297D45040 /* AnimeApp */,
+				8213DEC43C1D13DFBA95434C /* ReadingUITests */,
+				4C7EDB5218EFF9F9CD4FDE23 /* StoreTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		800A19CBEC3A4DDCE6C0CD6E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2EEB21A0EDCD59CD7F5148C1 /* Assets.xcassets in Resources */,
+				6F3912EF15C64EC0D5BAE2D3 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D1D694465DF4E64241AEF093 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D76D894793F242D5B56BAF42 /* Folio.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0040069CDD7B2B77E4F5E3AC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B12B91C7248F1046EFBA3C0 /* ReadingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		27A07CFDC827BCA4B9B7F76B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6EBF5360BFD06BE853707BF /* MembershipTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		93DD8929A4E152E65A0785D2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				848D327733CBB79DF2C4067E /* CommissionPurchase.swift in Sources */,
+				1CEEBA87D9B1FD74B9E99684 /* Components.swift in Sources */,
+				09DC8B1DFB1FEEED9E62D47A /* FolioApp.swift in Sources */,
+				0AD0723E1ABB0B8A2855AEE1 /* Library.swift in Sources */,
+				359D7243E233849A52F62721 /* Membership.swift in Sources */,
+				9632B70D79D87A8162CF020E /* ReaderAccount.swift in Sources */,
+				BB4D9C0BD73A5117827D0C9F /* ReaderLogin.swift in Sources */,
+				52D9503D4E2D489CDAA2ADF1 /* Reading.swift in Sources */,
+				5CAE4BE87A84FEB668EA24EC /* WebReader.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		59D88BD15689990E12A1A5C0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 045C089F21C28CB297D45040 /* AnimeApp */;
+			targetProxy = C11EEDEB52B06833161CF9F5 /* PBXContainerItemProxy */;
+		};
+		EBB79B87559C75EA49A5F7C1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 045C089F21C28CB297D45040 /* AnimeApp */;
+			targetProxy = 1F7CABF10A08E2DE346C3125 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0A4C4056518C5469D1FA0BC1 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.storeTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AnimeApp.app/AnimeApp";
+			};
+			name = Dev;
+		};
+		193077421B07FB9C9D77BAC4 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.readingUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AnimeApp;
+			};
+			name = Dev;
+		};
+		1A17675326985CFC1461BFCA /* Test */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 120097FD10F73D7EDDD5300C /* WeChat.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/Folio.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Folio 时光·测试";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.test;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Test;
+		};
+		1A467061BF821CEEE38C65BF /* Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.storeTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AnimeApp.app/AnimeApp";
+			};
+			name = Prod;
+		};
+		3F82442E2829E98471C9FCBA /* Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = W2NL88VWXP;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 5.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Prod;
+		};
+		482D757B18D77E0DB27C0C58 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 120097FD10F73D7EDDD5300C /* WeChat.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/Folio.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Folio 时光·开发";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.dev;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) FOLIO_DEV";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Dev;
+		};
+		534BAC37095A01A88B6A4103 /* Prod */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 120097FD10F73D7EDDD5300C /* WeChat.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/Folio.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Folio 时光";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Prod;
+		};
+		5ABAA0DE219C32234F6B73A5 /* Sandbox */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.storeTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AnimeApp.app/AnimeApp";
+			};
+			name = Sandbox;
+		};
+		6ED38C9ECACD6954A888FDAC /* Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.readingUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AnimeApp;
+			};
+			name = Prod;
+		};
+		7016F072586D1EA4BC6412D5 /* Sandbox */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.readingUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AnimeApp;
+			};
+			name = Sandbox;
+		};
+		AE7DAD37C6E91822356444B6 /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.storeTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AnimeApp.app/AnimeApp";
+			};
+			name = Test;
+		};
+		C1A2821F9BACE10A49EE8E9F /* Sandbox */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = W2NL88VWXP;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 5.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Sandbox;
+		};
+		D6A0DEB8D40C4744F615FA62 /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki.readingUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = AnimeApp;
+			};
+			name = Test;
+		};
+		D932ADB32F1C5CFA4431D044 /* Sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 120097FD10F73D7EDDD5300C /* WeChat.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/Folio.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Folio 时光·沙盒";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
+				PRODUCT_BUNDLE_IDENTIFIER = com.kmszz.starWiki;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) FOLIO_SANDBOX";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Sandbox;
+		};
+		E2CFD06FFA15811D9C1E4CDC /* Test */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = W2NL88VWXP;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 5.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Test;
+		};
+		EEEFAA9ED31DAE470B570274 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = W2NL88VWXP;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 5.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Dev;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0E9A4481585F9D8AC0B5572D /* Build configuration list for PBXNativeTarget "AnimeApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				482D757B18D77E0DB27C0C58 /* Dev */,
+				534BAC37095A01A88B6A4103 /* Prod */,
+				D932ADB32F1C5CFA4431D044 /* Sandbox */,
+				1A17675326985CFC1461BFCA /* Test */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Dev;
+		};
+		195AE7FD4C2039DA6172B5CA /* Build configuration list for PBXProject "AnimeApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EEEFAA9ED31DAE470B570274 /* Dev */,
+				3F82442E2829E98471C9FCBA /* Prod */,
+				C1A2821F9BACE10A49EE8E9F /* Sandbox */,
+				E2CFD06FFA15811D9C1E4CDC /* Test */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Dev;
+		};
+		9195CFD58059F07D746A5A0D /* Build configuration list for PBXNativeTarget "ReadingUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				193077421B07FB9C9D77BAC4 /* Dev */,
+				6ED38C9ECACD6954A888FDAC /* Prod */,
+				7016F072586D1EA4BC6412D5 /* Sandbox */,
+				D6A0DEB8D40C4744F615FA62 /* Test */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Dev;
+		};
+		D3FE66C2FF02BD5DB0FEA823 /* Build configuration list for PBXNativeTarget "StoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A4C4056518C5469D1FA0BC1 /* Dev */,
+				1A467061BF821CEEE38C65BF /* Prod */,
+				5ABAA0DE219C32234F6B73A5 /* Sandbox */,
+				AE7DAD37C6E91822356444B6 /* Test */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Dev;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		AA05822D853A41A60B018E75 /* XCLocalSwiftPackageReference "WeChatSDK" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = WeChatSDK;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		67A014080668CF905A34C510 /* WechatOpenSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WechatOpenSDK;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 2EC1384916EE41FBF738C31A /* Project object */;
+}

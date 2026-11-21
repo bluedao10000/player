@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | 判断功能归属与成熟度 | [产品架构](docs/产品架构.md)、[功能地图](docs/功能地图.md) | [H5 路由](apps/web/src/routes)、[共享契约](packages/shared/knowledge.ts) |
 | 改 H5 阅读、角色出场、场景回跳 | [技术架构](docs/技术架构.md) | [世界页面](apps/web/src/features/worlds/pages.tsx)、[Gin 读模型](apps/api/internal/knowledge/world_api.go) |
+| 改 iOS 原生阅读或签名归档 | [iOS 工程与验收](apps/ios/README.md) | [SwiftUI 页面](apps/ios/Folio)、[公开阅读接口](apps/ios/server/reader.server.ts)、[XcodeGen](apps/ios/project.yml) |
 | 接数据源、改匹配或数据质量 | [知识库与治理](docs/knowledge-base.md) | [来源适配](apps/api/internal/knowledge/upstream.go)、[归并事务](apps/api/internal/knowledge/merge.sql) |
 | 给《火影忍者》新增集数 | [分集配置](data/episode-plans/README.md)、[构建流程](docs/知识库构建流程.md) | [选题清单](data/episode-plans/naruto-tv-2002.json) |
 | 改取证、自动验图或发布 | [知识库构建流程](docs/知识库构建流程.md) | [数据服务](apps/api/cmd/knowledge-sync/main.go)、[Agent 入口](apps/agent/src/server.ts) |

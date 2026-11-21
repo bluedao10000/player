@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CharactersRouteImport } from './routes/characters'
 import { Route as CommissionsRouteImport } from './routes/commissions'
 import { Route as HealthzRouteImport } from './routes/healthz'
+import { Route as IosCommissionsRouteImport } from './routes/ios-commissions'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -24,6 +25,8 @@ import { Route as WorksRouteImport } from './routes/works'
 import { Route as CharacterMioRouteImport } from './routes/character.mio'
 import { Route as EditorApiSplatRouteImport } from './routes/editor-api.$'
 import { Route as EditorPreviewIdRouteImport } from './routes/editor-preview.$id'
+import { Route as IosAccountSplatRouteImport } from './routes/ios-account.$'
+import { Route as IosDataSplatRouteImport } from './routes/ios-data.$'
 import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
 import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as PlaySlugRouteImport } from './routes/play.$slug'
@@ -56,6 +59,11 @@ const CommissionsRoute = CommissionsRouteImport.update({
 const HealthzRoute = HealthzRouteImport.update({
   id: '/healthz',
   path: '/healthz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IosCommissionsRoute = IosCommissionsRouteImport.update({
+  id: '/ios-commissions',
+  path: '/ios-commissions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -111,6 +119,16 @@ const EditorApiSplatRoute = EditorApiSplatRouteImport.update({
 const EditorPreviewIdRoute = EditorPreviewIdRouteImport.update({
   id: '/editor-preview/$id',
   path: '/editor-preview/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IosAccountSplatRoute = IosAccountSplatRouteImport.update({
+  id: '/ios-account/$',
+  path: '/ios-account/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IosDataSplatRoute = IosDataSplatRouteImport.update({
+  id: '/ios-data/$',
+  path: '/ios-data/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KnowledgeIndexRoute = KnowledgeIndexRouteImport.update({
@@ -184,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/ios-commissions': typeof IosCommissionsRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -195,6 +214,8 @@ export interface FileRoutesByFullPath {
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
   '/editor-preview/$id': typeof EditorPreviewIdRoute
+  '/ios-account/$': typeof IosAccountSplatRoute
+  '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-api/$': typeof ReaderApiSplatRoute
@@ -214,6 +235,7 @@ export interface FileRoutesByTo {
   '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/ios-commissions': typeof IosCommissionsRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -225,6 +247,8 @@ export interface FileRoutesByTo {
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
   '/editor-preview/$id': typeof EditorPreviewIdRoute
+  '/ios-account/$': typeof IosAccountSplatRoute
+  '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-api/$': typeof ReaderApiSplatRoute
@@ -245,6 +269,7 @@ export interface FileRoutesById {
   '/characters': typeof CharactersRoute
   '/commissions': typeof CommissionsRoute
   '/healthz': typeof HealthzRoute
+  '/ios-commissions': typeof IosCommissionsRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -256,6 +281,8 @@ export interface FileRoutesById {
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
   '/editor-preview/$id': typeof EditorPreviewIdRoute
+  '/ios-account/$': typeof IosAccountSplatRoute
+  '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-api/$': typeof ReaderApiSplatRoute
@@ -277,6 +304,7 @@ export interface FileRouteTypes {
     | '/characters'
     | '/commissions'
     | '/healthz'
+    | '/ios-commissions'
     | '/login'
     | '/me'
     | '/robots.txt'
@@ -288,6 +316,8 @@ export interface FileRouteTypes {
     | '/character/mio'
     | '/editor-api/$'
     | '/editor-preview/$id'
+    | '/ios-account/$'
+    | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-api/$'
@@ -307,6 +337,7 @@ export interface FileRouteTypes {
     | '/characters'
     | '/commissions'
     | '/healthz'
+    | '/ios-commissions'
     | '/login'
     | '/me'
     | '/robots.txt'
@@ -318,6 +349,8 @@ export interface FileRouteTypes {
     | '/character/mio'
     | '/editor-api/$'
     | '/editor-preview/$id'
+    | '/ios-account/$'
+    | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-api/$'
@@ -337,6 +370,7 @@ export interface FileRouteTypes {
     | '/characters'
     | '/commissions'
     | '/healthz'
+    | '/ios-commissions'
     | '/login'
     | '/me'
     | '/robots.txt'
@@ -348,6 +382,8 @@ export interface FileRouteTypes {
     | '/character/mio'
     | '/editor-api/$'
     | '/editor-preview/$id'
+    | '/ios-account/$'
+    | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-api/$'
@@ -368,6 +404,7 @@ export interface RootRouteChildren {
   CharactersRoute: typeof CharactersRoute
   CommissionsRoute: typeof CommissionsRoute
   HealthzRoute: typeof HealthzRoute
+  IosCommissionsRoute: typeof IosCommissionsRoute
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -379,6 +416,8 @@ export interface RootRouteChildren {
   CharacterMioRoute: typeof CharacterMioRoute
   EditorApiSplatRoute: typeof EditorApiSplatRoute
   EditorPreviewIdRoute: typeof EditorPreviewIdRoute
+  IosAccountSplatRoute: typeof IosAccountSplatRoute
+  IosDataSplatRoute: typeof IosDataSplatRoute
   KnowledgeIdRoute: typeof KnowledgeIdRoute
   PlaySlugRoute: typeof PlaySlugRoute
   ReaderApiSplatRoute: typeof ReaderApiSplatRoute
@@ -422,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/healthz'
       fullPath: '/healthz'
       preLoaderRoute: typeof HealthzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ios-commissions': {
+      id: '/ios-commissions'
+      path: '/ios-commissions'
+      fullPath: '/ios-commissions'
+      preLoaderRoute: typeof IosCommissionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -499,6 +545,20 @@ declare module '@tanstack/react-router' {
       path: '/editor-preview/$id'
       fullPath: '/editor-preview/$id'
       preLoaderRoute: typeof EditorPreviewIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ios-account/$': {
+      id: '/ios-account/$'
+      path: '/ios-account/$'
+      fullPath: '/ios-account/$'
+      preLoaderRoute: typeof IosAccountSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ios-data/$': {
+      id: '/ios-data/$'
+      path: '/ios-data/$'
+      fullPath: '/ios-data/$'
+      preLoaderRoute: typeof IosDataSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/knowledge/': {
@@ -600,6 +660,7 @@ const rootRouteChildren: RootRouteChildren = {
   CharactersRoute: CharactersRoute,
   CommissionsRoute: CommissionsRoute,
   HealthzRoute: HealthzRoute,
+  IosCommissionsRoute: IosCommissionsRoute,
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
@@ -611,6 +672,8 @@ const rootRouteChildren: RootRouteChildren = {
   CharacterMioRoute: CharacterMioRoute,
   EditorApiSplatRoute: EditorApiSplatRoute,
   EditorPreviewIdRoute: EditorPreviewIdRoute,
+  IosAccountSplatRoute: IosAccountSplatRoute,
+  IosDataSplatRoute: IosDataSplatRoute,
   KnowledgeIdRoute: KnowledgeIdRoute,
   PlaySlugRoute: PlaySlugRoute,
   ReaderApiSplatRoute: ReaderApiSplatRoute,

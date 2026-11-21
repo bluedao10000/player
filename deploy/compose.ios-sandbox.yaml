@@ -1,0 +1,33 @@
+name: folio-ios-sandbox
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: folio_store_sandbox
+      POSTGRES_USER: sandbox
+      POSTGRES_PASSWORD: ${IOS_SANDBOX_DB_PASSWORD:?Set a separate sandbox password}
+    volumes: [sandbox-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "sandbox", "-d", "folio_store_sandbox"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: ../apps/api
+    restart: unless-stopped
+    depends_on:
+      db: {condition: service_healthy}
+    environment:
+      PGHOST: db
+      PGUSER: sandbox
+      PGDATABASE: folio_store_sandbox
+      PGPASSWORD: ${IOS_SANDBOX_DB_PASSWORD}
+      DATABASE_URL: postgresql:///?sslmode=disable
+      STOREKIT_ENVIRONMENT: Sandbox
+      API_HOST: 0.0.0.0
+      AUTH_RESEND_API_KEY: ${IOS_SANDBOX_RESEND_KEY:-}
+      AUTH_EMAIL_FROM: ${IOS_SANDBOX_EMAIL_FROM:-}
+    ports: ["127.0.0.1:14421:4311"]
+volumes:
+  sandbox-db:

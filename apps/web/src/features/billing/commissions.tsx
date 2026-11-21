@@ -107,7 +107,9 @@ function price(rate: Rate) {
   )
 }
 
-export function Commissions() {
+export function Commissions(){return <CommissionPage native={false} />}
+export function NativeCommissions(){return <CommissionPage native />}
+function CommissionPage({native}:{native:boolean}) {
   const [wallet, setWallet] = useState<Wallet | null>()
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -125,7 +127,7 @@ export function Commissions() {
         }),
         api<Order[]>('orders' + (beforeOrder ? '?before=' + beforeOrder : '')),
         api<Entry[]>('entries' + (beforeEntry ? '?before=' + beforeEntry : '')),
-        account.currency === 'CNY' ? api<Topup[]>('alipay/topups') : [],
+        !native && account.currency === 'CNY' ? api<Topup[]>('alipay/topups') : [],
       ])
       if (version.current === seq)
         setWallet({ account, quote, orders, entries, topups })
@@ -137,7 +139,7 @@ export function Commissions() {
         setBeforeEntry(undefined)
       } else setNotice('账户资料暂时无法读取，请重试。')
     }
-  }, [beforeOrder, beforeEntry])
+  }, [beforeOrder, beforeEntry, native])
   useEffect(() => {
     void refresh()
     return () => {
@@ -184,12 +186,11 @@ export function Commissions() {
       form.reset()
     })
   }
-  return (
-    <Layout active="我的">
+  const content = (
       <div className="commissions">
-        <a className="return" href="/shelf">
+        {!native && <a className="return" href="/shelf">
           ← 我的书架
-        </a>
+        </a>}
         <header className="commission-title">
           <h1>我的约稿</h1>
           <p>把你想见到的角色与场景，画成一张私人插画。</p>
@@ -253,7 +254,10 @@ export function Commissions() {
                 退出账户
               </button>
             </section>
-            {wallet.account.currency === 'CNY' && (
+            {native && wallet.account.currency === 'CNY' && (
+              <a className="buy" href={'folio-wallet://topup/' + wallet.account.id}>App Store 充值 · 到账 ¥20</a>
+            )}
+            {!native && wallet.account.currency === 'CNY' && (
               <Recharge wallet={wallet} busy={busy} act={act} />
             )}
             <CommissionForm
@@ -336,6 +340,8 @@ export function Commissions() {
                       (
                         {
                           credit: '入账',
+                          store_credit: 'App Store 充值',
+                          store_refund: 'App Store 充值退款',
                           charge: '约稿扣款',
                           refund: '退款',
                         } as Record<string, string>
@@ -359,8 +365,8 @@ export function Commissions() {
           </>
         )}
       </div>
-    </Layout>
   )
+  return native ? <main>{content}</main> : <Layout active="我的">{content}</Layout>
 }
 
 function Recharge({

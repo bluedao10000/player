@@ -71,26 +71,27 @@ func (s service) startWechat(c *gin.Context) {
 	c.JSON(200, gin.H{"url": "https://open.weixin.qq.com/connect/qrconnect?" + q.Encode() + "#wechat_redirect", "proof": proof})
 }
 
-func exchangeWechat(ctx context.Context, client *http.Client, id, secret, code string) (string, error) {
+func exchangeWechat(ctx context.Context, client *http.Client, id, secret, code string) (string, string, error) {
 	q := url.Values{"appid": {id}, "secret": {secret}, "code": {code}, "grant_type": {"authorization_code"}}
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.weixin.qq.com/sns/oauth2/access_token?"+q.Encode(), nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		return "", errors.New("wechat unavailable")
+		return "", "", errors.New("wechat unavailable")
 	}
 	defer res.Body.Close()
 	var body struct {
-		OpenID string `json:"openid"`
-		Token  string `json:"access_token"`
-		Error  int    `json:"errcode"`
+		UnionID string `json:"unionid"`
+		OpenID  string `json:"openid"`
+		Token   string `json:"access_token"`
+		Error   int    `json:"errcode"`
 	}
 	if res.StatusCode != 200 || json.NewDecoder(io.LimitReader(res.Body, 16384)).Decode(&body) != nil || body.Error != 0 || body.OpenID == "" || len(body.OpenID) > 128 || body.Token == "" {
-		return "", errors.New("wechat did not verify identity")
+		return "", "", errors.New("wechat did not verify identity")
 	}
-	return body.OpenID, nil
+	return body.OpenID, body.UnionID, nil
 }
 
 var errLinked = errors.New("identity belongs to another account")
@@ -149,7 +150,7 @@ func (s service) finishWechat(c *gin.Context) {
 	}
 	app, secret, _ := wechatConfig()
 	client := &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	subject, err := exchangeWechat(ctx, client, app, secret, in.Code)
+	subject, union, err := exchangeWechat(ctx, client, app, secret, in.Code)
 	if err != nil {
 		fail(c, 502, "微信授权未完成，请重试。")
 		return
@@ -164,7 +165,7 @@ func (s service) finishWechat(c *gin.Context) {
 				return err
 			}
 		}
-		id, err := wechatIdentity(ctx, tx, app, subject, owner)
+		id, err := verifiedWechat(ctx, tx, app, subject, union, owner)
 		if err != nil || bound != nil {
 			return err
 		}
