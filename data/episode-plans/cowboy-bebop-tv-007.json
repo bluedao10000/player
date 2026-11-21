@@ -1,0 +1,94 @@
+{
+  "world": "cowboy-bebop-tv",
+  "title": "星际牛仔",
+  "edition": "1998 TV",
+  "provider": "bangumi",
+  "externalID": "253",
+  "year": 1998,
+  "people": [
+    {
+      "slug": "spike",
+      "name": "斯派克",
+      "reusePortrait": true
+    },
+    {
+      "slug": "faye",
+      "name": "菲·瓦伦丁",
+      "reusePortrait": true
+    }
+  ],
+  "episodes": [
+    {
+      "number": 7,
+      "slug": "heavy-metal-queen",
+      "title": "重金属女王",
+      "intro": "斯派克和菲分头追查手臂上有龙形文身的德克尔。一场酒吧里的争执，让斯派克结识了货运飞船驾驶员 VT。",
+      "official": "https://www.cowboy-bebop.net/story/02.html",
+      "officialTitle": "ヘヴィ・メタル・クイーン",
+      "guide": "https://en.wikipedia.org/wiki/List_of_Cowboy_Bebop_episodes#ep7",
+      "guideTitle": "Heavy Metal Queen",
+      "sourceRules": {
+        "entry": ".storybox",
+        "heading": "img",
+        "attribute": "alt",
+        "body": ".storytxt",
+        "guide": "wiki-episode"
+      },
+      "place": "太空货运站的酒吧",
+      "sceneName": "货运站酒吧的相遇",
+      "sceneSlug": "truck-stop-encounter",
+      "sceneBeat": 2,
+      "people": [
+        {
+          "slug": "spike",
+          "name": "斯派克",
+          "beat": 2
+        },
+        {
+          "slug": "faye",
+          "name": "菲·瓦伦丁",
+          "beat": 3
+        }
+      ],
+      "setting": [
+        "赏金猎人",
+        2
+      ],
+      "art": {
+        "brief": "斯派克在太空货运站酒吧的吧台旁起身，转头看向画外传来争执声的方向。保留参考肖像的深蓝西装、淡黄衬衫、卷发与清瘦脸形。只画斯派克一个人，中景，上半身和神情清楚，背景是磨旧的吧台与玻璃杯，横幅裁切后脸仍清晰，无文字。",
+        "referenceURL": "https://www.codeiy.com/art/bebop/spike.webp",
+        "sourceSHA": "22322eb5e5bd6d21763681a51805458d50748d7e4a7f27039cc628ff107fccdc"
+      },
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "dragon tattoo",
+          "question": "说明比波普号一行分头追捕德克尔的缘由，以及龙形文身如何成为辨认线索。"
+        },
+        {
+          "kind": "turn",
+          "needle": "nurses a hangover",
+          "officialSentence": 1,
+          "question": "交代斯派克在酒吧如何结识货运驾驶员 VT，以及她得知斯派克是赏金猎人后的反应。"
+        },
+        {
+          "kind": "turn",
+          "needle": "restaurant",
+          "officialSentence": 2,
+          "question": "写菲·瓦伦丁在餐厅循文身找人却让目标脱身的经过。"
+        },
+        {
+          "kind": "cause",
+          "needle": "asteroid mine",
+          "officialSentence": 3,
+          "question": "说明 VT 如何借货运同行的消息重新找到线索，追逐如何变成众人在矿区的脱险。仅概述结果。"
+        },
+        {
+          "kind": "cause",
+          "needle": "wife of an old bounty hunter",
+          "question": "写斯派克如何认出 VT 与一位已故赏金猎人的关系，以及他如何对待关于她名字的赌金。"
+        }
+      ]
+    }
+  ]
+}
