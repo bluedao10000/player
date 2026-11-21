@@ -33,6 +33,7 @@ type Sync = {
   records_created: number;
   http_status: number | null;
   records_failed: number;
+  error_message: string | null;
 };
 type Quality = {
   id: string;
@@ -96,6 +97,7 @@ export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
       http: r.http_status,
       failed: r.records_failed,
       score: null as number | null,
+      error: r.error_message,
     })),
     ...(quality ?? []).map((r) => ({
       id: r.id,
@@ -109,6 +111,7 @@ export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
       http: null,
       failed: null,
       score: r.report?.mean_score ?? null,
+      error: null as string | null,
       issues: r.report
         ? Object.values(r.report.issues).reduce((a, b) => a + b, 0)
         : null,
@@ -130,3 +133,6 @@ export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
     checked: new Date().toISOString(),
   };
 });
+
+export type WorkbenchFeed = NonNullable<Awaited<ReturnType<typeof readFeed>>>
+export type WorkbenchRun = WorkbenchFeed['runs'][number]
