@@ -1,0 +1,21 @@
+[Unit]
+Description=Folio episode scheduler (%i)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=folio-worker
+WorkingDirectory=/srv/folio-data
+EnvironmentFile=/srv/folio-data/database.env
+EnvironmentFile=-/srv/folio-data/lane.env
+Environment=KNOWLEDGE_RESEARCH_URL=http://127.0.0.1:4312
+Environment=KNOWLEDGE_ARCHIVE_DIR=/srv/folio-data/archive
+Environment=EPISODE_PLAN_DIR=/srv/folio-data/plans
+ExecStart=/srv/folio-data/bin/knowledge-sync -episode-lane=%i
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+BindReadOnlyPaths=/srv/folio-data/art:/reader-art
+BindReadOnlyPaths=/srv/folio-data/media:/media
+[Install]
+WantedBy=multi-user.target

@@ -4,4 +4,4 @@ namespace: folio-pg-backup
 resources: [resources.yaml, reporter.yaml]
 configMapGenerator:
 - name: backup-scripts
-  files: [backup.sh, counts.sql]
+  files: [backup.sh, counts.psql]

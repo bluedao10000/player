@@ -2,17 +2,25 @@
 package migrations
 
 import (
-	"embed"
+	_ "embed"
 	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
-
-	queries "anime-agent/database/queries/schema"
 )
 
-//go:embed legacy/*.sql
-var history embed.FS
+//go:embed init.sql
+var baseline string
+
+func section(name string) string {
+	_, body, found := strings.Cut(baseline, "\n-- name: "+name+"\n")
+	if !found {
+		panic("missing migration section: " + name)
+	}
+	sql, _, _ := strings.Cut(body, "\n-- name: ")
+	return sql
+}
 
 type appliedVersion struct {
 	Version   string    `gorm:"type:text;primaryKey"`
@@ -31,11 +39,7 @@ func versions() []migration {
 	for i := 1; i <= 48; i++ {
 		version := fmt.Sprintf("%03d.sql", i)
 		steps = append(steps, migration{version, func(tx *gorm.DB) error {
-			sql, err := history.ReadFile("legacy/" + version)
-			if err != nil {
-				return err
-			}
-			return tx.Exec(string(sql)).Error
+			return tx.Exec(section(version)).Error
 		}})
 	}
 	return append(steps, migration{"049.sql", addBackupAttempts})
@@ -44,7 +48,7 @@ func versions() []migration {
 // Apply and the previous pgx migrator share a lock and immutable version IDs.
 func Apply(db *gorm.DB) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(queries.LockMigrations).Error; err != nil {
+		if err := tx.Exec(section("lock")).Error; err != nil {
 			return err
 		}
 		if !tx.Migrator().HasTable(&appliedVersion{}) {

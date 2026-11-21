@@ -26,7 +26,7 @@ flowchart TB
 %% scene | 场景携带 return_to.href，可以回到故事中对应的段落。 | apps/api/internal/handler/knowledge/world_api.go
 %% play | 原创故事有预设行动，进度与收藏保存在浏览器。 | apps/web/src/features/post/roleplay-controls.tsx
 %% future | 预设分支之外的开放多轮剧情仍待实现。 | docs/产品架构.md
-%% catalog | 目录、已清洗身份、作品世界和范围定稿在 PostgreSQL 中分别建模。 | database/migrations/legacy
+%% catalog | 目录、已清洗身份、作品世界和范围定稿在 PostgreSQL 中分别建模。 | database/migrations/init.sql
 %% desk | 工作台通过 Gin 读取来源、取证、试稿与自动验收记录。 | apps/web/src/features/workbench/feed.ts
 %% edit | 数据服务运行编辑任务，Go 校验引用，Pi 独立校对。 | apps/api/internal/service/knowledge/editor_worker.go
 %% review | 审批校验稿件轮次和定稿基线，事务内更新公开文字。 | apps/api/internal/service/knowledge/editor.go

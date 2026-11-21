@@ -1,0 +1,14 @@
+-- name: ReceiptTotals
+SELECT count(*),coalesce(sum(total_tokens)FILTER(WHERE receipt_rank=1 AND meter_state='measured'),0) FROM model_usage_receipts
+
+-- name: SanitizedUsage
+SELECT (usage->'input_tokens_details'->>'cached_tokens')::int=3 AND NOT usage?'model_text' FROM model_calls WHERE id=$1
+
+-- name: ConflictingReceipts
+SELECT count(*) FILTER(WHERE meter_state='inconsistent'), count(*) FILTER(WHERE meter_state='unreported' AND total_tokens IS NULL AND images=1) FROM model_usage_receipts
+
+-- name: PartialReceipts
+SELECT count(*) FILTER(WHERE meter_state='measured' AND total_tokens=0), count(*) FILTER(WHERE meter_state='partial' AND input_tokens=3 AND total_tokens IS NULL) FROM model_usage_receipts
+
+-- name: OfflineUsageTotals
+SELECT count(*),sum(total_tokens) FROM model_usage_receipts WHERE receipt_rank=1

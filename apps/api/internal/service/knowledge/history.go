@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	queries "anime-agent/database/queries/knowledge"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 // DiffSnapshots compares the upstream document, including fields unused by normalization.

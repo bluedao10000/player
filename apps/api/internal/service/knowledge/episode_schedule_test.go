@@ -8,13 +8,13 @@ import (
 	"testing"
 
 	"anime-agent/api/internal/testsupport"
-	sqltest "anime-agent/database/queries/fixtures"
+	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
 
 func TestProductionAdmission(t *testing.T) {
 	db := testsupport.Database(t)
 	ctx := context.Background()
-	raw, err := os.ReadFile("../../../../../data/production-plans/cowboy-bebop-tv.json")
+	raw, err := os.ReadFile("testdata/cowboy-bebop-tv.json")
 	if err != nil {
 		t.Fatal(err)
 	}

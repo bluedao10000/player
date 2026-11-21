@@ -1,1 +1,0 @@
-SELECT work_id::text FROM knowledge_curation_actions WHERE action IN ('approve','merge') AND work_id=$1 AND after_value->>'work_id'=$2 AND before_value->'records' @> jsonb_build_array($3::bigint) LIMIT 1

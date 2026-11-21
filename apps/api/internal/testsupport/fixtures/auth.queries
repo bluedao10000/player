@@ -1,0 +1,15 @@
+-- name: ReaderByUnionID
+SELECT reader_id FROM reader_wechat_union WHERE subject='same-union'
+
+-- name: SeedEmailCode
+INSERT INTO reader_email_codes(email,digest,issued_at,attempts) VALUES('test@example.org',$1,now()-$2::interval,$3)
+  ON CONFLICT(email) DO UPDATE SET digest=excluded.digest,issued_at=excluded.issued_at,attempts=excluded.attempts
+
+-- name: CountPlanChanges
+SELECT count(*) FROM reader_plan_changes WHERE reader_id=$1
+
+-- name: ExpireMembership
+UPDATE reader_identities SET plan_until=now()-interval '1 minute' WHERE id=$1
+
+-- name: ResetEmailCode
+INSERT INTO reader_email_codes(email,digest) VALUES($1,$2) ON CONFLICT(email) DO UPDATE SET attempts=0,issued_at=now(),digest=excluded.digest

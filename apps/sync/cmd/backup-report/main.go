@@ -18,7 +18,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	queries "anime-agent/database/queries/backup"
+	queries "anime-agent/api/internal/repository/queries/backup"
 )
 
 const account = "/var/run/secrets/kubernetes.io/serviceaccount/"

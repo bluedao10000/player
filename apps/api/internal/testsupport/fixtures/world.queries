@@ -1,0 +1,41 @@
+-- name: WorldRevision
+SELECT version_id,revision FROM work_worlds WHERE slug='tidepost'
+
+-- name: InsertPreface
+INSERT INTO chapter_blocks VALUES($1,'last-ferry','preface','序言',-1)
+
+-- name: InsertSecondScene
+INSERT INTO work_scenes SELECT v,'second-view',chapter,name,place,text,block,9,evidence FROM work_scenes WHERE v=$1 AND slug='ferry-register'
+
+-- name: InsertUnsupportedAppearance
+INSERT INTO scene_appearances VALUES($1,'last-ferry','ferry-register','keeper','editorial')
+
+-- name: CreateBebopWork
+INSERT INTO works(canonical_title,type,season_year) VALUES('Cowboy Bebop','TV',1998) RETURNING id::text
+
+-- name: AttachBebopSource
+INSERT INTO work_sources VALUES($1,'bangumi','253','https://bgm.tv/subject/253')
+
+-- name: SetBebopURLs
+UPDATE knowledge_sources SET check_url=$1||'/official',data_url=$1 WHERE name='bebop-tv-guide'
+
+-- name: SetSupplementURL
+UPDATE world_source_policy SET supplement_url=$1||'/chase'
+
+-- name: PublishedCast
+SELECT w.revision,array_agg(a.person ORDER BY a.person) FROM published_worlds w JOIN scene_appearances a ON a.v=w.version_id WHERE a.scene='bar-visit' GROUP BY w.revision
+
+-- name: ArtCompleteness
+SELECT has_hero,portraits,chapter_images FROM work_knowledge_status WHERE work_id=$1
+
+-- name: TidepostVersion
+SELECT work_id::text,version_id FROM work_worlds WHERE slug='tidepost'
+
+-- name: RemoveSceneCast
+DELETE FROM scene_appearances WHERE v=$1
+
+-- name: RemoveHomeSlot
+DELETE FROM home_world_slots WHERE work_id=$1
+
+-- name: RemoveWorld
+DELETE FROM work_worlds WHERE work_id=$1

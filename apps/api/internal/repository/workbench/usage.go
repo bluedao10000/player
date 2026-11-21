@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"anime-agent/api/internal/repository/database"
-	queries "anime-agent/database/queries/workbench"
+	queries "anime-agent/api/internal/repository/queries/workbench"
 )
 
 func BackupStatus(ctx context.Context, db *pgxpool.Pool) ([]byte, error) {

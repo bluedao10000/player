@@ -19,7 +19,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	queries "anime-agent/database/queries/release"
+	queries "anime-agent/api/internal/repository/queries/release"
 )
 
 const limit = 16 << 20

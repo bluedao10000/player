@@ -9,7 +9,7 @@ import (
 
 	reads "anime-agent/api/internal/repository/catalog"
 	domain "anime-agent/api/internal/service/knowledge"
-	queries "anime-agent/database/queries/catalog"
+	queries "anime-agent/api/internal/repository/queries/catalog"
 )
 
 var sceneFile = regexp.MustCompile(`^[a-f0-9]{64}\.jpg$`)

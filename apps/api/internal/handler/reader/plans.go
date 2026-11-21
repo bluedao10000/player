@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	queries "anime-agent/database/queries/reader"
+	queries "anime-agent/api/internal/repository/queries/reader"
 )
 
 func AdminRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {

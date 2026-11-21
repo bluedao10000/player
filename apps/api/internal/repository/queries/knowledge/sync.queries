@@ -1,0 +1,78 @@
+-- name: EnabledSources
+SELECT id FROM knowledge_sources WHERE enabled AND ($1='' OR name=$1) ORDER BY id
+
+-- name: TryLockSource
+SELECT pg_try_advisory_lock(82045,$1)
+
+-- name: RecordBusySkip
+INSERT INTO knowledge_sync_runs(source_id,status,finished_at,local_version,skipped,skip_reason) SELECT id,'success',now(),current_version,true,'already_running' FROM knowledge_sources WHERE id=$1
+
+-- name: FailInterruptedSyncs
+UPDATE knowledge_sync_runs SET status='failed',finished_at=now(),error_message='worker stopped before commit'
+ WHERE source_id=$1 AND status IN ('running','pending')
+
+-- name: ClearFailedStaging
+DELETE FROM staging_source_records s USING knowledge_sync_runs r WHERE s.batch_id=r.id AND r.source_id=$1 AND r.status='failed'
+
+-- name: SourceConfiguration
+SELECT id,name,type,data_url,check_url,asset_name,coalesce(current_version,''),
+ last_checked_at IS NULL OR last_checked_at + CASE WHEN (SELECT status FROM knowledge_sync_runs WHERE source_id=s.id ORDER BY started_at DESC LIMIT 1)='failed'
+ THEN least(sync_interval,interval '15 minutes') ELSE sync_interval END<=now() FROM knowledge_sources s WHERE id=$1 AND enabled
+
+-- name: StartSync
+INSERT INTO knowledge_sync_runs(source_id,status,local_version) VALUES($1,'running',nullif($2,'')) RETURNING id::text
+
+-- name: TouchSource
+UPDATE knowledge_sources SET last_checked_at=now(),updated_at=now() WHERE id=$1
+
+-- name: FailSync
+UPDATE knowledge_sync_runs SET status='failed',finished_at=now(),remote_version=nullif($2,''),download_url=nullif($3,''),http_status=nullif($4,0),content_length=$5,checksum=nullif($6,''),records_read=$7,records_failed=$8,error_message=left($9,3000) WHERE id=$1 AND status='running'
+
+-- name: DeleteBatch
+DELETE FROM staging_source_records WHERE batch_id=$1
+
+-- name: ArchivedSourceVersion
+SELECT version,checksum,parser_type,asset_name FROM knowledge_source_versions WHERE source_id=$1 AND version=coalesce(nullif($2,'@current'),$3) AND snapshot_key IS NOT NULL
+
+-- name: HasArchivedVersion
+SELECT EXISTS(SELECT FROM knowledge_source_versions WHERE source_id=$1 AND version=$2 AND snapshot_key IS NOT NULL)
+
+-- name: SkipUnchangedSource
+UPDATE knowledge_sync_runs SET status='success',skipped=true,skip_reason='version_unchanged',finished_at=now(),remote_version=$2,download_url=$3,http_status=$4 WHERE id=$1
+
+-- name: RecordDownload
+UPDATE knowledge_sync_runs SET remote_version=$2,download_url=$3,http_status=$4 WHERE id=$1
+
+-- name: RecordChecksum
+UPDATE knowledge_sync_runs SET content_length=$2,checksum=$3,http_status=$4 WHERE id=$1
+
+-- name: RecordReadCount
+UPDATE knowledge_sync_runs SET records_read=$2 WHERE id=$1
+
+-- name: ValidateStaging
+SELECT (SELECT count(*) FROM staging_source_records WHERE batch_id=$1)=$3 AND
+   $3::numeric >= (SELECT count(*) FROM knowledge_source_records WHERE source_id=$2 AND active)*(SELECT min_retained_ratio FROM knowledge_sources WHERE id=$2)
+
+-- name: RegisterVersion
+INSERT INTO knowledge_source_versions(source_id,version,checksum,metadata,run_id) VALUES($1,$2,$3,$4,$5)
+  ON CONFLICT(source_id,version) DO UPDATE SET checksum=excluded.checksum WHERE knowledge_source_versions.checksum=excluded.checksum RETURNING id
+
+-- name: BindSnapshot
+UPDATE knowledge_source_versions SET snapshot_key=$2,parser_type=$3,asset_name=$4 WHERE id=$1
+
+-- name: CreateMergeContext
+CREATE TEMP TABLE merge_context(batch uuid,source int, version bigint) ON COMMIT DROP
+
+-- name: SetMergeContext
+INSERT INTO merge_context VALUES($1,$2,$3)
+
+-- name: MarkReplayWorks
+INSERT INTO affected SELECT work_id FROM knowledge_source_records WHERE source_id=(SELECT source FROM merge_context) ON CONFLICT DO NOTHING;
+
+-- name: FinishSync
+UPDATE knowledge_sync_runs SET finished_at=now(),status='success',remote_version=$2,download_url=$3,http_status=$4,content_length=$5,checksum=$6,
+   records_read=$7,records_created=(SELECT count(*) FROM incoming WHERE action='created'),records_updated=(SELECT count(*) FROM incoming WHERE action='updated'),
+   records_unchanged=(SELECT count(*) FROM incoming WHERE action='unchanged'),records_deleted=(SELECT count(*) FROM removed) WHERE id=$1
+
+-- name: AdvanceSourceVersion
+UPDATE knowledge_sources SET current_version=$2,last_synced_at=now(),updated_at=now() WHERE id=$1

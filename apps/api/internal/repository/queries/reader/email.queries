@@ -1,0 +1,40 @@
+-- name: LockCodeIssuer
+SELECT pg_advisory_xact_lock(82045102)
+
+-- name: PurgeOldCodes
+DELETE FROM reader_email_codes WHERE issued_at < now()-interval '1 day'
+
+-- name: CodeQuotaReached
+SELECT count(*) >= 100 FROM reader_email_codes WHERE issued_at > now()-interval '1 minute'
+
+-- name: IssueCode
+INSERT INTO reader_email_codes(email,digest) VALUES($1,$2)
+ ON CONFLICT(email) DO UPDATE SET digest=excluded.digest,issued_at=now(),attempts=0
+ WHERE reader_email_codes.issued_at <= now()-interval '60 seconds'
+
+-- name: InvalidateUndeliveredCode
+UPDATE reader_email_codes SET attempts=5 WHERE email=$1 AND digest=$2
+
+-- name: AttemptCode
+UPDATE reader_email_codes SET attempts=attempts+1 WHERE email=$1 AND attempts<5 AND issued_at>now()-interval '5 minutes' RETURNING digest
+
+-- name: ConsumeCode
+UPDATE reader_email_codes SET attempts=5 WHERE email=$1
+
+-- name: BindEmail
+UPDATE reader_identities SET email=$2 WHERE id=$1 AND (email IS NULL OR email=$2)
+
+-- name: FindOrCreateReader
+INSERT INTO reader_identities(email) VALUES($1) ON CONFLICT(email) DO UPDATE SET email=excluded.email RETURNING id
+
+-- name: PurgeSessions
+DELETE FROM reader_sessions WHERE expires_at<=now()
+
+-- name: CreateSession
+INSERT INTO reader_sessions(digest,reader_id,expires_at) VALUES($1,$2,now()+interval '30 days')
+
+-- name: AuthenticateSession
+SELECT reader_id FROM reader_sessions WHERE digest=$1 AND expires_at>now()
+
+-- name: RevokeSession
+DELETE FROM reader_sessions WHERE digest=$1

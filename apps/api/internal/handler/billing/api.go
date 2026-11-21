@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	domain "anime-agent/api/internal/service/billing"
-	queries "anime-agent/database/queries/billing"
+	queries "anime-agent/api/internal/repository/queries/billing"
 )
 
 var currency = regexp.MustCompile(`^[A-Z]{3}$`)

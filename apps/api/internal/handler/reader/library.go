@@ -10,7 +10,7 @@ import (
 	model "anime-agent/api/internal/model/reader"
 	library "anime-agent/api/internal/repository/reader"
 	account "anime-agent/api/internal/service/reader"
-	queries "anime-agent/database/queries/reader"
+	queries "anime-agent/api/internal/repository/queries/reader"
 )
 
 func (s service) state(c *gin.Context) {

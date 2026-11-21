@@ -1,1 +1,0 @@
-UPDATE knowledge_sync_runs SET status='failed',finished_at=now(),remote_version=nullif($2,''),download_url=nullif($3,''),http_status=nullif($4,0),content_length=$5,checksum=nullif($6,''),records_read=$7,records_failed=$8,error_message=left($9,3000) WHERE id=$1 AND status='running'

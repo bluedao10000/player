@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	model "anime-agent/api/internal/model/reader"
-	queries "anime-agent/database/queries/reader"
+	queries "anime-agent/api/internal/repository/queries/reader"
 )
 
 func SavePosition(ctx context.Context, tx pgx.Tx, id string, e model.Entry) error {

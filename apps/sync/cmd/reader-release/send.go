@@ -17,7 +17,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	queries "anime-agent/database/queries/release"
+	queries "anime-agent/api/internal/repository/queries/release"
 )
 
 // A session lock spans delivery and acknowledgement. A crashed worker drops the

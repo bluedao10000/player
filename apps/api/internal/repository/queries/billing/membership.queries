@@ -1,0 +1,40 @@
+-- name: PlanSummary
+SELECT jsonb_build_object('enabled',$2::boolean,'periodStart',period_start,'periodEnd',period_end,
+ 'plan',plan,'credits',credits,'usedMicro',coalesce((SELECT sum(microcredits) FROM reader_credit_usage WHERE reader_id=m.reader_id AND period_start=m.period_start),0),
+ 'plans',(SELECT jsonb_agg(jsonb_build_object('id',id,'fen',price_fen,'credits',credits) ORDER BY price_fen) FROM reader_plans),
+ 'storeOrders',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.purchased_at DESC),'[]') FROM
+ (SELECT transaction_id AS id,plan,purchased_at,currency,price_milli,revoked_at IS NOT NULL AS refunded
+ FROM reader_store_purchases WHERE reader_id=m.reader_id ORDER BY purchased_at DESC LIMIT 20)x),
+ 'orders',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.created_at DESC),'[]') FROM
+ (SELECT id,plan,amount_fen,created_at,starts_at,ends_at,CASE WHEN refunded_at IS NOT NULL THEN 'refunded' WHEN paid_at IS NOT NULL THEN 'paid'
+ WHEN expires_at<=now() OR closed THEN 'closed' ELSE 'pending' END status FROM reader_plan_orders WHERE reader_id=m.reader_id ORDER BY created_at DESC LIMIT 10)x))
+ FROM reader_memberships m WHERE reader_id=$1
+
+-- name: LockReader
+SELECT id FROM reader_identities WHERE id=$1 FOR UPDATE
+
+-- name: IsPaidMember
+SELECT plan<>'free' FROM reader_memberships WHERE reader_id=$1
+
+-- name: PendingPlanOrder
+SELECT id,plan,amount_fen,expires_at FROM reader_plan_orders WHERE reader_id=$1 AND trade_no IS NULL AND NOT closed AND expires_at>now() ORDER BY created_at DESC LIMIT 1
+
+-- name: CreatePlanOrder
+INSERT INTO reader_plan_orders(reader_id,plan,amount_fen,credits,app_id,seller_id)
+ SELECT $1,id,price_fen,credits,$3,$4 FROM reader_plans WHERE id=$2 AND price_fen=$5 RETURNING id,amount_fen,expires_at
+
+-- name: LockPlanOrderReader
+SELECT r.id FROM reader_plan_orders o JOIN reader_identities r ON r.id=o.reader_id WHERE o.id=$1 AND o.app_id=$2 AND o.seller_id=$3 FOR UPDATE OF r
+
+-- name: LockPlanPayment
+SELECT amount_fen,trade_no FROM reader_plan_orders WHERE id=$1 FOR UPDATE
+
+-- name: RefundPlanOrder
+UPDATE reader_plan_orders SET refunded_at=coalesce(refunded_at,now()) WHERE id=$1
+
+-- name: ClosePlanOrder
+UPDATE reader_plan_orders SET closed=true WHERE id=$1
+
+-- name: ActivatePaidPeriod
+WITH term AS (SELECT greatest($3::timestamptz,max(ends_at)) AS begins FROM reader_paid_periods WHERE reader_id=$4)
+ UPDATE reader_plan_orders SET trade_no=$2,paid_at=$3,closed=false,starts_at=term.begins,ends_at=term.begins+interval '720 hours' FROM term WHERE id=$1

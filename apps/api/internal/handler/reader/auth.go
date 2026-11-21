@@ -20,7 +20,7 @@ import (
 
 	"anime-agent/api/internal/handler/billing"
 	mailer "anime-agent/api/internal/service/reader"
-	queries "anime-agent/database/queries/reader"
+	queries "anime-agent/api/internal/repository/queries/reader"
 )
 
 type service struct{ db *pgxpool.Pool }

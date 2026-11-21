@@ -39,10 +39,10 @@ flowchart LR
 %% desk | 跨研究、媒体与发布环节展示用量、缺项和失败记录。 | apps/web/src/features/workbench/feed.ts
 %% edit | 两个样板支持一句话修订章节、场景、人物及世界观，手机预览后整项审发。 | docs/功能地图.md
 %% finance | 按供应商、用途和模型追踪实际调用与账务差异。 | docs/模型用量与计费.md
-%% ledger | 已支持导入日账单并按币种核对。 | database/queries/billing/reconciliation.sql
+%% ledger | 已支持导入日账单并按币种核对。 | apps/api/internal/repository/queries/billing/queries.queries
 %% bills | 供应商日账单仍需导入。 | docs/模型用量与计费.md
 %% media | 当前灰度和全站图片库按不同交付范围标记。 | docs/图片库架构.md
-%% pilot | 原 URL 经阿里云网关和 Mesh 到广州 Axum，libvips 预生成手机预览。 | deploy/image-pilot/README.md
+%% pilot | 原 URL 经阿里云网关和 Mesh 到广州 Axum，libvips 预生成手机预览。 | apps/sync/ops/image-import/README.md
 %% assets | 规划包括目录元数据、上传删除 API、S3/R2 存储切换与图片异机恢复。 | docs/图片库架构.md
 %% infra | 四个 Mesh 节点分别承担公网入口、制作、媒体与备份。 | docs/部署架构.md
 %% backup | 每日广州数据库快照在 K3s 恢复并逐表核对，内部面板保留成功回执、大小、耗时和失败原因。 | deploy/pg-backup/README.md

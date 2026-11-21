@@ -14,7 +14,7 @@ import (
 	"anime-agent/api/internal/repository/database"
 	"anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/service/modelusage"
-	queries "anime-agent/database/queries/knowledge"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 func main() {

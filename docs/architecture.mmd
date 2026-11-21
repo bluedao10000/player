@@ -41,5 +41,5 @@ flowchart TB
 %% state | Pi 保存恢复执行所需的检查点。 | compose.yaml
 %% models | Kimi 文本走 Magpie，硅谷使用 OpenAI 图像和视觉模型。 | docs/模型用量与计费.md
 %% pg | 广州持有制作数据库，候选与已选媒体文件存于硅谷。 | docs/部署架构.md
-%% online | 阿里云在一个事务中安装单集投影并记录回执。 | database/queries/release/import.sql
+%% online | 阿里云在一个事务中安装单集投影并记录回执。 | apps/api/internal/repository/queries/release/queries.queries
 %% backup | 从同一源快照导出、恢复并逐表核对，成功后切换库名。 | deploy/pg-backup/backup.sh

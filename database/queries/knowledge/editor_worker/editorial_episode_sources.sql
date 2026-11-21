@@ -1,1 +1,0 @@
-SELECT jsonb_build_object('number',number,'official',spec->'official','guide',spec->'guide','officialTitle',spec->'officialTitle','guideTitle',spec->'guideTitle') FROM episode_plans WHERE world_slug=$1 AND number=1

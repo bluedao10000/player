@@ -14,11 +14,11 @@ flowchart TB
 %% probe | 每个来源按自己的间隔检查。失败原因与跳过结果写入同步运行表。 | apps/api/internal/service/knowledge/sync.go
 %% skip | 相同远程版本保留上次发布投影。 | apps/api/internal/service/knowledge/sync.go
 %% stage | 校验下载与格式，暂存完整批次后才进入归并事务。 | apps/api/internal/service/knowledge/parse.go
-%% works | 普通作品停在可查询的 canonical 档案。 | database/queries/knowledge/merge.sql
+%% works | 普通作品停在可查询的 canonical 档案。 | apps/api/internal/repository/queries/knowledge/queries.queries
 %% plan | 挂载配置绑定版本、集号、来源和美术任务。 | apps/api/internal/service/knowledge/episode_plan.go
 %% proof | 收集来源快照，按句定位事件，保留校对和退回记录。 | apps/agent/src/research.ts
 %% media | 记录参考指纹、原图、手机预览和两轮内的处置结果。 | apps/api/internal/service/knowledge/media.go
 %% gate | 按人物、剧情、世界观、时间线与图片核验。 | apps/api/internal/service/knowledge/episode_plan.go
 %% gap | 可以查看每个缺项、证据及历史记录；超出自动重试上限时保留失败。 | apps/web/src/features/workbench/scope-report.tsx
 %% freeze | 保存本次正文、阅读锚点及入选图片的内容地址。 | apps/api/internal/service/knowledge/acceptance.go
-%% h5 | 读模型聚合相同作品版本的连续公开范围。 | database/migrations/legacy/026.sql
+%% h5 | 读模型聚合相同作品版本的连续公开范围。 | database/migrations/init.sql

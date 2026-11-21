@@ -15,7 +15,7 @@
     "dev:api": "dotenv -e .env -- go -C apps/api run ./cmd/api",
     "dev:agent": "npm run dev -w @anime/agent",
     "build:web": "npm run build -w @anime/web",
-    "check": "npm run build:web && npm run check --workspaces --if-present && go -C database vet ./... && go -C database test ./... && go -C apps/api vet ./... && go -C apps/api test ./... && go -C apps/sync vet ./... && go -C apps/sync test ./...",
+    "check": "npm run build:web && npm run check --workspaces --if-present && go -C database vet ./... && go -C apps/api vet ./... && go -C apps/api test ./... && go -C apps/sync vet ./... && go -C apps/sync test ./...",
     "knowledge:sync": "dotenv -e .env -- go -C apps/sync run ./cmd/sync -once"
   },
   "devDependencies": {

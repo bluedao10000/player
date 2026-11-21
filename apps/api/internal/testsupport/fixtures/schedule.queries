@@ -1,0 +1,11 @@
+-- name: CreateScheduleEdition
+WITH k AS (INSERT INTO works(canonical_title,type,season_year) VALUES('fixture','TV',1998) RETURNING id) INSERT INTO work_sources SELECT id,'fixture','1','https://example.com' FROM k
+
+-- name: CountAdmissions
+SELECT count(*) FROM episode_admissions
+
+-- name: InsertMissingEpisodes
+INSERT INTO episode_inventory_snapshots VALUES(now(),'[{"slug":"schedule-fixture","missing":[5,6]}]')
+
+-- name: QueueStatus
+SELECT status FROM episode_policy_queue WHERE number=6

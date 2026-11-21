@@ -13,7 +13,7 @@ import (
 
 	"anime-agent/api/internal/service/aiprovider"
 	"anime-agent/api/internal/service/modelusage"
-	queries "anime-agent/database/queries/matching"
+	queries "anime-agent/api/internal/repository/queries/matching"
 )
 
 const matchPromptVersion = "anime-identity-1"

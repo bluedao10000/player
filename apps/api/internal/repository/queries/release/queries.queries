@@ -1,0 +1,66 @@
+-- name: ExportRelease
+WITH accepted AS (SELECT a.* FROM visible_reader_scopes s JOIN scope_acceptances a ON a.id=s.id
+ WHERE s.topic=$1 AND s.id=$2 AND a.passed),
+picks AS (SELECT (p->>'slot')::int slot,(p->>'round')::int round FROM accepted a, jsonb_array_elements(a.picks)p),
+media AS (SELECT c.* FROM media_candidates c JOIN picks USING(slot,round) WHERE c.stage='passed'),
+cast_slugs AS (SELECT e.topic,p->>'slug' slug FROM episode_extensions e JOIN accepted a USING(topic),jsonb_array_elements(e.people)p)
+SELECT jsonb_build_object(
+ 'versions',(select jsonb_agg(to_jsonb(w)-'intro') from (select slug,version_id,work_id from work_worlds where slug in (select edition_slug from accepted))w),
+ 'portraits',(select jsonb_agg(to_jsonb(p) ORDER BY p.item_slug) from (select distinct r.world_slug,r.item_slug,r.image,r.source_sha256 from cast_slugs x join accepted a using(topic) join edition_reader_art r on r.world_slug=a.edition_slug and r.item_slug=x.slug and r.kind='character')p),
+ 'research_topics',(select jsonb_agg(to_jsonb(t)) from research_topics t join accepted a on a.topic=t.id),
+ 'research_runs',(select jsonb_agg(to_jsonb(r)) from research_runs r join accepted a on a.research_run=r.id and r.stage='ready'),
+ 'episode_extensions',(select jsonb_agg(to_jsonb(e)) from episode_extensions e join accepted using(topic)),
+ 'episode_plans',(select jsonb_agg(to_jsonb(p)) from episode_plans p join accepted using(topic)),
+ 'episode_art_jobs',(select jsonb_agg(to_jsonb(j)) from episode_art_jobs j join media c on c.art_job=j.id),
+ 'media_candidates',(select jsonb_agg(to_jsonb(c)) from media c),
+ 'scope_acceptances',(select jsonb_agg(to_jsonb(a)) from accepted a));
+
+-- name: ValidateRelease
+WITH input AS (SELECT $1::jsonb j), bundle AS (
+ SELECT j->'versions'->0 source_edition,j->'research_topics'->0 topic,j->'research_runs'->0 run,
+ j->'episode_plans'->0 plan,j->'episode_extensions'->0 chapter,j->'episode_art_jobs'->0 art,
+ j->'media_candidates'->0 media,j->'scope_acceptances'->0 final,j->'portraits' portraits
+ FROM input
+)
+SELECT EXISTS (
+ SELECT FROM bundle JOIN published_worlds w ON w.slug=$2 AND w.slug=source_edition->>'slug'
+ AND w.work_id::text=source_edition->>'work_id' AND w.version_id=(source_edition->>'version_id')::bigint
+ WHERE topic->>'id'=$6 AND topic->>'world_slug'=w.slug
+ AND (topic->>'first_episode')::int=$3 AND (topic->>'last_episode')::int=$3
+ AND run->>'topic'=$6 AND run->>'id'=final->>'research_run' AND run->>'stage'='ready'
+ AND run->>'v'=source_edition->>'version_id' AND final->>'v'=source_edition->>'version_id'
+ AND plan->>'topic'=$6 AND plan->>'world_slug'=w.slug AND (plan->>'number')::int=$3
+ AND plan->'spec' @> '{"publishToReader":true}' AND plan->'spec'->>'slug'=$4 AND plan->'spec'->>'sceneSlug'=$5
+ AND chapter->>'topic'=$6 AND chapter->>'slug'=$4 AND chapter->>'scene_slug'=$5
+ AND art->>'world_slug'=w.slug AND art->>'kind'='scene' AND art->>'slug'=$5
+ AND media->>'art_job'=art->>'id' AND media->>'stage'='passed'
+ AND media->>'slot'=final->'picks'->0->>'slot' AND media->>'round'=final->'picks'->0->>'round'
+ AND media->>'variant'=final->'picks'->0->>'variant'
+ AND NOT EXISTS (
+  SELECT FROM jsonb_array_elements(chapter->'people') person WHERE NOT EXISTS (
+   SELECT FROM jsonb_array_elements(portraits) portrait JOIN edition_reader_art a
+    ON a.kind='character' AND a.world_slug=$2 AND a.item_slug=portrait->>'item_slug'
+    AND a.image=portrait->>'image' AND a.source_sha256=portrait->>'source_sha256'
+   WHERE portrait->>'item_slug'=person->>'slug'
+  )
+ )
+)
+
+-- name: ImportRelease
+-- One new acceptance. IDs with local sequences are allocated at the destination.
+WITH p AS (SELECT $1::jsonb j),
+ t AS (INSERT INTO research_topics SELECT x.* FROM p,jsonb_populate_record(NULL::research_topics,j->'research_topics'->0)x RETURNING id),
+ r AS (INSERT INTO research_runs SELECT x.* FROM p,t,jsonb_populate_record(NULL::research_runs,j->'research_runs'->0)x WHERE x.topic=t.id RETURNING id),
+ e AS (INSERT INTO episode_extensions SELECT x.* FROM p,t,jsonb_populate_record(NULL::episode_extensions,j->'episode_extensions'->0)x WHERE x.topic=t.id),
+ plan AS (INSERT INTO episode_plans(topic,world_slug,number,spec)
+ SELECT x.topic,x.world_slug,x.number,x.spec FROM p,t,jsonb_populate_record(NULL::episode_plans,j->'episode_plans'->0)x WHERE x.topic=t.id),
+ art AS (INSERT INTO episode_art_jobs(world_slug,kind,slug,spec)
+ SELECT x.world_slug,x.kind,x.slug,x.spec FROM p,jsonb_populate_record(NULL::episode_art_jobs,j->'episode_art_jobs'->0)x RETURNING id),
+ media AS (INSERT INTO media_candidates(slot,batch,position,scene,variant,stage,round,focus,reason,updated_at,attempt,reference_sha,character_slug,art_job)
+ SELECT nextval('episode_candidate_slots'),'cfg-'||art.id,x.position,x.scene,x.variant,x.stage,x.round,x.focus,x.reason,x.updated_at,x.attempt,x.reference_sha,x.character_slug,art.id
+ FROM p,art,jsonb_populate_record(NULL::media_candidates,j->'media_candidates'->0)x RETURNING slot),
+ a AS (INSERT INTO scope_acceptances(topic,v,rule,fingerprint,checked_at,passed,checks,picks,edition_slug,scope_first,scope_last,research_run,reader_copy)
+ SELECT x.topic,x.v,x.rule,x.fingerprint,x.checked_at,x.passed,x.checks,jsonb_set(x.picks,'{0,slot}',to_jsonb(media.slot)),
+ x.edition_slug,x.scope_first,x.scope_last,r.id,x.reader_copy FROM p,r,media,jsonb_populate_record(NULL::scope_acceptances,j->'scope_acceptances'->0)x
+ RETURNING topic,id)
+INSERT INTO scope_heads(topic,latest,published) SELECT topic,id,id FROM a RETURNING published

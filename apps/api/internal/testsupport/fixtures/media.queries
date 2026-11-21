@@ -1,0 +1,37 @@
+-- name: SetReviewStage
+UPDATE media_candidates SET stage='review' WHERE slot=1
+
+-- name: CandidateAttempt
+SELECT attempt,slot,round,stage,focus,reason FROM media_candidates WHERE slot=1
+
+-- name: InsertReviewStep
+INSERT INTO media_steps(slot,round,step) VALUES(1,$1,$2)
+
+-- name: CandidateFocus
+SELECT stage,round,focus FROM media_candidates WHERE slot=1
+
+-- name: BebopReferenceCandidate
+SELECT slot,position,batch,stage,round,attempt,focus FROM media_candidates WHERE batch='bebop' AND position=1
+
+-- name: InsertReferenceStep
+INSERT INTO media_steps(slot,round,step) VALUES($1,1,'reference')
+
+-- name: CandidateReference
+SELECT stage,reference_sha FROM media_candidates WHERE slot=$1
+
+-- name: MioStage
+SELECT stage FROM media_candidates WHERE batch='mio' AND position=1
+
+-- name: PrepareJetPortrait
+UPDATE media_candidates SET stage='review',reference_sha=$1 WHERE slot=19
+
+-- name: InsertPortraitRender
+INSERT INTO media_steps(slot,round,step,finished_at,result) VALUES
+		(19,1,'generate',now(),jsonb_build_object('phone','crop.jpg','reference_sha',$1::text,'public_sha',$1::text,'sha',$1::text)),
+		(19,1,'review',NULL,NULL)
+
+-- name: CountJetPortraits
+SELECT count(*) FROM edition_reader_art WHERE item_slug='jet'
+
+-- name: PublishedPortrait
+SELECT a.image,c.stage FROM edition_reader_art a JOIN media_candidates c ON a.item_slug=c.character_slug WHERE c.slot=19

@@ -1,0 +1,29 @@
+-- name: PurgeChallenges
+DELETE FROM reader_native_challenges WHERE expires_at<=now()
+
+-- name: CreateChallenge
+INSERT INTO reader_native_challenges(nonce) VALUES($1)
+
+-- name: ConsumeChallenge
+DELETE FROM reader_native_challenges WHERE nonce=$1 AND expires_at>now()
+
+-- name: LockAppleSubject
+SELECT pg_advisory_xact_lock(hashtextextended($1,42040))
+
+-- name: FindAppleReader
+SELECT reader_id FROM reader_apple WHERE subject=$1
+
+-- name: CreateIdentity
+INSERT INTO reader_identities DEFAULT VALUES RETURNING id
+
+-- name: LinkApple
+INSERT INTO reader_apple VALUES($1,$2)
+
+-- name: LockWechatUnion
+SELECT pg_advisory_xact_lock(hashtextextended($1,42041))
+
+-- name: FindWechatUnion
+SELECT reader_id FROM reader_wechat_union WHERE subject=$1
+
+-- name: LinkWechatUnion
+INSERT INTO reader_wechat_union(subject,reader_id) VALUES($1,$2)

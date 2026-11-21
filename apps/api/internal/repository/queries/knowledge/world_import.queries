@@ -1,0 +1,87 @@
+-- name: CacheWorldPage
+INSERT INTO world_fetch_cache VALUES($1,$2,$3,$4,$5) ON CONFLICT(source_id,url) DO UPDATE SET etag=excluded.etag,modified=excluded.modified,body=excluded.body
+
+-- name: SourceInBackoff
+SELECT EXISTS(SELECT FROM world_source_policy WHERE source_id=$1 AND retry_after>now())
+
+-- name: SkipRateLimitedWorld
+UPDATE knowledge_sync_runs SET status='success',finished_at=now(),skipped=true,skip_reason='rate_limited' WHERE id=$1
+
+-- name: WorldManifest
+SELECT metadata->'manifest' FROM knowledge_source_versions WHERE source_id=$1 AND version=coalesce(nullif($2,'@current'),$3)
+
+-- name: SkipUnchangedWorld
+UPDATE knowledge_sync_runs SET status='success',finished_at=now(),skipped=true,skip_reason='version_unchanged',remote_version=$2,checksum=$2,records_read=1,records_unchanged=1 WHERE id=$1
+
+-- name: StageWorld
+INSERT INTO staging_source_records(batch_id,record_key,raw,norm) VALUES($1,$2,$3::jsonb,$3::jsonb)
+
+-- name: RegisterWorldVersion
+INSERT INTO knowledge_source_versions(source_id,version,checksum,metadata,parser_type,asset_name,run_id)
+    SELECT $1,$2,$2,jsonb_build_object('manifest',norm),$3,$4,$5 FROM staging_source_records WHERE batch_id=$5 AND record_key=$6
+    ON CONFLICT(source_id,version) DO UPDATE SET checksum=excluded.checksum RETURNING id
+
+-- name: PublishWorldRelease
+INSERT INTO world_releases VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING 1
+
+-- name: SaveWorld
+INSERT INTO work_worlds(work_id,slug,version_id,name,edition,intro,cast_title,image,origin)
+    VALUES($1,$2,$3,$4,$5,$6,$7,nullif($8,''),$9) ON CONFLICT(work_id) DO UPDATE SET version_id=excluded.version_id,
+    name=excluded.name,edition=excluded.edition,intro=excluded.intro,cast_title=excluded.cast_title,image=excluded.image,published_at=now(),revision=work_worlds.revision+1
+
+-- name: SetHomeSlot
+INSERT INTO home_world_slots VALUES($1,$2) ON CONFLICT(work_id) DO UPDATE SET position=excluded.position
+
+-- name: AdvanceWorldVersion
+UPDATE knowledge_sources SET current_version=$2,last_synced_at=now() WHERE id=$1
+
+-- name: FinishWorldImport
+UPDATE knowledge_sync_runs SET status='success',finished_at=now(),remote_version=$2,checksum=$2,download_url=$3,
+    content_length=$4,http_status=nullif($5,0),records_read=1,records_created=(local_version IS NULL)::int,records_updated=(local_version IS NOT NULL)::int WHERE id=$1
+
+-- name: FindTVEdition
+SELECT DISTINCT w.id::text FROM works w JOIN work_sources s ON w.id=s.work_id WHERE w.active AND w.type='TV' AND w.season_year=1998
+   AND s.provider='bangumi' AND s.external_id='253' GROUP BY w.id HAVING (SELECT count(DISTINCT x.work_id) FROM work_sources x WHERE x.provider='bangumi' AND x.external_id='253')=1
+
+-- name: LinkedWorldWork
+SELECT work_id::text FROM knowledge_source_records WHERE source_id=$1 AND record_key=$2
+
+-- name: CreateOriginalWork
+INSERT INTO works(canonical_title,type,synopsis) VALUES($1,'SHORT_STORY_COLLECTION',$2) RETURNING id::text
+
+-- name: UpsertWorldRecord
+INSERT INTO knowledge_source_records(source_id,record_key,work_id,version_id,raw,norm)
+ SELECT $1,$2,$3,$4,metadata->'manifest',$5 FROM knowledge_source_versions WHERE id=$4 ON CONFLICT(source_id,record_key) DO UPDATE SET version_id=excluded.version_id,raw=excluded.raw,norm=excluded.norm,active=true
+
+-- name: CreateAffectedWorks
+CREATE TEMP TABLE affected(work_id uuid PRIMARY KEY) ON COMMIT DROP
+
+-- name: InsertEvidence
+INSERT INTO world_evidence VALUES($1,$2,$3,$4,$5)
+
+-- name: InsertCharacter
+INSERT INTO work_characters VALUES($1,$2,$3,$4,nullif($5,''),nullif($6,''),$7,nullif($8,0)::text,nullif($9,''),$10)
+
+-- name: InsertChapter
+INSERT INTO work_chapters VALUES($1,$2,$3,$4,$5,nullif($6,''),nullif($7,''),$8,nullif($9,0),nullif($10,0)::text,nullif($11,''),$12)
+
+-- name: InsertBlock
+INSERT INTO chapter_blocks VALUES($1,$2,$3,$4,$5)
+
+-- name: InsertAppearance
+INSERT INTO chapter_appearances VALUES($1,$2,$3,$4)
+
+-- name: InsertSetting
+INSERT INTO work_settings VALUES($1,$2) ON CONFLICT DO NOTHING
+
+-- name: InsertScene
+INSERT INTO work_scenes VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+
+-- name: InsertSceneAppearance
+INSERT INTO scene_appearances VALUES($1,$2,$3,$4,$5)
+
+-- name: InsertStoryline
+INSERT INTO work_storylines VALUES($1,$2,$3,$4,$5)
+
+-- name: InsertStorylineChapter
+INSERT INTO work_storyline_chapters VALUES($1,$2,$3,$4)

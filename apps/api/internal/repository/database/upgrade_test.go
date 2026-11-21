@@ -1,6 +1,7 @@
 package database_test
 
 import (
+	resources "anime-agent/api/internal/repository/queries"
 	"context"
 	"os"
 	"sync"
@@ -8,7 +9,7 @@ import (
 
 	"anime-agent/api/internal/repository/database"
 	"anime-agent/api/internal/testsupport"
-	sqltest "anime-agent/database/queries/fixtures"
+	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
 
 // Compare the new GORM step to the exact DDL previously shipped under 049.sql.
@@ -32,12 +33,12 @@ func TestBackupMigrationCompatibility(t *testing.T) {
 	}
 
 	fresh := text(sqltest.BackupAttemptDefinition)
-	legacy, err := os.ReadFile("../../../../../database/migrations/legacy/049.sql")
+	legacy, err := os.ReadFile("../../../../../database/migrations/init.sql")
 	if err != nil {
 		t.Fatal(err)
 	}
 	exec(sqltest.DropBackupAttempts)
-	exec(string(legacy))
+	exec(resources.Statements(string(legacy))["049.sql"])
 	if old := text(sqltest.BackupAttemptDefinition); old != fresh {
 		t.Fatalf("049 changed schema\nlegacy %s\nGORM   %s", old, fresh)
 	}

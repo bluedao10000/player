@@ -25,7 +25,7 @@ spec:
     metadata: {labels: {app: folio-backup-postgres}}
     spec:
       automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: bruce-opt7020}
+      nodeSelector: {kubernetes.io/hostname: your-backup-node}
       securityContext: {runAsUser: 70, runAsGroup: 70, fsGroup: 70, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: postgres
@@ -83,7 +83,7 @@ spec:
         spec:
           restartPolicy: Never
           automountServiceAccountToken: false
-          nodeSelector: {kubernetes.io/hostname: bruce-opt7020}
+          nodeSelector: {kubernetes.io/hostname: your-backup-node}
           securityContext: {runAsUser: 70, runAsGroup: 70, fsGroup: 70, seccompProfile: {type: RuntimeDefault}}
           containers:
           - name: backup

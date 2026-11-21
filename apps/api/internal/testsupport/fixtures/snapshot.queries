@@ -1,0 +1,119 @@
+-- name: SetSourceURLs
+UPDATE knowledge_sources SET check_url=$1,data_url=$2 WHERE name=$3
+
+-- name: FindSharedWork
+SELECT id::text FROM works WHERE canonical_title='Shared'
+
+-- name: CountActiveWorks
+SELECT count(*)::text FROM works WHERE active
+
+-- name: CountWorkRecords
+SELECT count(*)::text FROM knowledge_source_records WHERE work_id=$1
+
+-- name: CountTitleMatches
+SELECT count(*)::text FROM knowledge_match_candidates WHERE reason='title_year'
+
+-- name: WorkTitle
+SELECT canonical_title FROM works WHERE id=$1
+
+-- name: CountStaging
+SELECT count(*)::text FROM staging_source_records
+
+-- name: CountWorks
+SELECT count(*)::text FROM works
+
+-- name: RejectFixtureTitle
+ALTER TABLE works ADD CONSTRAINT fixture_reject CHECK(canonical_title<>'Changed')
+
+-- name: AllowFixtureTitle
+ALTER TABLE works DROP CONSTRAINT fixture_reject
+
+-- name: LatestChangedCounts
+SELECT records_updated||'/'||records_unchanged FROM knowledge_sync_runs ORDER BY started_at DESC LIMIT 1
+
+-- name: SetRetention
+UPDATE knowledge_sources SET min_retained_ratio=0.5 WHERE name=$1
+
+-- name: ActiveWorkTitle
+SELECT canonical_title FROM works WHERE id=$1 AND active
+
+-- name: LatestDeletionCount
+SELECT records_deleted::text FROM knowledge_sync_runs ORDER BY started_at DESC LIMIT 1
+
+-- name: CountRunningSyncs
+SELECT count(*)::text FROM knowledge_sync_runs WHERE status='running'
+
+-- name: CreateOrphanRun
+INSERT INTO knowledge_sync_runs(source_id,status) SELECT id,'running' FROM knowledge_sources WHERE name=$1 RETURNING id::text
+
+-- name: CreateOrphanRecord
+INSERT INTO staging_source_records VALUES($1,'orphan','{}','{}')
+
+-- name: SyncStatus
+SELECT status FROM knowledge_sync_runs WHERE id=$1
+
+-- name: CountDistinctProviderWorks
+SELECT count(DISTINCT work_id)::text FROM knowledge_source_records WHERE active AND norm->'refs' @> '[{"provider":"mal","id":"1"}]'
+
+-- name: CountProviderConflicts
+SELECT count(*)::text FROM knowledge_match_candidates WHERE reason='provider_conflict'
+
+-- name: LockSource
+SELECT pg_advisory_lock(82045,id) FROM knowledge_sources WHERE name=$1
+
+-- name: LatestSkipReason
+SELECT skip_reason FROM knowledge_sync_runs ORDER BY started_at DESC LIMIT 1
+
+-- name: UnlockSession
+SELECT pg_advisory_unlock_all()
+
+-- name: CountSyncRuns
+SELECT count(*)::text FROM knowledge_sync_runs
+
+-- name: AgeLastCheck
+UPDATE knowledge_sources SET last_checked_at=now()-interval '7 hours' WHERE name=$1
+
+-- name: FirstMatchRecord
+SELECT id,source_record_id FROM knowledge_match_candidates ORDER BY id LIMIT 1
+
+-- name: MatchForRecord
+SELECT id FROM knowledge_match_candidates WHERE source_record_id=$1 LIMIT 1
+
+-- name: WorkBySourceKey
+SELECT work_id::text FROM knowledge_source_records WHERE record_key='mal:1'
+
+-- name: FirstSourceVersion
+SELECT version FROM knowledge_source_versions WHERE source_id=(SELECT id FROM knowledge_sources WHERE name='anime-offline-database') ORDER BY id LIMIT 1
+
+-- name: SourceVersion
+SELECT current_version FROM knowledge_sources WHERE name='anime-offline-database'
+
+-- name: FirstMatchID
+SELECT id::text FROM knowledge_match_candidates LIMIT 1
+
+-- name: EvidenceCandidate
+SELECT (candidates->0->>'record_id')::bigint FROM knowledge_match_evidence WHERE id=$1
+
+-- name: CountAssessments
+SELECT count(*)::text FROM knowledge_ai_match_assessments
+
+-- name: CountMeteredMatches
+SELECT count(*)::text FROM model_calls WHERE purpose='match' AND total_tokens=7
+
+-- name: CountDecisions
+SELECT count(*)::text FROM knowledge_curation_actions
+
+-- name: CountQualityReports
+SELECT count(*)::text FROM knowledge_quality_runs WHERE status='success' AND report IS NOT NULL
+
+-- name: AgeQualityRun
+UPDATE knowledge_quality_runs SET finished_at=now()-interval '7 hours'
+
+-- name: CountSuccessfulScans
+SELECT count(*)::text FROM knowledge_quality_runs WHERE status='success'
+
+-- name: TitleIssueStatus
+SELECT status FROM knowledge_quality_issues WHERE rule_id='title_norm' AND entity_id=$1
+
+-- name: SnapshotByVersion
+SELECT snapshot_key FROM knowledge_source_versions WHERE version=$1

@@ -1,0 +1,11 @@
+-- name: MatchEvidence
+SELECT jsonb_build_object('reason',reason,'incoming',incoming,'candidates',candidates) FROM knowledge_match_evidence WHERE id=$1 AND candidates IS NOT NULL
+
+-- name: TryLockAssessment
+SELECT pg_try_advisory_xact_lock(hashtextextended('match-ai:'||$1::text,0))
+
+-- name: CachedAssessment
+SELECT to_jsonb(a) FROM knowledge_ai_match_assessments a WHERE candidate_id=$1 AND evidence_hash=$2 AND provider=$3 AND model=$4 AND prompt_version=$5
+
+-- name: SaveAssessment
+INSERT INTO knowledge_ai_match_assessments AS a(candidate_id,evidence_hash,provider,model,prompt_version,evidence,recommendation,requested_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING to_jsonb(a)

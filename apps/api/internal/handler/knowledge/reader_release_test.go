@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"anime-agent/api/internal/testsupport"
-	queries "anime-agent/database/queries/release"
+	queries "anime-agent/api/internal/repository/queries/release"
 )
 
 // Resolve the standalone publisher's SQL against the migrated schema. Both the

@@ -71,7 +71,7 @@ WECHAT_IOS_LINK_HOST = 已登记域名
 WECHAT_IOS_UNIVERSAL_LINK = https:/$()/已登记域名/已登记路径/
 ~~~
 
-Universal Link 域名需要提供 apple-app-site-association，包含 W2NL88VWXP.com.kmszz.starWiki 和登记的路径。使用 AnimeApp-Prod 签名安装，检查授权后能从微信返回。若已有网页读者账户，先用原登录方式进入并绑定移动微信或 Apple，可延续原书架与会员。
+Universal Link 域名需要提供 apple-app-site-association，包含 YOUR_TEAM_ID.com.kmszz.starWiki 和登记的路径。使用 AnimeApp-Prod 签名安装，检查授权后能从微信返回。若已有网页读者账户，先用原登录方式进入并绑定移动微信或 Apple，可延续原书架与会员。
 
 ### 新建 App Store 商品
 

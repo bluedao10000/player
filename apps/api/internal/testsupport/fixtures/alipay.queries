@@ -1,0 +1,8 @@
+-- name: CreateMembershipReader
+INSERT INTO reader_identities(email) VALUES('membership@example.test') RETURNING id
+
+-- name: CreateMembershipSession
+INSERT INTO reader_sessions VALUES($1,$2,now()+interval '1 hour')
+
+-- name: CountPaidTerms
+SELECT count(*) FROM reader_plan_orders WHERE reader_id=$1 AND ends_at=starts_at+interval '720 hours'

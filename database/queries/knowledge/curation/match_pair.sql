@@ -1,1 +1,0 @@
-SELECT r.id,r.work_id::text,k.candidate_work_id::text FROM knowledge_match_candidates k JOIN knowledge_source_records r ON r.id=k.source_record_id JOIN works w ON w.id=k.candidate_work_id WHERE k.id=$1 AND r.active AND w.active

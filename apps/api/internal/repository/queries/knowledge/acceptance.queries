@@ -1,0 +1,19 @@
+-- name: TryLockScopeAcceptance
+SELECT pg_try_advisory_xact_lock(82045121)
+
+-- name: RecordScopeAcceptance
+WITH added AS (INSERT INTO scope_acceptances(topic,v,rule,fingerprint,passed,checks,picks,research_run,reader_copy,edition_slug,scope_first,scope_last)
+   VALUES($1,$2,$3,$4,$5,$6,$7,nullif($8,'')::uuid,$9,$10,$11,$12) ON CONFLICT DO NOTHING RETURNING id)
+   SELECT id FROM added UNION ALL SELECT id FROM scope_acceptances WHERE topic=$1 AND v=$2 AND rule=$3 AND fingerprint=$4 LIMIT 1
+
+-- name: UpdateScopeHead
+INSERT INTO scope_heads(topic,latest,published) VALUES($1,$2,CASE WHEN $3 THEN $2::bigint END)
+   ON CONFLICT(topic) DO UPDATE SET latest=excluded.latest,published=excluded.published WHERE scope_heads.latest IS DISTINCT FROM excluded.latest
+
+-- name: TryLockThirdEpisode
+SELECT pg_try_advisory_xact_lock(82045122)
+
+-- name: ThirdEpisodeState
+SELECT EXISTS(SELECT FROM published_episode_scopes WHERE v=$1 AND first_episode=1 AND last_episode=2),
+    coalesce(r.stage,'queued'),coalesce(r.error,'') FROM research_topics t LEFT JOIN LATERAL
+    (SELECT stage,error FROM research_runs WHERE topic=t.id AND policy=t.policy AND v=$1 ORDER BY attempt DESC LIMIT 1) r ON true WHERE t.id=$2

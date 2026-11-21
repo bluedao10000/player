@@ -4,8 +4,6 @@
 !database/go.sum
 !database/migrations/
 !database/migrations/**
-!database/queries/
-!database/queries/**
 !apps/
 !apps/api/
 !apps/api/go.mod

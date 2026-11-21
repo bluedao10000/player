@@ -1,32 +1,32 @@
 flowchart TB
     reader["H5 与 iOS"] -->|www · HTTPS| edge["Cloudflare Tunnel"]
-    subgraph ali["阿里云杭州 · 100.96.0.3"]
+    subgraph ali["阿里云杭州 · ALI_MESH_IP"]
       site["读者站与 Gin"] -->|查询| online[("线上 PostgreSQL 与入选图片")]
       receive["受限 SSH 接收端"] -->|校验摘要并提交定稿| online
     end
     edge --> site
-    subgraph gz["腾讯云广州 · 100.96.0.1"]
+    subgraph gz["腾讯云广州 · GZ_MESH_IP"]
       text["研究调度 · Pi 与 Kimi"] --> pg[("PostgreSQL 制作库")]
     end
-    subgraph sv["腾讯云硅谷 · 100.96.0.2"]
+    subgraph sv["腾讯云硅谷 · SV_MESH_IP"]
       media["采集、媒体与五维验收"] -->|调用 Pi 和 OpenAI| archive["候选图与选图归档"]
       archive --> push["自动发布定时器"]
     end
     media -->|Mesh TCP 5432| pg
     push -->|Mesh TCP 5432 · 读取定稿| pg
     push -->|Mesh TCP 2222 · SSH| receive
-    subgraph lan["局域网 192.168.1.7 · Mesh 100.96.0.4"]
+    subgraph lan["局域网 BACKUP_LAN_HOST · Mesh BACKUP_MESH_IP"]
       cron["K3s CronJob · 每日 03:15"] -->|校验后轮换| copy[("恢复库与独立快照卷")]
     end
     cron -->|Mesh TCP 5433 · 只读快照| pg
 %% reader | H5 和原生阅读器沿用公开作品、章节和场景链接。 | apps/ios/Folio/Reading.swift
-%% edge | 正式站使用独立公网隧道承接读者 HTTPS 请求。 | deploy/player-tunnel.service
+%% edge | 正式站使用独立公网隧道承接读者 HTTPS 请求。 | deploy/cloudflare/player-tunnel.service
 %% site | TanStack 和 Gin 提供网页及原生阅读数据。 | apps/ios/server/reader.server.ts
-%% online | 线上读者查询自己的数据库和归档。每集有唯一投递回执。 | deploy/reader-release/receiver.sql
-%% receive | 发布专用公钥受来源地址和强制命令约束。接收器事务写入章节。 | deploy/reader-release/receive.sh
+%% online | 线上读者查询自己的数据库和归档。每集有唯一投递回执。 | apps/sync/ops/reader-release/receiver.psql
+%% receive | 发布专用公钥受来源地址和强制命令约束。接收器事务写入章节。 | apps/sync/ops/reader-release/receive.sh
 %% text | 广州负责选题准入、文本取证、写作与复核。 | apps/sync/internal/service/scheduler/production.go
-%% pg | 制作库保存来源、任务、验收、发布历史及模型计量。 | database/migrations/legacy
-%% media | 专用数据角色通过本地 Unix socket 使用共享制作库。 | deploy/first-phase/mesh/compose.yaml
+%% pg | 制作库保存来源、任务、验收、发布历史及模型计量。 | database/migrations/init.sql
+%% media | 专用数据角色通过本地 Unix socket 使用共享制作库。 | deploy/cloudflare/mesh/compose.yaml
 %% archive | 硅谷保管候选原图及公开衍生图。 | apps/agent/src/media.ts
 %% push | 选择显式登记且五维通过的分集，投递后检查 H5 和原生阅读接口。 | apps/sync/cmd/reader-release/send.go
 %% cron | 03:15 为北京时间。备份任务使用主机上的受限 socket，只读访问广州。 | deploy/pg-backup/resources.yaml

@@ -7,7 +7,7 @@ import (
 
 	model "anime-agent/api/internal/model/knowledge"
 	"anime-agent/api/internal/repository/database"
-	queries "anime-agent/database/queries/workbench"
+	queries "anime-agent/api/internal/repository/queries/workbench"
 )
 
 func Tasks(ctx context.Context, db *pgxpool.Pool, scopes []model.EditorScope) ([]byte, error) {

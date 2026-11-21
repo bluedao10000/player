@@ -1,0 +1,16 @@
+-- name: EditorialEpisodeSources
+SELECT jsonb_build_object('number',number,'official',spec->'official','guide',spec->'guide','officialTitle',spec->'officialTitle','guideTitle',spec->'guideTitle') FROM episode_plans WHERE world_slug=$1 AND number=1
+
+-- name: ResearchDocuments
+SELECT documents FROM research_runs WHERE id=$1
+
+-- name: ClaimEditorTask
+WITH due AS (SELECT id FROM editor_tasks WHERE status IN ('evidence','drafting','checking') AND due<=now() ORDER BY due,id FOR UPDATE SKIP LOCKED LIMIT 1)
+ UPDATE editor_tasks t SET lease=gen_random_uuid(),due=now()+interval '3 minutes' FROM due WHERE t.id=due.id
+ RETURNING t.id,t.world,t.chapter,t.instruction,t.feedback,t.issue,t.status,t.lease,t.round,t.attempt,t.retries,t.base,t.sources,t.draft
+
+-- name: CheckEditorLease
+SELECT id FROM editor_tasks WHERE id=$1 AND lease=$2 FOR UPDATE
+
+-- name: AdvanceEditorTask
+UPDATE editor_tasks SET status=$2,attempt=$3,retries=$4,sources=coalesce($5::jsonb,'[]'),draft=coalesce($6::jsonb,'[]'),issue=$7,lease=NULL,due=now() WHERE id=$1

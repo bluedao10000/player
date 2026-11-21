@@ -1,0 +1,5 @@
+-- name: CreateSchema
+CREATE SCHEMA %s
+
+-- name: DropSchema
+DROP SCHEMA %s CASCADE

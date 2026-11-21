@@ -1,1 +1,0 @@
-SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id DESC),'[]') FROM (SELECT v.id,s.name,v.version,v.checksum,v.snapshot_key IS NOT NULL AS archived FROM knowledge_source_versions v JOIN knowledge_sources s ON s.id=v.source_id WHERE s.name=$1)x

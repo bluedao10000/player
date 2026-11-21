@@ -1,5 +1,5 @@
 // Public mobile-app registration values only. Keep the AppSecret on Gin.
-WECHAT_IOS_LINK_HOST = www.codeiy.com
+WECHAT_IOS_LINK_HOST = reader.example.org
 WECHAT_IOS_APP_ID =
 WECHAT_IOS_UNIVERSAL_LINK =
 #include? "WeChat.local.xcconfig"

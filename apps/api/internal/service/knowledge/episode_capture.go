@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	queries "anime-agent/database/queries/knowledge"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 // The external collector uses the same parser as the single-node Pi tool.

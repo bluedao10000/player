@@ -28,7 +28,7 @@ trap finish EXIT
 BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
 SELECT pg_export_snapshot() AS snapshot \gset
 \setenv FOLIO_SNAPSHOT :snapshot
-\i /scripts/counts.sql
+\i /scripts/counts.psql
 \! /scripts/backup.sh dump
 -- Disconnect after pg_dump. Both readers used the exported snapshot. A final
 -- server query would reject a completed dump if the idle exporter lost its link.
@@ -47,7 +47,7 @@ dropdb --if-exists folio_staging
 createdb --template=template0 folio_staging
 pg_restore --exit-on-error --single-transaction --no-owner --no-acl --dbname=folio_staging "$RUN_DIR/folio.dump"
 stage=counts
-psql -XqAt -v ON_ERROR_STOP=1 -d folio_staging -f /scripts/counts.sql > "$RUN_DIR/restored.tsv"
+psql -XqAt -v ON_ERROR_STOP=1 -d folio_staging -f /scripts/counts.psql > "$RUN_DIR/restored.tsv"
 cmp "$RUN_DIR/counts.tsv" "$RUN_DIR/restored.tsv"
 stage=rotate
 dropdb --if-exists folio_previous

@@ -13,7 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	queries "anime-agent/database/queries/metering"
+	queries "anime-agent/api/internal/repository/queries/metering"
 )
 
 type Event struct {

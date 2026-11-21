@@ -1,0 +1,53 @@
+name: folio-mesh
+services:
+  mesh:
+    image: cloudflare/mesh@sha256:19d8a76ab667c14e399266fe301081f6913fefa0e40b35b2adc58452878ed365
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: "4m"
+        max-file: "2"
+    env_file: [./mesh-node.env]
+    environment:
+      SRCNAT_ENABLED: "true"
+    cap_add: [NET_ADMIN, NET_RAW]
+    devices: [/dev/net/tun:/dev/net/tun]
+    sysctls:
+      net.ipv4.ip_forward: "1"
+      net.ipv6.conf.all.forwarding: "1"
+      net.ipv6.conf.default.forwarding: "1"
+    volumes: [registration:/var/lib/cloudflare-warp]
+    networks: [transport]
+  postgres-listener:
+    profiles: [guangzhou]
+    image: alpine/socat@sha256:71131702f671a88b3808a70b7330f9679cd9b9933adcafadc191508edfe55bba
+    network_mode: service:mesh
+    user: "1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    volumes: [./postgres-resolv.conf:/etc/resolv.conf:ro]
+    command:
+      - TCP4-LISTEN:5432,bind=${GZ_MESH_IP:-127.0.0.1},range=${SV_MESH_IP:-127.0.0.1}/32,reuseaddr,fork
+      - TCP4:folio-db:5432
+  worker-socket:
+    profiles: [silicon-valley]
+    image: alpine/socat@sha256:71131702f671a88b3808a70b7330f9679cd9b9933adcafadc191508edfe55bba
+    network_mode: service:mesh
+    user: "1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    volumes: [/srv/folio-data/db-socket:/socket]
+    command:
+      - UNIX-LISTEN:/socket/.s.PGSQL.5432,mode=0600,unlink-early,fork
+      - TCP4:${GZ_MESH_IP:-127.0.0.1}:5432
+networks:
+  transport:
+    external: true
+    name: folio-mesh-transport
+volumes:
+  registration:

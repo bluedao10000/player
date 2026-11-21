@@ -1,6 +1,0 @@
-SELECT jsonb_build_object('id',r.id,'email',r.email,'pending',r.import_choice IS NULL,
- 'plan',m.plan,'planUntil',m.valid_until,
- 'mobileWechatLinked',EXISTS(SELECT FROM reader_wechat WHERE reader_id=r.id AND app_id=$2),'appleLinked',EXISTS(SELECT FROM reader_apple WHERE reader_id=r.id),'wechatLinked',EXISTS(SELECT FROM reader_wechat WHERE reader_id=r.id AND app_id=$3),
- 'bookmarks',COALESCE((SELECT jsonb_agg(jsonb_build_object('href',href,'title',title,'work',work,'recordedAt',recorded_at) ORDER BY recorded_at DESC,href) FROM reader_bookmarks WHERE reader_id=r.id),'[]'),
- 'positions',COALESCE((SELECT jsonb_agg(jsonb_build_object('href',href,'title',title,'work',work,'percent',percent,'anchor',anchor,'excerpt',excerpt,'recordedAt',recorded_at) ORDER BY recorded_at DESC,href) FROM reader_positions WHERE reader_id=r.id),'[]'))
- FROM reader_identities r JOIN reader_memberships m ON m.reader_id=r.id WHERE r.id=$1

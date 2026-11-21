@@ -19,7 +19,7 @@
 3. 最终事务更新 `knowledge_source_versions`、`knowledge_source_records`、`works` 及标题、来源、关系、标签、制作、播出等投影。原始资产归档后可按摘要复核。
 4. 可靠 provider + ID 用于判同；冲突及弱匹配进入 `knowledge_match_candidates`。上游撤回按来源生效，有其他有效来源的作品仍可查询。UUID、原始记录、治理覆盖各有独立生命周期。
 
-[同步与失败恢复](../apps/api/internal/service/knowledge/sync.go) · [匹配与归并 SQL](../database/queries/knowledge/merge.sql) · [投影](../database/queries/knowledge/projection.sql) · [迁移](../database/migrations/legacy)
+[同步与失败恢复](../apps/api/internal/service/knowledge/sync.go) · [匹配与归并 SQL](../apps/api/internal/repository/queries/knowledge/queries.queries) · [投影](../apps/api/internal/repository/queries/knowledge/queries.queries) · [迁移](../database/migrations/init.sql)
 
 ## 管理、回放与读取
 

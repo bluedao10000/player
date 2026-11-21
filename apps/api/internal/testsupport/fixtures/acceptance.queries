@@ -1,0 +1,23 @@
+-- name: RenameTestWorld
+UPDATE work_worlds SET slug='cowboy-bebop-tv' WHERE slug='tidepost'
+
+-- name: CountAcceptances
+SELECT count(*) FROM scope_acceptances
+
+-- name: CountPublishedScopes
+SELECT count(*) FROM published_episode_scopes
+
+-- name: UnpublishedChecks
+SELECT checks FROM scope_acceptances WHERE NOT passed AND reader_copy='{}' AND picks='[]'
+
+-- name: LatestScopeReport
+SELECT latest FROM scope_heads WHERE topic=$1
+
+-- name: CountEpisodeThreeFailures
+SELECT count(*) FROM scope_acceptances WHERE topic=$1 AND scope_first=3 AND scope_last=3 AND NOT passed
+
+-- name: OutstandingScopeChecks
+SELECT a.checks FROM scope_acceptances a JOIN scope_heads h ON h.latest=a.id WHERE h.published IS NULL AND h.topic=$1
+
+-- name: CountPublishedExtensions
+SELECT count(*) FROM published_extensions

@@ -1,0 +1,20 @@
+-- name: PurgeWechatFlows
+DELETE FROM reader_wechat_flows WHERE expires_at<=now()
+
+-- name: StartWechatFlow
+INSERT INTO reader_wechat_flows VALUES($1,$2,$3,$4,now()+interval '10 minutes')
+
+-- name: LockWechatIdentity
+SELECT pg_advisory_xact_lock(hashtextextended($1, 42037))
+
+-- name: FindWechatReader
+SELECT reader_id FROM reader_wechat WHERE app_id=$1 AND open_id=$2
+
+-- name: LinkWechat
+INSERT INTO reader_wechat VALUES($1,$2,$3)
+
+-- name: ConsumeWechatFlow
+DELETE FROM reader_wechat_flows WHERE state=$1 AND browser_hash=$2 AND expires_at>now() RETURNING return_to,bind_session
+
+-- name: CheckBindingSession
+SELECT reader_id FROM reader_sessions WHERE digest=$1 AND digest=$2 AND expires_at>now() FOR UPDATE

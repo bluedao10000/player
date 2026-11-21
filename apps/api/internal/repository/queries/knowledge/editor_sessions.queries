@@ -1,0 +1,8 @@
+-- name: CreateEditorSession
+WITH clean AS(DELETE FROM editor_sessions WHERE expires_at<=now()) INSERT INTO editor_sessions(hash,operator) VALUES($1,$2)
+
+-- name: EditorSessionOperator
+SELECT operator FROM editor_sessions WHERE hash=$1 AND expires_at>now()
+
+-- name: DeleteEditorSession
+DELETE FROM editor_sessions WHERE hash=$1

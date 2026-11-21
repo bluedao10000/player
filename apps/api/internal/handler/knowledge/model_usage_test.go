@@ -16,7 +16,7 @@ import (
 	routing "anime-agent/api/internal/router"
 	"anime-agent/api/internal/service/modelusage"
 	"anime-agent/api/internal/testsupport"
-	sqltest "anime-agent/database/queries/fixtures"
+	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
 
 // Transport replay and business rollback must not double count or lose consumption.

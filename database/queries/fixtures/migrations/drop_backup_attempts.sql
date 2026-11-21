@@ -1,1 +1,0 @@
-DROP TABLE backup_failed_attempts

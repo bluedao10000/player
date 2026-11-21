@@ -19,7 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	catalog "anime-agent/api/internal/model/knowledge"
-	queries "anime-agent/database/queries/knowledge"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 const scopeTopic = "bebop-tv-1998-01-02"

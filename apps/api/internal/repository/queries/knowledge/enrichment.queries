@@ -1,0 +1,8 @@
+-- name: CachedWorldPage
+SELECT etag,modified,body FROM world_fetch_cache WHERE source_id=$1 AND url=$2
+
+-- name: SetSourceBackoff
+UPDATE world_source_policy SET retry_after=$2 WHERE source_id=$1
+
+-- name: SupplementURL
+SELECT supplement_url FROM world_source_policy WHERE source_id=$1

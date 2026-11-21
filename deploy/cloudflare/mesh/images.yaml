@@ -1,0 +1,27 @@
+x-relay: &relay
+  image: alpine/socat@sha256:71131702f671a88b3808a70b7330f9679cd9b9933adcafadc191508edfe55bba
+  restart: unless-stopped
+  read_only: true
+  user: "1000"
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+services:
+  image-listener:
+    <<: *relay
+    profiles: [guangzhou]
+    user: "1000:1001"
+    network_mode: service:mesh
+    volumes: [/run/folio-image:/socket:ro]
+    command: ["TCP4-LISTEN:14580,bind=${GZ_MESH_IP:?required},range=${ALI_MESH_IP:?required}/32,reuseaddr,fork", "UNIX-CONNECT:/socket/origin.sock"]
+  image-client:
+    <<: *relay
+    profiles: [aliyun]
+    network_mode: service:mesh
+    volumes: [/var/lib/folio-image-mesh:/socket]
+    command: ["UNIX-LISTEN:/socket/origin.sock,mode=0600,unlink-early,fork", "TCP4:${GZ_MESH_IP:?required}:14580,connect-timeout=6"]
+  image-loopback:
+    <<: *relay
+    profiles: [aliyun]
+    network_mode: host
+    volumes: [/var/lib/folio-image-mesh:/socket:ro]
+    command: ["TCP4-LISTEN:14581,bind=127.0.0.1,reuseaddr,fork", "UNIX-CONNECT:/socket/origin.sock"]

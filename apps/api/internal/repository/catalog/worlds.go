@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"anime-agent/api/internal/repository/database"
-	queries "anime-agent/database/queries/catalog"
+	queries "anime-agent/api/internal/repository/queries/catalog"
 )
 
 func ScopeAcceptances(ctx context.Context, db *pgxpool.Pool) ([]byte, error) {

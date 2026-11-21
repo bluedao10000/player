@@ -1,1 +1,0 @@
-INSERT INTO reader_identities DEFAULT VALUES RETURNING id

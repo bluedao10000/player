@@ -1,1 +1,0 @@
-SELECT t.base=editor_task_snapshot(t.world,t.chapter,t.kind) AND t.base_head IS NOT DISTINCT FROM h.task,coalesce(h.patch,'{}') FROM editor_tasks t LEFT JOIN editor_heads h ON h.world=t.world AND h.chapter IS NOT DISTINCT FROM $2::text WHERE t.id=$1

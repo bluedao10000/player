@@ -8,3 +8,23 @@ dist/
 data/*.sqlite*
 apps/api/api
 data/knowledge-archive/
+
+# Local operator inputs, credentials and state
+/.local/
+/data/
+*.key
+*.p12
+*.p8
+*.mobileprovision
+
+*.env
+*.env.local
+*.pem
+*.dump
+*.sqlite*
+id_ed25519
+id_rsa
+tunnel-token
+*.xcuserstate
+
+*.local.xcconfig

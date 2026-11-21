@@ -1,0 +1,44 @@
+-- name: FinishMediaStep
+UPDATE media_steps SET finished_at=now(),result=$4,error=nullif($5,'') WHERE slot=$1 AND round=$2 AND step=$3 AND attempt=$6
+
+-- name: PublishPortrait
+INSERT INTO edition_reader_art(world_slug,kind,item_slug,image,caption,credit,source_sha256)
+				SELECT coalesce(a.world_slug,'cowboy-bebop-tv'),'character',coalesce(a.slug,c.character_slug),
+				       '/art/portraits/'||(g.result->>'public_sha')||'.webp',c.scene,'AI 人物肖像',g.result->>'sha'
+				FROM media_candidates c LEFT JOIN episode_art_jobs a ON a.id=c.art_job JOIN media_steps g ON g.slot=c.slot AND g.round=c.round AND g.step='generate'
+				JOIN media_steps r ON r.slot=c.slot AND r.round=c.round AND r.step=$2 AND r.attempt=$3
+				WHERE c.slot=$1 AND (a.kind='portrait' OR c.batch='bebop-portrait') AND g.error IS NULL AND g.finished_at IS NOT NULL
+				  AND g.result->>'public_sha' ~ '^[0-9a-f]{64}$' AND g.result->>'reference_sha'=c.reference_sha
+				  AND r.result->>'decision'='pass' AND r.result->>'phone'=g.result->>'phone'
+				  AND r.result->'checks' @> '{"identity":true,"scene":true,"anatomy":true,"clean":true,"crop":true}'
+				ON CONFLICT (world_slug,kind,item_slug) DO UPDATE SET image=excluded.image,caption=excluded.caption,
+				    credit=excluded.credit,source_sha256=excluded.source_sha256
+
+-- name: AdvanceCandidate
+UPDATE media_candidates SET stage=$2,round=$3,focus=$4,reason=$5,attempt=$6,reference_sha=$7,updated_at=now() WHERE slot=$1
+
+-- name: RequeueProviderFailures
+UPDATE media_candidates c SET stage='generate',
+	    attempt=(SELECT max(s.attempt)+1 FROM media_steps s WHERE s.slot=c.slot AND s.round=c.round AND s.step='generate'),
+	    reason=coalesce((SELECT s.result->>'reason' FROM media_steps s WHERE s.slot=c.slot AND s.round=c.round-1
+	        AND s.step IN ('review','recheck') AND s.result->>'decision' IN ('redraw','recrop')
+	        ORDER BY s.finished_at DESC LIMIT 1),''),updated_at=now()
+	  FROM episode_art_jobs a WHERE c.art_job=a.id AND a.world_slug=$1 AND c.stage='failed'
+	    AND c.reason ~ '^模型服务 HTTP (401|403|429|5[0-9]{2})$'
+	    AND EXISTS(SELECT FROM media_steps s WHERE s.slot=c.slot AND s.round=c.round AND s.step='generate' AND s.error=c.reason)
+	    AND NOT EXISTS(SELECT FROM media_steps s WHERE s.slot=c.slot AND s.round=c.round AND s.step='generate' AND s.error IS NULL)
+
+-- name: TryLockMedia
+SELECT pg_try_advisory_lock(82045120)
+
+-- name: UnlockMedia
+SELECT pg_advisory_unlock(82045120)
+
+-- name: NextCandidate
+SELECT (SELECT spec FROM episode_art_jobs WHERE id=art_job),batch,position,reference_sha,attempt,slot,round,stage,focus,reason FROM media_candidates WHERE stage NOT IN ('passed','held','failed') ORDER BY (SELECT priority FROM episode_policies pol JOIN episode_art_jobs art ON art.world_slug=pol.world_slug WHERE art.id=media_candidates.art_job) DESC NULLS LAST,(position-1)%3,slot LIMIT 3
+
+-- name: StartGeneration
+UPDATE media_candidates SET stage='generate',updated_at=now() WHERE slot=$1
+
+-- name: StartMediaStep
+INSERT INTO media_steps(slot,round,step,attempt) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING

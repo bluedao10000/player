@@ -1,0 +1,14 @@
+[Unit]
+Description=Publish one accepted Folio episode and verify public readers
+After=network-online.target
+[Service]
+Type=oneshot
+User=folio-worker
+WorkingDirectory=/srv/folio-data
+EnvironmentFile=/srv/folio-data/database.env
+Environment=KNOWLEDGE_ARCHIVE_DIR=/srv/folio-data/archive
+Environment=READER_SSH_CONFIG=/srv/folio-data/publish/ssh_config
+EnvironmentFile=/srv/folio-data/publication.env
+ExecStart=/srv/folio-data/bin/reader-release send
+NoNewPrivileges=true
+PrivateTmp=true

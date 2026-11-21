@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	catalog "anime-agent/api/internal/model/knowledge"
-	queries "anime-agent/database/queries/knowledge"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 var fields = map[string]string{"canonical_title": "title", "original_title": "original", "type": "type", "episodes": "episodes", "status": "status", "start_date": "start", "end_date": "end", "season": "season", "season_year": "year", "synopsis": "synopsis"}

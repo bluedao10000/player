@@ -15,7 +15,7 @@ import (
 	routing "anime-agent/api/internal/router"
 	domain "anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/testsupport"
-	sqltest "anime-agent/database/queries/fixtures"
+	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
 
 func TestWorldReadingPath(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 
 	model "anime-agent/api/internal/model/reader"
 	library "anime-agent/api/internal/repository/reader"
-	queries "anime-agent/database/queries/reader"
+	queries "anime-agent/api/internal/repository/queries/reader"
 )
 
 func ImportLibrary(ctx context.Context, db *pgxpool.Pool, id, choice string, bookmarks, positions []model.Entry) error {

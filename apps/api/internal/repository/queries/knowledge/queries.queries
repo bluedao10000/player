@@ -1,0 +1,205 @@
+-- name: Merge
+-- The caller holds the global merge transaction lock. Merge context has one row.
+CREATE TEMP TABLE incoming ON COMMIT DROP AS
+ SELECT s.*,r.id AS record_id,r.work_id AS old_work,
+ CASE WHEN r.id IS NULL OR NOT r.active THEN 'created'
+      WHEN r.raw<>s.raw OR r.norm<>s.norm THEN 'updated' ELSE 'unchanged' END AS action
+ FROM staging_source_records s JOIN merge_context c ON s.batch_id=c.batch
+ LEFT JOIN knowledge_source_records r ON r.source_id=c.source AND r.record_key=s.record_key;
+CREATE UNIQUE INDEX ON incoming(record_key);
+ANALYZE incoming;
+
+-- An external identity must identify exactly one canonical work to be auto-linked.
+CREATE TEMP TABLE matches ON COMMIT DROP AS
+ SELECT DISTINCT i.record_key,w.work_id FROM incoming i
+ CROSS JOIN LATERAL jsonb_to_recordset(i.norm->'refs') x(provider text,id text)
+ JOIN work_sources w ON (w.provider,w.external_id)=(x.provider,x.id);
+CREATE INDEX ON matches(record_key);
+-- A common MAL ID does not override a contradictory AniDB season ID.
+CREATE TEMP TABLE incoming_ids ON COMMIT DROP AS SELECT i.record_key,x.provider,array_agg(DISTINCT x.id ORDER BY x.id) ids
+ FROM incoming i CROSS JOIN LATERAL jsonb_to_recordset(i.norm->'refs') x(provider text,id text) GROUP BY 1,2;
+CREATE TEMP TABLE other_ids ON COMMIT DROP AS SELECT r.work_id,x.provider,array_agg(DISTINCT x.id ORDER BY x.id) ids
+ FROM knowledge_source_records r CROSS JOIN merge_context c
+ CROSS JOIN LATERAL jsonb_to_recordset(r.norm->'refs') x(provider text,id text)
+ WHERE r.active AND r.source_id<>c.source GROUP BY 1,2;
+CREATE UNIQUE INDEX ON other_ids(work_id,provider);
+ANALYZE incoming_ids;
+ANALYZE other_ids;
+CREATE TEMP TABLE rejected ON COMMIT DROP AS SELECT DISTINCT m.record_key,m.work_id FROM matches m
+ JOIN incoming_ids i ON i.record_key=m.record_key JOIN other_ids o ON o.work_id=m.work_id AND o.provider=i.provider
+ WHERE i.ids <> o.ids OR cardinality(i.ids)<>1
+ UNION SELECT m.record_key,m.work_id FROM matches m JOIN incoming i USING(record_key)
+ JOIN incoming_ids x USING(record_key) JOIN work_sources ws ON ws.work_id=m.work_id AND ws.provider=x.provider
+ WHERE m.work_id IS DISTINCT FROM i.old_work AND (cardinality(x.ids)<>1 OR ws.external_id<>ALL(x.ids))
+ UNION SELECT m.record_key,m.work_id FROM matches m JOIN incoming i USING(record_key) JOIN knowledge_match_rejections j ON j.record_id=i.record_id AND j.work_id=m.work_id;
+CREATE UNIQUE INDEX ON rejected(record_key,work_id);
+CREATE TEMP TABLE assignment ON COMMIT DROP AS
+ SELECT i.record_key,coalesce(pin.work_id,CASE WHEN rejected.work_id IS NULL OR s.type='github-jsonl' THEN i.old_work END,
+   m.only_work,gen_random_uuid()) AS work_id
+ FROM incoming i CROSS JOIN merge_context c JOIN knowledge_sources s ON s.id=c.source
+ LEFT JOIN knowledge_identity_pins pin ON pin.record_id=i.record_id
+ LEFT JOIN rejected ON rejected.record_key=i.record_key AND rejected.work_id=i.old_work
+ LEFT JOIN (
+  SELECT m.record_key,min(m.work_id::text)::uuid AS only_work FROM matches m
+  LEFT JOIN rejected r USING(record_key,work_id) GROUP BY m.record_key HAVING count(*)=1 AND count(r.work_id)=0
+ ) m ON m.record_key=i.record_key;
+CREATE UNIQUE INDEX ON assignment(record_key);
+UPDATE incoming i SET action='updated' FROM assignment a WHERE a.record_key=i.record_key AND i.old_work IS NOT NULL AND a.work_id<>i.old_work;
+CREATE TEMP TABLE removed ON COMMIT DROP AS SELECT r.id,r.work_id FROM knowledge_source_records r,merge_context c
+ WHERE r.source_id=c.source AND r.active AND NOT EXISTS(SELECT FROM incoming i WHERE i.record_key=r.record_key);
+CREATE TEMP TABLE affected ON COMMIT DROP AS
+ SELECT a.work_id FROM assignment a JOIN incoming i USING(record_key) WHERE i.action<>'unchanged'
+ UNION SELECT old_work FROM incoming WHERE action='updated'
+ UNION SELECT work_id FROM removed;
+CREATE UNIQUE INDEX ON affected(work_id);
+ANALYZE affected;
+INSERT INTO works(id,canonical_title)
+ SELECT DISTINCT ON (a.work_id) a.work_id,i.norm->>'title' FROM assignment a JOIN incoming i USING(record_key)
+ ON CONFLICT(id) DO NOTHING;
+UPDATE knowledge_source_records SET active=false WHERE id IN (SELECT id FROM removed);
+INSERT INTO knowledge_source_records(source_id,record_key,version_id,work_id,raw,norm)
+ SELECT c.source,i.record_key,c.version,a.work_id,i.raw,i.norm FROM incoming i JOIN assignment a USING(record_key) CROSS JOIN merge_context c WHERE i.action<>'unchanged'
+ ON CONFLICT(source_id,record_key) DO UPDATE SET version_id=excluded.version_id,work_id=excluded.work_id,raw=excluded.raw,norm=excluded.norm,active=true;
+UPDATE knowledge_source_records r SET version_id=c.version FROM incoming i,merge_context c
+ WHERE r.id=i.record_id AND i.action='unchanged';
+
+-- name: Projection
+CREATE TEMP TABLE contributions ON COMMIT DROP AS
+ SELECT r.work_id,r.norm,s.type,r.source_id,s.priority,r.record_key FROM affected a JOIN knowledge_source_records r USING(work_id)
+ JOIN knowledge_sources s ON s.id=r.source_id WHERE r.active;
+CREATE INDEX ON contributions(work_id);
+ANALYZE contributions;
+-- Choose each non-empty scalar independently, then overlay the human decision.
+WITH scalars AS (
+ SELECT c.work_id,k.key,k.value,coalesce(p.priority,c.priority) priority,c.record_key,c.source_id
+ FROM contributions c CROSS JOIN LATERAL jsonb_each(c.norm) k
+ LEFT JOIN knowledge_field_priorities p ON p.source_id=c.source_id AND p.field=k.key
+ WHERE k.key IN ('title','original','type','episodes','status','start','end','season','year','synopsis') AND k.value NOT IN ('null','""')
+), base AS (
+ SELECT work_id,jsonb_object_agg(key,value ORDER BY priority,source_id DESC,record_key DESC) v FROM scalars GROUP BY work_id
+), picked AS (
+ SELECT work_id,v || coalesce((SELECT jsonb_object_agg(field,value) FROM work_field_overrides o WHERE o.work_id=b.work_id),'{}') n FROM base b
+)
+UPDATE works w SET active=true,canonical_title=n->>'title',original_title=n->>'original',type=n->>'type',
+ episodes=(n->>'episodes')::int,status=n->>'status',start_date=(n->>'start')::date,end_date=(n->>'end')::date,
+ season=n->>'season',season_year=coalesce((n->>'year')::int,extract(year from (n->>'start')::date)::int),synopsis=n->>'synopsis',updated_at=now() FROM picked WHERE w.id=picked.work_id;
+UPDATE works SET active=false,updated_at=now() WHERE id IN(SELECT work_id FROM affected EXCEPT SELECT work_id FROM contributions);
+
+DELETE FROM work_titles USING affected a WHERE a.work_id=work_titles.work_id;
+INSERT INTO work_titles SELECT DISTINCT c.work_id,t.lang,t.title FROM contributions c CROSS JOIN LATERAL jsonb_to_recordset(norm->'titles') t(lang text,title text);
+DELETE FROM work_sources USING affected a WHERE a.work_id=work_sources.work_id;
+INSERT INTO work_sources SELECT DISTINCT c.work_id,x.provider,x.id,x.url FROM contributions c CROSS JOIN LATERAL jsonb_to_recordset(norm->'refs') x(provider text,id text,url text);
+DELETE FROM work_tags USING affected a WHERE a.work_id=work_tags.work_id;
+INSERT INTO work_tags SELECT DISTINCT c.work_id,t FROM contributions c CROSS JOIN LATERAL jsonb_array_elements_text(norm->'tags') t;
+DELETE FROM work_studios USING affected a WHERE a.work_id=work_studios.work_id;
+INSERT INTO work_studios SELECT DISTINCT c.work_id,t FROM contributions c CROSS JOIN LATERAL jsonb_array_elements_text(norm->'studios') t;
+DELETE FROM work_producers USING affected a WHERE a.work_id=work_producers.work_id;
+INSERT INTO work_producers SELECT DISTINCT c.work_id,t FROM contributions c CROSS JOIN LATERAL jsonb_array_elements_text(norm->'producers') t;
+DELETE FROM work_related_urls USING affected a WHERE a.work_id=work_related_urls.work_id;
+INSERT INTO work_related_urls SELECT DISTINCT c.work_id,t FROM contributions c CROSS JOIN LATERAL jsonb_array_elements_text(norm->'related') t;
+DELETE FROM work_broadcasts USING affected a WHERE a.work_id=work_broadcasts.work_id;
+INSERT INTO work_broadcasts SELECT DISTINCT c.work_id,t FROM contributions c CROSS JOIN LATERAL jsonb_array_elements(norm->'broadcasts') t;
+
+-- Rebuild the candidate set across both sources, including evidence introduced on either side.
+CREATE TEMP TABLE candidates ON COMMIT DROP AS
+ SELECT DISTINCT r.id AS record_id,ws.work_id AS candidate,'provider_conflict' AS reason FROM knowledge_source_records r
+ CROSS JOIN LATERAL jsonb_to_recordset(r.norm->'refs') x(provider text,id text)
+ JOIN work_sources ws ON ws.provider=x.provider AND ws.external_id=x.id
+ WHERE r.active AND ws.work_id<>r.work_id
+ UNION ALL
+ SELECT DISTINCT r.id,w.id,'title_year' FROM knowledge_source_records r
+ JOIN work_titles t ON lower(t.title)=lower(r.norm->>'title') AND t.work_id<>r.work_id
+ JOIN works w ON w.id=t.work_id AND w.season_year=(r.norm->>'year')::int
+ WHERE r.active AND EXISTS(SELECT 1 FROM knowledge_source_records other WHERE other.active AND other.work_id=w.id AND other.source_id<>r.source_id);
+DELETE FROM knowledge_match_candidates k WHERE NOT EXISTS(SELECT FROM candidates c WHERE (c.record_id,c.candidate,c.reason)=(k.source_record_id,k.candidate_work_id,k.reason));
+INSERT INTO knowledge_match_candidates(source_record_id,candidate_work_id,reason) SELECT * FROM candidates c WHERE NOT EXISTS(SELECT FROM knowledge_match_rejections j WHERE (j.record_id,j.work_id)=(c.record_id,c.candidate)) ON CONFLICT DO NOTHING;
+
+-- name: Quality
+CREATE TEMP TABLE evidence ON COMMIT DROP AS
+WITH records AS (
+ SELECT r.work_id,string_agg(DISTINCT s.name,', ' ORDER BY s.name) sources,bool_or(length(trim(r.raw->>'picture'))>0) cover,bool_or(s.priority>=50) trusted
+ FROM knowledge_source_records r JOIN scope USING(work_id) JOIN knowledge_sources s ON s.id=r.source_id WHERE r.active GROUP BY 1
+), aliases AS (
+ SELECT r.work_id,t.lang,lower(trim(t.title)) alias,count(*) repetitions
+ FROM knowledge_source_records r JOIN scope USING(work_id)
+ CROSS JOIN LATERAL jsonb_to_recordset(r.norm->'titles') t(lang text,title text) WHERE r.active
+ GROUP BY r.work_id,r.id,t.lang,lower(trim(t.title))
+), titles AS (
+ SELECT work_id,bool_or(lang~*'^zh($|[-_])') chinese,min(lang) FILTER(WHERE lang !~ '^[a-z]{2,3}(-([A-Z][a-z]{3}|[A-Z]{2}|[0-9]{3}))*$') bad_lang,
+ min(alias) FILTER(WHERE repetitions>1) duplicate FROM aliases GROUP BY 1
+), provider AS (
+ SELECT s.*, count(*) OVER(PARTITION BY provider,external_id) shared FROM (SELECT DISTINCT work_id,provider,external_id FROM work_sources) s
+), refs AS (
+ SELECT work_id,count(*) ids,min(provider||':'||external_id) FILTER(WHERE shared>1) shared_id FROM provider JOIN scope USING(work_id) GROUP BY 1
+), conflicts AS (
+ SELECT work_id,min(provider) conflict FROM (SELECT work_id,provider FROM provider JOIN scope USING(work_id) GROUP BY 1,2 HAVING count(*)>1) s GROUP BY 1
+), urls AS (
+ SELECT work_id,min(url) bad_url FROM work_sources JOIN scope USING(work_id) WHERE url !~* '^https?://[[:alnum:]][^/[:space:]]*([/?#][^[:space:]]*)?$' GROUP BY 1
+), broken AS (
+ SELECT r.work_id,min(url) broken_url FROM work_relations r JOIN scope USING(work_id) WHERE related_work_id IS NULL GROUP BY 1
+)
+SELECT w.*,sources,cover,trusted,chinese,bad_lang,duplicate,ids,shared_id,conflict,bad_url,broken_url FROM works w JOIN scope ON w.id=scope.work_id
+ LEFT JOIN records USING(work_id) LEFT JOIN titles USING(work_id) LEFT JOIN refs USING(work_id)
+ LEFT JOIN conflicts USING(work_id) LEFT JOIN urls USING(work_id) LEFT JOIN broken USING(work_id);
+UPDATE knowledge_quality_issues SET status='resolved',checked_at=now() WHERE entity_id IN(SELECT work_id FROM scope) AND status='open';
+INSERT INTO knowledge_quality_issues(entity_id,rule_id,field,severity,current_value,suggested_value,source,reason,status)
+SELECT e.id,r.rule_id,r.field,r.severity,to_jsonb(v.actual),to_jsonb(v.suggested),coalesce(e.sources,'canonical'),r.reason,'open'
+FROM evidence e CROSS JOIN LATERAL (VALUES
+ ('required',coalesce(e.type,''),NULL::text,e.type IS NULL OR trim(e.type)=''),
+ ('empty_title',e.canonical_title,NULL,trim(e.canonical_title)=''),
+ ('url',e.bad_url,NULL,e.bad_url IS NOT NULL),
+ ('title_norm',e.canonical_title,regexp_replace(trim(e.canonical_title),'[[:space:]]+',' ','g'),e.canonical_title<>regexp_replace(trim(e.canonical_title),'[[:space:]]+',' ','g')),
+ ('language',e.bad_lang,replace(e.bad_lang,'_','-'),e.bad_lang IS NOT NULL),
+ ('alias',e.duplicate,NULL,e.duplicate IS NOT NULL),('duplicate_id',e.shared_id,NULL,e.shared_id IS NOT NULL),
+ ('conflict',e.conflict,NULL,e.conflict IS NOT NULL),('date',e.end_date::text,NULL,e.end_date<e.start_date),
+ ('enum',concat_ws('/',e.type,e.status),NULL,e.type NOT IN ('TV','OVA','ONA','MOVIE','SPECIAL','SHORT_STORY_COLLECTION','UNKNOWN') OR e.status NOT IN ('ONGOING','FINISHED','UPCOMING','UNKNOWN')),
+ ('cover',NULL,NULL,NOT coalesce(e.cover,false)),('relation',e.broken_url,NULL,e.broken_url IS NOT NULL),
+ ('suspicious',e.episodes::text,NULL,e.episodes<0 OR e.episodes>10000)
+) v(rule_id,actual,suggested,fails) JOIN knowledge_quality_rules r USING(rule_id) WHERE v.fails AND r.enabled
+ON CONFLICT(entity_id,rule_id) DO UPDATE SET status='open',current_value=excluded.current_value,suggested_value=excluded.suggested_value,
+ source=excluded.source,field=excluded.field,severity=excluded.severity,reason=excluded.reason,checked_at=now();
+INSERT INTO knowledge_quality_scores
+SELECT id,(SELECT sum(value::int) FROM jsonb_each_text(parts)),parts,now() FROM (
+ SELECT id,jsonb_build_object('title',CASE WHEN trim(canonical_title)<>'' THEN 15 ELSE 0 END,
+ 'chinese_title',CASE WHEN chinese THEN 10 ELSE 0 END,'original_title',CASE WHEN length(trim(original_title))>0 THEN 10 ELSE 0 END,
+ 'provider',CASE WHEN ids>0 AND shared_id IS NULL AND conflict IS NULL THEN 15 ELSE 0 END,
+ 'date',CASE WHEN start_date IS NOT NULL AND (end_date IS NULL OR end_date>=start_date) THEN 10 ELSE 0 END,
+ 'type',CASE WHEN type IN ('TV','OVA','ONA','MOVIE','SPECIAL','SHORT_STORY_COLLECTION') THEN 10 ELSE 0 END,'approved_image',0,
+ 'source',CASE WHEN trusted THEN 10 ELSE 0 END,'relations',CASE WHEN broken_url IS NULL THEN 10 ELSE 0 END) parts FROM evidence
+) scored ON CONFLICT(work_id) DO UPDATE SET score=excluded.score,components=excluded.components,checked_at=now();
+
+-- name: AcceptanceInputs
+SELECT jsonb_build_object(
+ 'world',w.slug,'version',w.version_id,'research',r.id,'documents',r.documents,'claims',r.claims,
+ 'setting',i.setting,
+ 'art',coalesce((SELECT jsonb_object_agg(a.item_slug,jsonb_build_object('image',a.image,'sha',a.source_sha256,'credit',a.credit,
+   'verified',EXISTS(SELECT FROM media_steps g JOIN media_candidates m ON m.slot=g.slot AND m.round=g.round
+     JOIN media_steps q ON q.slot=m.slot AND q.round=m.round AND q.step IN ('review','recheck')
+     WHERE g.step='generate' AND m.stage='passed' AND (m.batch IN ('bebop','bebop-portrait') OR m.art_job IS NOT NULL) AND g.result->>'sha'=a.source_sha256
+     AND g.result->>'reference_sha'=m.reference_sha AND q.result->>'decision'='pass'
+     AND q.result->'checks' @> '{"identity":true,"scene":true,"anatomy":true,"clean":true,"crop":true}'
+     AND NOT EXISTS(SELECT FROM media_withdrawals x WHERE (x.slot,x.round)=(m.slot,m.round)))))
+   FROM edition_reader_art a WHERE a.world_slug=w.slug AND a.kind IN ('work','character') AND a.item_slug=ANY($3::text[])),'{}'),
+ 'people',coalesce((SELECT jsonb_object_agg(c.slug,jsonb_build_object('name',c.name,'bio',i.people->>c.slug,
+   'episodes',ARRAY(SELECT b.episode FROM chapter_appearances x JOIN work_chapters b ON (b.v,b.slug)=(x.v,x.chapter)
+     WHERE (x.v,x.person)=(c.v,c.slug) AND b.episode BETWEEN t.first_episode AND t.last_episode ORDER BY b.episode)))
+   FROM work_characters c WHERE c.v=w.version_id),'{}'),
+ 'chapters',coalesce((SELECT jsonb_agg(jsonb_build_object('episode',c.episode,'slug',c.slug,
+   'copy',encode(sha256(convert_to(e.passages::text,'UTF8')),'hex'),'passages',e.passages,
+   'sourced',r.documents @> e.sources,'linked',EXISTS(SELECT FROM work_storyline_chapters l WHERE (l.v,l.chapter)=(c.v,c.slug)),
+   'scene',s.slug,'place',s.place,'block',s.block,'text',s.text) ORDER BY c.episode)
+   FROM work_chapters c LEFT JOIN edition_reader_chapters e ON (e.world_slug,e.chapter)=(w.slug,c.slug)
+   LEFT JOIN work_scenes s ON (s.v,s.chapter)=(c.v,c.slug) AND s.slug=CASE c.episode WHEN 1 THEN 'bar-visit' ELSE 'chinatown-chase' END
+   WHERE c.v=w.version_id AND c.episode BETWEEN t.first_episode AND t.last_episode),'[]'),
+ 'images',coalesce((SELECT jsonb_agg(jsonb_build_object('slot',c.slot,'position',c.position,'variant',c.variant,'round',c.round,'name',c.scene,
+   'ref',c.reference_sha,'stage',c.stage,'withdrawn',x.reason,'generated',g.result,'review',q.result,'crop',cr.result->>'phone')
+   ORDER BY c.position)
+   FROM media_candidates c LEFT JOIN media_withdrawals x ON (x.slot,x.round)=(c.slot,c.round)
+   LEFT JOIN LATERAL(SELECT result FROM media_steps WHERE slot=c.slot AND round=c.round AND step='generate' AND finished_at IS NOT NULL AND error IS NULL ORDER BY attempt DESC LIMIT 1) g ON true
+   LEFT JOIN LATERAL(SELECT result FROM media_steps WHERE slot=c.slot AND round=c.round AND step IN ('review','recheck') AND finished_at IS NOT NULL AND error IS NULL ORDER BY (step='recheck') DESC,attempt DESC LIMIT 1) q ON true
+   LEFT JOIN LATERAL(SELECT result FROM media_steps WHERE slot=c.slot AND round=c.round AND step='recrop' AND finished_at IS NOT NULL AND error IS NULL ORDER BY attempt DESC LIMIT 1) cr ON true
+   WHERE c.batch=$2),'[]'))
+FROM research_topics t JOIN published_worlds w ON w.slug=t.world_slug
+LEFT JOIN edition_reader_intros i ON i.world_slug=w.slug
+LEFT JOIN research_runs r ON (r.topic,r.v,r.policy)=(t.id,w.version_id,t.policy) AND r.stage='ready'
+WHERE t.id=$1 AND t.enabled AND (t.first_episode,t.last_episode)=($4,$5)

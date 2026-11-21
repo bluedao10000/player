@@ -17,7 +17,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"anime-agent/api/internal/testsupport"
-	sqltest "anime-agent/database/queries/fixtures"
+	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
 
 func TestAppStoreSigningChain(t *testing.T) {

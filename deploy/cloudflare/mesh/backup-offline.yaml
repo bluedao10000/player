@@ -1,0 +1,7 @@
+services:
+  mesh:
+    image: ${OFFLINE_MESH_IMAGE:?required}
+    pull_policy: never
+  backup-socket:
+    image: ${OFFLINE_SOCAT_IMAGE:?required}
+    pull_policy: never

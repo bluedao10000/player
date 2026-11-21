@@ -1,0 +1,56 @@
+-- name: BeginCuration
+SELECT pg_advisory_xact_lock(82045102); CREATE TEMP TABLE affected(work_id uuid PRIMARY KEY) ON COMMIT DROP
+
+-- name: ReadActiveField
+SELECT to_jsonb(w)->$2::text FROM works w WHERE id=$1 AND active
+
+-- name: DeleteOverride
+DELETE FROM work_field_overrides WHERE work_id=$1 AND field=$2
+
+-- name: UpsertOverride
+INSERT INTO work_field_overrides VALUES($1,$2,$3) ON CONFLICT(work_id,field) DO UPDATE SET value=excluded.value
+
+-- name: MarkAffectedWork
+INSERT INTO affected VALUES($1)
+
+-- name: ActiveRecordWork
+SELECT work_id::text FROM knowledge_source_records WHERE id=$1 AND active
+
+-- name: MatchPair
+SELECT r.id,r.work_id::text,k.candidate_work_id::text FROM knowledge_match_candidates k JOIN knowledge_source_records r ON r.id=k.source_record_id JOIN works w ON w.id=k.candidate_work_id WHERE k.id=$1 AND r.active AND w.active
+
+-- name: LastCurationSource
+SELECT work_id::text FROM knowledge_curation_actions WHERE action IN ('approve','merge') AND work_id=$1 AND after_value->>'work_id'=$2 AND before_value->'records' @> jsonb_build_array($3::bigint) LIMIT 1
+
+-- name: CloneWork
+INSERT INTO works(canonical_title) SELECT canonical_title FROM works WHERE id=$1 RETURNING id::text
+
+-- name: MarkAffectedWorks
+INSERT INTO affected SELECT DISTINCT unnest($1::uuid[])
+
+-- name: FindDecisionRecords
+SELECT array_agg(id ORDER BY id) FROM knowledge_source_records WHERE (id=$1 OR ($2='merge' AND work_id=$3))
+
+-- name: RejectMatch
+INSERT INTO knowledge_match_rejections VALUES($1,$2) ON CONFLICT DO NOTHING
+
+-- name: DeleteMatch
+DELETE FROM knowledge_match_candidates WHERE source_record_id=$1 AND candidate_work_id=$2
+
+-- name: DeleteIdentityPin
+DELETE FROM knowledge_identity_pins WHERE record_id=$1
+
+-- name: ClearRejections
+DELETE FROM knowledge_match_rejections WHERE record_id=$1
+
+-- name: PinRecords
+INSERT INTO knowledge_identity_pins SELECT unnest($1::bigint[]),$2::uuid ON CONFLICT(record_id) DO UPDATE SET work_id=excluded.work_id
+
+-- name: MoveRecords
+UPDATE knowledge_source_records SET work_id=$2 WHERE id=ANY($1)
+
+-- name: ReadWorkField
+SELECT to_jsonb(w)->$2::text FROM works w WHERE id=$1
+
+-- name: RecordDecision
+INSERT INTO knowledge_curation_actions(work_id,operator,action,field,before_value,after_value,reason,source) VALUES($1,$2,$3,$4,$5,$6,$7,$8)

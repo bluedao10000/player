@@ -12,7 +12,7 @@ import (
 	"github.com/smartwalle/alipay/v3"
 
 	domain "anime-agent/api/internal/service/billing"
-	queries "anime-agent/database/queries/billing"
+	queries "anime-agent/api/internal/repository/queries/billing"
 )
 
 var planOrderNumber = regexp.MustCompile("^MP[0-9a-f]{32}$")

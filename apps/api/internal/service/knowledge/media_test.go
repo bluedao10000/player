@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"anime-agent/api/internal/testsupport"
-	sqltest "anime-agent/database/queries/fixtures"
+	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
 
 // Reframing a valid original keeps the original version. An unfixable defect

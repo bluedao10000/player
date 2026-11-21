@@ -1,7 +1,7 @@
 import { createServer } from 'node:http'
 import { mkdir } from 'node:fs/promises'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+import { homedir } from 'node:os'
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context'
 import { createModels } from '@earendil-works/pi-ai/models'
 import { createRegistry, Harness } from '@earendil-works/pi-durable'
@@ -14,7 +14,7 @@ import { research, page } from './research.ts'
 import { knowledgeTools } from './knowledge.ts'
 import { health } from '@anime/shared'
 
-const path = process.env.AGENT_DB_PATH ?? fileURLToPath(new URL('../../../data/agent.sqlite', import.meta.url))
+const path = process.env.AGENT_DB_PATH ?? join(homedir(), '.local/share/folio/agent.sqlite')
 await mkdir(dirname(path), { recursive: true })
 openUsage(dirname(path))
 const storage = await openNodeSqliteStorage(path)

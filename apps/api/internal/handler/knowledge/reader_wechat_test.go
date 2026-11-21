@@ -17,7 +17,7 @@ import (
 
 	routing "anime-agent/api/internal/router"
 	"anime-agent/api/internal/testsupport"
-	sqltest "anime-agent/database/queries/fixtures"
+	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
 
 type wechatRoundTrip func(*http.Request) (*http.Response, error)

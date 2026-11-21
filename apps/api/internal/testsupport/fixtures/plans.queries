@@ -1,0 +1,26 @@
+-- name: CreateNarutoEdition
+WITH k AS (INSERT INTO works(canonical_title,type,season_year) VALUES('fixture','TV',2002) RETURNING id) INSERT INTO work_sources SELECT id,'bangumi','3425','https://bgm.tv/subject/3425' FROM k
+
+-- name: FirstFiveSlugs
+SELECT string_agg(id||':'||(spec->>'slug'),',' ORDER BY number) FROM episode_plans WHERE number<=5
+
+-- name: PlanGraphCounts
+SELECT (SELECT count(*) FROM episode_plans),(SELECT count(*) FROM episode_art_jobs),(SELECT count(*) FROM world_releases)
+
+-- name: PublishedHeads
+SELECT count(*),count(published) FROM scope_heads
+
+-- name: CreateONAEdition
+WITH k AS (INSERT INTO works(canonical_title,type,season_year,status,episodes) VALUES('fixture','ONA',2025,'FINISHED',6) RETURNING id) INSERT INTO work_sources SELECT id,'bangumi','527620','https://bgm.tv/subject/527620' FROM k
+
+-- name: ONACoverage
+SELECT (SELECT count(*) FROM episode_plans WHERE world_slug=$1),(SELECT count(*) FROM published_episode_scopes WHERE world_slug=$1)
+
+-- name: FailImageProvider
+UPDATE media_candidates SET art_job=(SELECT min(id) FROM episode_art_jobs),stage='failed',reason='模型服务 HTTP 403' WHERE slot IN (1,2);
+		INSERT INTO media_steps(slot,round,step,attempt,error,finished_at) VALUES
+		(1,1,'generate',1,'模型服务 HTTP 502',now()),(1,1,'generate',2,'模型服务 HTTP 403',now()),
+		(2,1,'review',1,'模型服务 HTTP 403',now())
+
+-- name: RequeuedImage
+SELECT attempt,(SELECT count(*) FROM media_steps WHERE slot=1) FROM media_candidates WHERE slot=1 AND stage='generate'

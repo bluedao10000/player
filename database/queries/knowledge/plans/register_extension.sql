@@ -1,1 +1,0 @@
-INSERT INTO episode_extensions(topic,slug,title,intro,place,scene_slug,scene_name,people) SELECT $1,s->>'slug',s->>'title',s->>'intro',s->>'place',s->>'sceneSlug',s->>'sceneName',s->'people' FROM (SELECT $2::jsonb s) x ON CONFLICT(topic) DO NOTHING

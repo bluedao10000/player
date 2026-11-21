@@ -10,7 +10,7 @@ import (
 
 	catalog "anime-agent/api/internal/model/knowledge"
 	"anime-agent/api/internal/repository/workbench"
-	queries "anime-agent/database/queries/catalog"
+	queries "anime-agent/api/internal/repository/queries/catalog"
 )
 
 var assetName = regexp.MustCompile(`^((mio|bebop|bebop-portrait|bebop-e3|cfg-[1-9][0-9]*)-[1-9]-r[12](\.png|-crop[01]\.jpg)|bebop-reference-v1\.png)$`)

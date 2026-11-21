@@ -1,1 +1,0 @@
-CREATE TEMP TABLE scope(work_id uuid PRIMARY KEY) ON COMMIT DROP

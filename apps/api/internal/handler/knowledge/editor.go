@@ -15,7 +15,7 @@ import (
 	catalog "anime-agent/api/internal/model/knowledge"
 	"anime-agent/api/internal/repository/workbench"
 	domain "anime-agent/api/internal/service/knowledge"
-	queries "anime-agent/database/queries/knowledge"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 var editorScopes = []catalog.EditorScope{{World: "naruto-tv-2002", Chapter: "enter-naruto", Name: "火影忍者 · 第 1 集"}, {World: "tidepost", Chapter: "night-courier", Name: "潮汐邮局 · 海风里的夜班邮差"}}

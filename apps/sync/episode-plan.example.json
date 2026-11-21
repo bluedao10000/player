@@ -1,0 +1,86 @@
+{
+  "world": "example-tv",
+  "title": "示例作品",
+  "edition": "1998 TV",
+  "provider": "bangumi",
+  "externalID": "EXAMPLE_ID",
+  "year": 1998,
+  "people": [
+    {
+      "slug": "lead",
+      "name": "示例角色",
+      "reusePortrait": true
+    }
+  ],
+  "episodes": [
+    {
+      "number": 1,
+      "slug": "first-episode",
+      "title": "示例章节",
+      "intro": "填写经核实的分集导语。",
+      "official": "https://publisher.example/episodes/1",
+      "officialTitle": "官方分集标题",
+      "guide": "https://guide.example/episodes/1",
+      "guideTitle": "分集指南标题",
+      "sourceRules": {
+        "entry": ".storybox",
+        "heading": "img",
+        "attribute": "alt",
+        "body": ".storytxt",
+        "guide": "wiki-episode"
+      },
+      "place": "示例地点",
+      "sceneName": "示例场景",
+      "sceneSlug": "first-scene",
+      "sceneBeat": 2,
+      "people": [
+        {
+          "slug": "lead",
+          "name": "示例角色",
+          "beat": 2
+        }
+      ],
+      "setting": [
+        "示例设定",
+        2
+      ],
+      "art": {
+        "brief": "填写构图、动作和参考肖像要求。",
+        "referenceURL": "https://media.example/portrait.webp",
+        "sourceSHA": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "beats": [
+        {
+          "kind": "motive",
+          "needle": "source phrase 1",
+          "question": "填写第 1 段需要核实的问题。",
+          "officialSentence": 1
+        },
+        {
+          "kind": "turn",
+          "needle": "source phrase 2",
+          "question": "填写第 2 段需要核实的问题。"
+        },
+        {
+          "kind": "cause",
+          "needle": "source phrase 3",
+          "question": "填写第 3 段需要核实的问题。"
+        },
+        {
+          "kind": "cause",
+          "needle": "source phrase 4",
+          "question": "填写第 4 段需要核实的问题。"
+        }
+      ],
+      "publishToReader": false
+    }
+  ],
+  "automation": {
+    "first": 1,
+    "last": 1,
+    "priority": 90,
+    "maxEpisodes": 1,
+    "tokenBudget": 60000,
+    "reserveTokens": 60000
+  }
+}

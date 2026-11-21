@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"anime-agent/api/internal/repository/database"
-	queries "anime-agent/database/queries/workbench"
+	queries "anime-agent/api/internal/repository/queries/workbench"
 )
 
 func Assessments(ctx context.Context, db *pgxpool.Pool, id string) ([]byte, error) {

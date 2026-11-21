@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"anime-agent/api/internal/testsupport"
-	sqltest "anime-agent/database/queries/fixtures"
+	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
 
 // The isolated database contains neither the research batch nor any accepted

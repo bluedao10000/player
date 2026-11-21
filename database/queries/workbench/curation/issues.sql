@@ -1,1 +1,0 @@
-SELECT jsonb_build_object('score',(SELECT to_jsonb(s) FROM knowledge_quality_scores s WHERE work_id=$1),'issues',coalesce((SELECT jsonb_agg(to_jsonb(i)) FROM knowledge_quality_issues i WHERE entity_id=$1),'[]'))

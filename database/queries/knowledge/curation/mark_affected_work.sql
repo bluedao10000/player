@@ -1,1 +1,0 @@
-INSERT INTO affected VALUES($1)

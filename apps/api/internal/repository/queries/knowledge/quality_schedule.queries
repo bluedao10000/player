@@ -1,0 +1,18 @@
+-- name: TryLockQuality
+SELECT pg_try_advisory_lock(82045105)
+
+-- name: FailInterruptedQuality
+UPDATE knowledge_quality_runs SET status='failed',finished_at=now(),error_message='worker interrupted' WHERE status='running'
+
+-- name: BeginQualityIfDue
+INSERT INTO knowledge_quality_runs(status) SELECT 'running'
+ WHERE EXISTS(SELECT FROM works WHERE active) AND NOT EXISTS(
+ SELECT FROM (SELECT status,finished_at FROM knowledge_quality_runs ORDER BY started_at DESC LIMIT 1) last_run
+ WHERE finished_at + CASE WHEN status='failed' THEN interval '15 minutes' ELSE interval '6 hours' END >now())
+ RETURNING id::text
+
+-- name: FailQuality
+UPDATE knowledge_quality_runs SET status='failed',finished_at=now(),error_message=left($2,2000) WHERE id=$1
+
+-- name: FinishQuality
+UPDATE knowledge_quality_runs SET status='success',finished_at=now(),report=$2 WHERE id=$1

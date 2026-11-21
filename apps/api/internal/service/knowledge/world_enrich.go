@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/net/html"
 
-	queries "anime-agent/database/queries/knowledge"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 type cachedWorldDocument struct {
