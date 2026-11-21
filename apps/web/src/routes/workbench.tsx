@@ -3,6 +3,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { readFeed } from '../features/workbench/feed'
 import { ProductionReport } from '../features/workbench/production-report'
+import { BackupReport } from '../features/workbench/backup-report'
 import { ScopeReport } from '../features/workbench/scope-report'
 import { MediaGallery } from '../features/workbench/media-gallery'
 import { ResearchHistory } from '../features/workbench/research-history'
@@ -147,6 +148,7 @@ function Board({ feed }: { feed: Awaited<ReturnType<typeof readFeed>> }) {
         </div>
         <code>UTC　{time(feed.checked)}</code>
       </div>
+      <BackupReport data={feed.backup} checked={feed.checked} />
       {[...new Set(feed.media?.filter((c) => c.art).map((c) => c.batch))].map(
         (batch) => (
           <MediaGallery key={batch} items={feed.media} batch={batch} />

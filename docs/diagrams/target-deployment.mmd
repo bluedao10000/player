@@ -1,0 +1,35 @@
+flowchart TB
+  client["H5 与 iOS"] -->|www.codeiy.com| edge["Cloudflare CDN / Tunnel"]
+  subgraph ali["阿里云杭州"]
+    gw["API 网关"] -->|页面、静态资源| h5["TanStack Start SSR"]
+  end
+  edge --> gw
+  subgraph gz["腾讯云广州"]
+    api["Gin · 业务接口"] --> db[("读者库与制作库")]
+    imageSvc["Axum · libvips"] --> storage[("图片卷")]
+    jobs["采集、媒体、验收与发布"] --> db
+    jobs --> pi["Pi Durable"]
+    pi --> imageSvc
+    pi --> kimi["国内模型路由"]
+  end
+  h5 -->|服务端数据请求| gw
+  gw -->|Mesh · 业务| api
+  gw -->|Mesh · 图片| imageSvc
+  pi -->|Mesh · 境外模型调用| sv["腾讯云硅谷 · 模型网关"]
+  sv --> provider["OpenAI 等外部 API"]
+  backup["局域网 K3s"] -->|Mesh · 数据库备份| db
+  backup -.待建设 · 图片备份.-> storage
+%% client | 目标方案：H5 与 iOS | docs/部署架构.md
+%% edge | 目标方案：Cloudflare CDN / Tunnel | docs/部署架构.md
+%% gw | 目标方案：按路径和方法分流，保留旧图片与支付回调地址。 | docs/部署架构.md
+%% h5 | 目标方案：TanStack Start SSR | docs/部署架构.md
+%% api | 目标方案：Gin · 业务接口 | docs/部署架构.md
+%% db | 目标方案：制作、读者与资产元数据分别授权；发布指针由业务事务控制。 | docs/部署架构.md
+%% imageSvc | 目标方案：Axum · libvips | docs/部署架构.md
+%% storage | 目标方案：图片卷 | docs/部署架构.md
+%% jobs | 目标方案：采集、媒体、验收与发布 | docs/部署架构.md
+%% pi | 目标方案：Pi Durable | docs/部署架构.md
+%% kimi | 目标方案：国内模型路由 | docs/部署架构.md
+%% sv | 目标方案：仅接受广州 Pi 的模型请求，凭据留在出口。 | docs/部署架构.md
+%% provider | 目标方案：OpenAI 等外部 API | docs/部署架构.md
+%% backup | 目标方案：现有数据库恢复演练延续，图片清单与异机字节备份待建。 | docs/部署架构.md

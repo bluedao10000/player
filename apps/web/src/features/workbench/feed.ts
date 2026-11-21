@@ -9,6 +9,14 @@ type ReaderRelease = {
   started_at: string | null; finished_at: string | null; error: string | null; href: string | null; status: string
 }
 
+type BackupRun = {
+  attempts?: { at: string; reason: string }[]
+  job_uid: string; job_name: string; status: 'running' | 'success' | 'failed'
+  started_at: string; finished_at: string | null; archive_bytes: number | null
+  verified_tables: number | null; failure_reason: string | null; trigger_kind: "manual" | "scheduled" | "unknown"
+}
+export type BackupStatus = { observed_at: string | null; latest_verified: BackupRun | null; runs: BackupRun[] }
+
 type Inventory = {checked: string; works: {slug:string; title:string; published:number; missing?:number[]; today?:number[]; source?:string; note?:string}[]}
 
 type Status = "running" | "pending" | "success" | "failed";
@@ -37,23 +45,26 @@ type Quality = {
   } | null;
 };
 
-async function get<T>(path: string, adminToken?: string): Promise<T[] | null> {
+async function getJSON<T>(path: string, adminToken?: string): Promise<T | null> {
   try {
     const base = process.env.KNOWLEDGE_API_URL ?? "http://127.0.0.1:4321";
     const res = await fetch(
       new URL("/api/v1/" + (adminToken ? "admin/" : "") + "knowledge/" + path + "?limit=30", base),
       { signal: AbortSignal.timeout(5000), cache: "no-store", headers: adminToken ? {Authorization: "Bearer " + adminToken} : {} },
     );
-    if (res.ok) return (await res.json()) as T[];
+    if (res.ok) return (await res.json()) as T;
   } catch {
     /* Show an unavailable feed separately from an empty one. */
   }
   return null;
 }
+function get<T>(path: string, adminToken?: string) {
+  return getJSON<T[]>(path, adminToken)
+}
 export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
   if (process.env.PLAYER_PUBLIC_ONLY === 'true') throw new Error('工作台限内部访问')
   const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
-  const [sync, quality, worlds, research, media, scopes, usage, inventory, queue, releases] = await Promise.all([
+  const [sync, quality, worlds, research, media, scopes, usage, inventory, queue, releases, backup] = await Promise.all([
     get<Sync>("sync-runs"),
     get<Quality>("quality-runs"),
     get<WorkKnowledgeStatus>("world-statuses"),
@@ -64,6 +75,7 @@ export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
     admin ? get<Inventory>("episode-inventory", admin) : Promise.resolve(null),
     admin ? get<QueueRow>("episode-queue", admin) : Promise.resolve(null),
     admin ? get<ReaderRelease>("reader-releases", admin) : Promise.resolve(null),
+    admin ? getJSON<BackupStatus>("backup-status", admin) : Promise.resolve(null),
   ]);
   const runs = [
     ...(sync ?? []).map((r) => ({
@@ -100,6 +112,7 @@ export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
   return {
     runs,
     releases,
+    backup,
     queue,
     inventory: inventory?.[0],
     worlds,
