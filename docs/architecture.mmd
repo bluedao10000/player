@@ -1,45 +1,52 @@
 flowchart TB
-  subgraph front["前端"]
-    h5["H5 · TanStack Start SSR"]
-    ios["iOS · SwiftUI"]
-    bench["内部工作台"]
+  subgraph front["前端 · TanStack Start / SwiftUI"]
+    readers["公开 H5 与 iOS"]
+    bench["本地工作台 · 对话、审稿、运行记录"]
   end
   subgraph backend["后端 · Go"]
-    api["阿里云 · Gin 阅读 API"]
-    admin["内部 Gin · 工作台 API"]
-    worker["数据服务 · 广州文本 / 硅谷采集与媒体"]
-    publish["定稿导出、接收与公网校验"]
+    api["Gin 阅读 API · 阿里云"]
+    admin["本地 Gin · 上下文、差异确认与操作审计"]
+    localsync["本地 sync · 同一生产流程"]
+    sync["云端 sync · 广州规划与文本 / 硅谷媒体与验收"]
+    publish["分集定稿投递 · 显式上线授权"]
   end
   subgraph agents["Agent · TypeScript"]
-    pi["Pi Durable · 研究、媒体与编辑"]
-    state["SQLite 检查点"]
-    models["模型直连与网关"]
+    pi["Pi Durable · 配置生成、研究、媒体、编辑"]
+    state["SQLite · 执行检查点"]
+    models["Magpie Kimi / OpenAI"]
   end
-  pg[("制作 PostgreSQL 与归档")]
-  online[("正式站读库与选图")]
-  backup["K3s · 分日备份与恢复库"]
-  h5 --> api
-  ios -->|公开阅读 JSON| api
-  bench --> admin
-  admin -->|读任务、用量与回执| pg
-  worker -->|采集、清洗、准入、五维验收| pg
-  worker -->|内部 HTTP| pi
+  pg[("制作 PostgreSQL · 配置、用量与回执")]
+  local[("本地 PostgreSQL · 工作台会话与制作计划")]
+  online[("正式读库与入选图片")]
+  media["广州 Axum + libvips · 图片灰度"]
+  backup["K3s · 每日备份与恢复校验"]
+  readers -->|公开 SSR / JSON| api
+  api -->|读已发布内容| online
+  bench -->|确认结构化差异| admin
+  admin -->|事务更新和审计| local
+  localsync -->|校验登记与验收| local
+  localsync -->|本地实例| pi
+  admin -->|对话提案| pi
+  sync -->|盘点、校验登记、五维验收| pg
+  sync -->|内部 HTTP| pi
   pi --> state
   pi --> models
-  pg -->|发布范围与入选图| publish
+  pg -->|验收定稿与入选图| publish
   publish -->|Mesh 内网投递| online
-  api --> online
+  readers -->|火影灰度路径经阿里云网关与 Mesh| media
   backup -->|Mesh 只读快照| pg
-%% h5 | 服务器端 loader 获取作品、角色、章节和场景。 | apps/web/src/features/worlds/api.ts
-%% ios | SwiftUI 使用正式站公开 JSON，支持从场景回到段落。 | apps/ios/server/reader.server.ts
-%% bench | 观察来源、选题、编辑与发布结果。 | apps/web/src/features/workbench/feed.ts
+%% readers | H5 服务端与 iOS 共享公开阅读契约和段落锚点。 | apps/ios/server/reader.server.ts
+%% bench | 本地对话可跟踪分集状态及确认修改，并保留原有人工审稿。 | apps/web/src/routes/workbench.tsx
 %% api | 在线 Gin 提供正式站公开读模型和读者业务。 | apps/api/internal/handler/knowledge/world_api.go
-%% admin | 管理接口读取制作库的补集、模型用量及投递历史。 | apps/api/internal/handler/knowledge/usage.go
-%% worker | 两类调度器从共享 PostgreSQL 领取任务。 | apps/sync/internal/service/scheduler/production.go
-%% publish | timer 驱动跨库投递，接收端按源定稿指纹幂等。 | apps/sync/cmd/reader-release/main.go
-%% pi | 工具编排及模型步骤由 Pi Durable 执行。 | apps/agent/src/server.ts
-%% state | Pi 保存恢复执行所需的检查点。 | compose.yaml
-%% models | Kimi 文本走 Magpie，硅谷使用 OpenAI 图像和视觉模型。 | docs/模型用量与计费.md
-%% pg | 广州持有制作数据库，候选与已选媒体文件存于硅谷。 | docs/部署架构.md
+%% admin | Gin 从业务数据生成差异，确认后做版本校验、写事务及审计。 | apps/api/internal/handler/knowledge/chat.go
+%% localsync | 本地 Compose 的 sync、数据库和 Pi 实例互相配合。 | deploy/docker-compose.yml
+%% sync | 广州校验缺口并自动登记配置，硅谷执行媒体处理与五维验收。本地 Compose 运行同样的业务代码。 | apps/sync/internal/service/scheduler/production.go
+%% publish | 仅投递有明确上线授权的定稿，接收端按指纹幂等。 | apps/sync/cmd/reader-release/main.go
+%% pi | Pi 根据已登记来源模板生成分集配置，执行取证、写作、出图、验图和编辑。 | apps/agent/src/server.ts
+%% state | Pi 保存恢复执行所需的检查点。 | deploy/docker-compose.yml
+%% models | 文本走 Magpie Kimi，硅谷使用 OpenAI 图像和视觉模型。 | docs/模型用量与计费.md
+%% pg | 广州制作库保存业务事实、配置快照、预算、五维验收和发布回执。 | database/migrations/init.sql
+%% local | 本地工作台会话、结构化提案与计划不向公网开放。 | apps/web/src/features/workbench/local.ts
 %% online | 阿里云在一个事务中安装单集投影并记录回执。 | apps/api/internal/repository/queries/release/queries.queries
-%% backup | 从同一源快照导出、恢复并逐表核对，成功后切换库名。 | deploy/pg-backup/backup.sh
+%% media | 广州负责《火影忍者》试点图分发，其他作品继续读取正式站归档。 | apps/sync/ops/image-import/README.md
+%% backup | 从同一源快照导出、恢复并逐表核对。 | deploy/pg-backup/backup.sh

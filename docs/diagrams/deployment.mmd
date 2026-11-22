@@ -1,33 +1,40 @@
 flowchart TB
-    reader["H5 与 iOS"] -->|www · HTTPS| edge["Cloudflare Tunnel"]
-    subgraph ali["阿里云杭州 · ALI_MESH_IP"]
-      site["读者站与 Gin"] -->|查询| online[("线上 PostgreSQL 与入选图片")]
-      receive["受限 SSH 接收端"] -->|校验摘要并提交定稿| online
-    end
-    edge --> site
-    subgraph gz["腾讯云广州 · GZ_MESH_IP"]
-      text["研究调度 · Pi 与 Kimi"] --> pg[("PostgreSQL 制作库")]
-    end
-    subgraph sv["腾讯云硅谷 · SV_MESH_IP"]
-      media["采集、媒体与五维验收"] -->|调用 Pi 和 OpenAI| archive["候选图与选图归档"]
-      archive --> push["自动发布定时器"]
-    end
-    media -->|Mesh TCP 5432| pg
-    push -->|Mesh TCP 5432 · 读取定稿| pg
-    push -->|Mesh TCP 2222 · SSH| receive
-    subgraph lan["局域网 BACKUP_LAN_HOST · Mesh BACKUP_MESH_IP"]
-      cron["K3s CronJob · 每日 03:15"] -->|校验后轮换| copy[("恢复库与独立快照卷")]
-    end
-    cron -->|Mesh TCP 5433 · 只读快照| pg
-%% reader | H5 和原生阅读器沿用公开作品、章节和场景链接。 | apps/ios/Folio/Reading.swift
-%% edge | 正式站使用独立公网隧道承接读者 HTTPS 请求。 | deploy/cloudflare/player-tunnel.service
+  reader["H5 与 iOS"] -->|公开 HTTPS| edge["Cloudflare Tunnel / CDN"]
+  subgraph ali["阿里云杭州"]
+    gw["读者入口与网关"] --> site["TanStack SSR 与 Gin"]
+    site -->|查询| online[("正式读库与入选图")]
+    receive["受限 SSH 接收端"] -->|校验并安装单集定稿| online
+  end
+  edge --> gw
+  subgraph gz["腾讯云广州"]
+    text["sync · 盘点、自动登记与文本"] --> pg[("PostgreSQL 制作库")]
+    text -->|内部 HTTP| pi["Pi Durable · Magpie Kimi"]
+    image["Axum + libvips · 火影灰度"]
+    shadow["独立资产 API · 回环验收"]
+  end
+  subgraph sv["腾讯云硅谷"]
+    media["媒体调度、五维验收"] -->|Pi / OpenAI| archive["候选图与选图归档"]
+    archive --> push["发布定时器 / 授权投递"]
+  end
+  gw -->|Mesh · 仅灰度图片路径| image
+  media -->|Mesh · 领取任务，写验收| pg
+  push -->|Mesh · 读取已验收定稿| pg
+  push -->|Mesh · SSH 投递| receive
+  cron["局域网 K3s · 每日备份与恢复"] -->|Mesh · 只读快照| pg
+  local["本地 Docker · 工作台、Gin、sync 与 Pi"]
+%% reader | 公开网页与 iOS 读取共享作品、章节及段落链接。 | apps/ios/Folio/Reading.swift
+%% edge | 正式站使用独立出站隧道和 CDN。 | deploy/cloudflare/player-tunnel.service
+%% gw | 公开入口会拒绝工作台及私有预览。火影试点使用专门的图片路由。 | deploy/cloudflare/player-ingress.conf
 %% site | TanStack 和 Gin 提供网页及原生阅读数据。 | apps/ios/server/reader.server.ts
-%% online | 线上读者查询自己的数据库和归档。每集有唯一投递回执。 | apps/sync/ops/reader-release/receiver.psql
-%% receive | 发布专用公钥受来源地址和强制命令约束。接收器事务写入章节。 | apps/sync/ops/reader-release/receive.sh
-%% text | 广州负责选题准入、文本取证、写作与复核。 | apps/sync/internal/service/scheduler/production.go
-%% pg | 制作库保存来源、任务、验收、发布历史及模型计量。 | database/migrations/init.sql
-%% media | 专用数据角色通过本地 Unix socket 使用共享制作库。 | deploy/cloudflare/mesh/compose.yaml
-%% archive | 硅谷保管候选原图及公开衍生图。 | apps/agent/src/media.ts
-%% push | 选择显式登记且五维通过的分集，投递后检查 H5 和原生阅读接口。 | apps/sync/cmd/reader-release/send.go
-%% cron | 03:15 为北京时间。备份任务使用主机上的受限 socket，只读访问广州。 | deploy/pg-backup/resources.yaml
-%% copy | K3s 本地磁盘保留七份成功备份，独立 PostgreSQL 保存最近恢复的数据库。 | deploy/pg-backup/backup.sh
+%% online | 正式读库有自己的发布指针、资产归档和回执。 | apps/sync/ops/reader-release/receiver.psql
+%% receive | 发布端通过受限命令投递，接收端校验版本、来源和图像摘要。 | apps/sync/ops/reader-release/receive.sh
+%% text | 已部署自动配置生成与登记。符合模板的作品缺集进入文本生产队列。 | apps/sync/internal/service/scheduler/production.go
+%% pi | 文本、规划和来源配置由 Pi Durable 调用 Magpie Kimi。 | apps/agent/src/episode-configuration-task.ts
+%% pg | 广州制作库保存来源、任务、验收、发布历史和模型计量。 | database/migrations/init.sql
+%% image | 公开灰度范围为《火影忍者》试点场景和肖像，保留原 URL。 | apps/sync/ops/image-import/README.md
+%% shadow | 新图像资产 API 使用自己的卷和回环入口，验收流量与公开灰度分别运行。 | apps/image/compose.yaml
+%% media | 硅谷以受限数据库权限为合格文本生成媒体及完成五维验收。 | apps/sync/ops/production/media-grants.psql
+%% archive | 保存候选原图、裁切和已验收选图。 | apps/agent/src/media.ts
+%% push | 定时器处理明确授权的配置。第 10 集经相同接收器执行授权投递。 | apps/sync/cmd/reader-release/send.go
+%% cron | K3s 每日恢复广州制作库快照，校验后轮换归档。 | deploy/pg-backup/backup.sh
+%% local | 工作台只在本地开放，通过 Compose 的本地数据库和 Agent 执行。 | deploy/docker-compose.yml

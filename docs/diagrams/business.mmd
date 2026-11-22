@@ -1,24 +1,35 @@
 flowchart TB
-    probe["定时探测上游版本"] -->|有变化| stage["下载校验 · 解析暂存"]
-    probe -->|没变化| skip["记录跳过"]
-    stage -->|完整批次| works["归并到已清洗作品库"]
-    works -->|选定发行版本与集数| plan["登记分集与稳定链接"]
-    plan --> proof["Pi 联网取证 · 逐段校对"]
-    proof -->|来源和引用有效| media["出图 · 手机裁切 · 自动验图"]
-    media -->|裁切或画面有缺陷| media
-    media --> gate{"五维验收"}
-    gate -->|缺项| gap["工作台显示缺项"]
-    gap -->|可重写的正文缺项| proof
-    gate -->|通过| freeze["冻结分集、锚点与选图"]
-    freeze -->|前置集已发布| h5["H5 连续完成范围"]
-%% probe | 每个来源按自己的间隔检查。失败原因与跳过结果写入同步运行表。 | apps/api/internal/service/knowledge/sync.go
-%% skip | 相同远程版本保留上次发布投影。 | apps/api/internal/service/knowledge/sync.go
-%% stage | 校验下载与格式，暂存完整批次后才进入归并事务。 | apps/api/internal/service/knowledge/parse.go
-%% works | 普通作品停在可查询的 canonical 档案。 | apps/api/internal/repository/queries/knowledge/queries.queries
-%% plan | 挂载配置绑定版本、集号、来源和美术任务。 | apps/api/internal/service/knowledge/episode_plan.go
-%% proof | 收集来源快照，按句定位事件，保留校对和退回记录。 | apps/agent/src/research.ts
-%% media | 记录参考指纹、原图、手机预览和两轮内的处置结果。 | apps/api/internal/service/knowledge/media.go
-%% gate | 按人物、剧情、世界观、时间线与图片核验。 | apps/api/internal/service/knowledge/episode_plan.go
-%% gap | 可以查看每个缺项、证据及历史记录；超出自动重试上限时保留失败。 | apps/web/src/features/workbench/scope-report.tsx
-%% freeze | 保存本次正文、阅读锚点及入选图片的内容地址。 | apps/api/internal/service/knowledge/acceptance.go
-%% h5 | 读模型聚合相同作品版本的连续公开范围。 | database/migrations/init.sql
+  probe["定时检查来源版本"] -->|校验完整批次| works["归并到已清洗作品库"]
+  works --> ask["工作台对话 · 选择作品版本、范围和预算"]
+  ask --> confirm{"确认计划差异？"}
+  confirm -->|取消| ask
+  confirm -->|确认 · 写入 revision 和审计| gap["sync 盘点已播出且尚无定稿的集数"]
+  gap --> budget{"能预留本次模型额度？"}
+  budget -->|能| config["Pi · 复用同版来源模板，核对集号、标题和原文"]
+  budget -->|预算不足| wait["记录卡点 · 修订计划或补来源"]
+  config --> register["Go · 校验、结算与事务登记"]
+  register -->|来源或配置无效| wait
+  wait --> ask
+  register --> proof["双来源取证、写作与复核"]
+  proof -->|文本四维通过| media["三张候选 · 手机裁切与自动验图"]
+  media --> gate{"五维验收"}
+  gate -->|可重试| proof
+  gate -->|需要处理| wait
+  gate -->|通过| freeze["冻结正文、段落锚点和入选图"]
+  freeze -->|默认| local["本地可验收"]
+  freeze -->|显式授权上线| release["经 Mesh 投递 · 核验 H5 与 iOS"]
+%% probe | 按来源间隔检查已登记版本，无变化时跳过下载，失败写入同步记录。 | apps/api/internal/service/knowledge/sync.go
+%% works | 完整批次先暂存再归并，未选题的作品可停在清洗完成。 | apps/api/internal/repository/queries/knowledge/queries.queries
+%% ask | 对话读取实际计划、作品缺口及预算并提出结构化方案。 | apps/web/src/features/workbench/chat.tsx
+%% confirm | 确认后复核差异、expected revision 和请求幂等性。 | apps/api/internal/handler/knowledge/chat.go
+%% gap | 对比盘点快照、计划范围和既有定稿，保留已发布集数。 | apps/api/internal/repository/queries/knowledge/schedule.queries
+%% budget | 模型调用前预留额度，结算后释放余额。额度不足时等待在途结算或暂停。 | apps/sync/internal/service/scheduler/configuration.go
+%% config | 目前支持已登记的同版官方分集合集页与分集指南模板。 | apps/agent/src/episode-configuration-task.ts
+%% register | 验证原文顺序、人物定位与参考图指纹。将分集、来源快照和制作请求原子登记。 | apps/api/internal/service/knowledge/episode_configuration.go
+%% wait | 工作台展示配置失败、预算暂停、重试和阶段。 | apps/web/src/features/workbench/editor-desk.tsx
+%% proof | 沿可验证原文取证、按顺序写作并复核，复用有效来源快照。 | apps/agent/src/research.ts
+%% media | 用已登记肖像生成候选，记录参考指纹、原图、裁切与验图凭证。 | apps/api/internal/service/knowledge/media.go
+%% gate | 核对人物、剧情、世界观、时间线和图片，失败留有逐项原因。 | apps/api/internal/service/knowledge/episode_plan.go
+%% freeze | 保存本次正文、阅读锚点及入选图内容地址。 | apps/api/internal/service/knowledge/acceptance.go
+%% local | 自动登记的配置默认供本地验收。 | apps/api/internal/repository/queries/knowledge/configuration.queries
+%% release | 正式发布只处理显式授权的单集，并核对公开正文、锚点、场景和图像摘要。 | apps/sync/cmd/reader-release/send.go

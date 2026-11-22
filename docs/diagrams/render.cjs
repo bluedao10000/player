@@ -8,6 +8,7 @@ const views = [
   ['features', '功能地图', 'diagrams/features.mmd'],
   ['business', '知识库构建流程', 'diagrams/business.mmd'],
   ['technology', '当前技术架构', 'architecture.mmd'],
+  ['workbench', '本地工作台', 'diagrams/workbench.mmd'],
   ['deployment', '当前网络与部署', 'diagrams/deployment.mmd'],
   ['media-platform', '目标图片架构', 'diagrams/media-platform.mmd'],
   ['target-deployment', '目标部署', 'diagrams/target-deployment.mmd'],
@@ -50,7 +51,7 @@ async function build() {
         return new XMLSerializer().serializeToString(template.content.querySelector('svg'))
       },{key,code,nodes})
       fs.writeFileSync(path.join(__dirname,key+'.svg'),svg)
-      if(workbenchOnly||backlogOnly||key==='product'||key==='business'||key==='features'){
+      if(key==='workbench'||backlogOnly||key==='product'||key==='business'||key==='features'){
         await page.evaluate(svg=>{document.body.innerHTML=svg},svg)
         await page.locator('svg').screenshot({path:path.join(__dirname,key+'.png')})
       }
