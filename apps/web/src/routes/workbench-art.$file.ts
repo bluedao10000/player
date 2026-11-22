@@ -1,3 +1,4 @@
+import { localWorkbenchRequest } from '../features/workbench/local'
 import { mediaAssetPattern } from '@anime/shared/media'
 import { createFileRoute } from '@tanstack/react-router'
 
@@ -5,7 +6,7 @@ export const Route = createFileRoute('/workbench-art/$file')({
   server: {
     handlers: {
       GET: async ({ params, request }) => {
-        if (!mediaAssetPattern.test(params.file))
+        if (!localWorkbenchRequest(request) || !mediaAssetPattern.test(params.file))
           return new Response(null, { status: 404 })
         const url = new URL(
           '/api/v1/knowledge/media-assets/' + params.file,

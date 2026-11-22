@@ -57,12 +57,13 @@ function latestAudit(item: MediaCandidate) {
   return [...item.steps].reverse().find((step) => step.result?.checks || step.result?.decision)
 }
 
-export function MediaGallery({ items: all }: { items: MediaCandidate[] | null }) {
-  const [work, setWork] = useState('')
-  const [batch, setBatch] = useState('')
-  const [scene, setScene] = useState('')
+export function MediaGallery({ items: all, candidate }: { items: MediaCandidate[] | null; candidate?: number }) {
+  const target = all?.find((item) => item.slot === candidate)
+  const [work, setWork] = useState(target ? series(target) : '')
+  const [batch, setBatch] = useState(target?.batch ?? '')
+  const [scene, setScene] = useState(target?.scene ?? '')
   const [status, setStatus] = useState('all')
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selected, setSelected] = useState<number | null>(target?.slot ?? null)
   const works = [...new Set(all?.map(series) ?? [])]
   const activeWork = works.includes(work) ? work : works.at(-1)
   const workItems = all?.filter((item) => series(item) === activeWork) ?? []
@@ -95,6 +96,7 @@ export function MediaGallery({ items: all }: { items: MediaCandidate[] | null })
         detail="按作品、分集与场景组织候选；仅加载当前视图和展开的版本"
         actions={all && <StatusBadge status="queued" label={`${all.length} 个候选`} />}
       />
+      {all && candidate && !target && <p className="wb-muted">候选槽位 #{candidate} 不在当前记录中。</p>}
       {all === null ? (
         <EmptyState icon={FileWarning} title="图片任务暂不可用" detail="媒体候选接口没有返回数据；运行台其他区域不受影响。" />
       ) : all.length === 0 ? (
@@ -285,5 +287,32 @@ function Lightbox({ name, alt, onClose }: { name: string; alt: string; onClose: 
       <div><Button className="wb-button" variant="secondary" size="sm" icon={<X size={16} />} label="关闭" onClick={onClose} /><a href={workbenchAssetUrl(name)} target="_blank" rel="noreferrer">打开原始文件 <ExternalLink size={14} /></a></div>
       <ImageAsset name={name} alt={alt} className="wb-lightbox-image" eager />
     </dialog>
+  )
+}
+
+export function RecentMedia({ items }: { items: MediaCandidate[] | null }) {
+  const recent = (items ?? []).flatMap((item) => {
+    const pair = pairs(item).at(-1)
+    return pair ? [{ item, pair }] : []
+  }).sort((a, b) => b.pair.step.started_at.localeCompare(a.pair.step.started_at)).slice(0, 4)
+
+  return (
+    <Panel>
+      <SectionHeading
+        title="图片资产 · 最近候选"
+        actions={<a href="/workbench?view=data&section=media">查看全部 →</a>}
+      />
+      {recent.length ? (
+        <div className="wb-recent-media">
+          {recent.map(({ item, pair }) => (
+            <article key={item.slot}>
+              <ImageAsset name={pair.image} alt={item.scene} />
+              <strong>{item.scene} · 候选 {item.variant}</strong>
+              <small>{series(item)} · {mediaStageNames[item.stage]}</small>
+            </article>
+          ))}
+        </div>
+      ) : <p className="wb-muted">{items ? '暂无候选图' : '图片记录暂不可用'}</p>}
+    </Panel>
   )
 }

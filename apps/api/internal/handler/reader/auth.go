@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/mail"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -33,8 +34,16 @@ func Routes(r *gin.Engine, db *pgxpool.Pool) {
 		c.Header("X-Robots-Tag", "noindex")
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 512<<10)
 	})
-	g.POST("/workbench/code", s.issue)
-	g.POST("/workbench/verify", s.verify)
+	workbench := g.Group("/workbench", func(c *gin.Context) {
+		if os.Getenv("WORKBENCH_LOCAL_ENABLED") != "true" {
+			c.AbortWithStatus(404)
+			return
+		}
+		c.Next()
+	})
+	workbench.POST("/code", s.issue)
+	workbench.POST("/verify", s.verify)
+	workbench.POST("/password-login", s.workbenchPasswordLogin)
 	g.POST("/code", s.issue)
 	g.POST("/verify", s.verify)
 	g.GET("/methods", func(c *gin.Context) { c.JSON(200, gin.H{"wechat": wechatEnabled()}) })
@@ -69,13 +78,18 @@ func identity(c *gin.Context) (string, string, bool) {
 		fail(c, 400, "请输入邮箱。")
 		return "", "", false
 	}
-	email := strings.ToLower(strings.TrimSpace(in.Email))
+	email, ok := normalizedEmail(c, in.Email)
+	return email, in.Code, ok
+}
+
+func normalizedEmail(c *gin.Context, address string) (string, bool) {
+	email := strings.ToLower(strings.TrimSpace(address))
 	addr, err := mail.ParseAddress(email)
 	if err != nil || addr.Address != email || len(email) > 254 || strings.ContainsAny(email, "\r\n") {
 		fail(c, 400, "邮箱格式不正确。")
-		return "", "", false
+		return "", false
 	}
-	return email, in.Code, true
+	return email, true
 }
 
 func (s service) issue(c *gin.Context) {

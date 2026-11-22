@@ -15,7 +15,7 @@ import (
 )
 
 func AdminRoutes(r *gin.Engine, g *gin.RouterGroup, db *pgxpool.Pool) {
-	editorRoutes(r, g, db)
+	editorRoutes(r, db)
 	matchAIRoutes(g, db)
 	usageRoutes(g, db)
 	g.POST("/quality", func(c *gin.Context) {

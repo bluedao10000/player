@@ -1,3 +1,4 @@
+import { requireLocalWorkbench } from '../features/workbench/local'
 import { siteTitle } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
@@ -19,6 +20,7 @@ import {
 import worldCss from '../features/worlds/world.css?url'
 
 export const Route = createFileRoute('/editor-preview/$id')({
+  beforeLoad: () => requireLocalWorkbench(),
   headers: () => ({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'private, no-store' }),
   head: () => ({
     meta: [

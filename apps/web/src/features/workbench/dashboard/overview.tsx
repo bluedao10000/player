@@ -1,11 +1,9 @@
-import { Activity, CheckCircle2, Images, Server, TriangleAlert } from 'lucide-react'
+import { Activity, CheckCircle2, Images, TriangleAlert } from 'lucide-react'
 import type { WorkbenchFeed } from '../feed'
-import { formatDateTime, isShanghaiToday } from '../shared/format'
-import { Panel, StatusBadge } from '../shared/ui'
+import { isShanghaiToday } from '../shared/format'
+import { Panel } from '../shared/ui'
 
 export function Overview({ feed }: { feed: WorkbenchFeed }) {
-  const online = feed.syncOnline && feed.qualityOnline
-  const partial = feed.syncOnline !== feed.qualityOnline
   const today = feed.runs.filter((run) => isShanghaiToday(run.start, feed.checked))
   const metrics = [
     {
@@ -46,17 +44,6 @@ export function Overview({ feed }: { feed: WorkbenchFeed }) {
 
   return (
     <section className="wb-overview" aria-label="运行概览">
-      <div className="wb-service-line">
-        <div>
-          <span className="wb-eyebrow">DATA SERVICE</span>
-          <strong>数据服务状态</strong>
-        </div>
-        <StatusBadge
-          status={online ? 'success' : partial ? 'held' : 'failed'}
-          label={online ? '记录接口正常' : partial ? '部分记录不可用' : '记录接口不可用'}
-        />
-        <span>最近更新 · {formatDateTime(feed.checked)}</span>
-      </div>
       <div className="wb-metrics">
         {metrics.map((metric) => {
           const Icon = metric.icon
@@ -72,15 +59,6 @@ export function Overview({ feed }: { feed: WorkbenchFeed }) {
             </Panel>
           )
         })}
-        <Panel className={`wb-metric wb-tone-blue wb-service-metric`}>
-          <div className="wb-metric-top">
-            <span className="wb-eyebrow">OBSERVABILITY</span>
-            <Server size={18} />
-          </div>
-          <strong>{feed.runs.length}</strong>
-          <h2>最近运行回执</h2>
-          <p>同步与质检各读取最近 30 条</p>
-        </Panel>
       </div>
     </section>
   )

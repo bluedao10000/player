@@ -103,7 +103,8 @@ function nodeState(definition: NodeDefinition, flow: Flow, feed: WorkbenchFeed) 
     const items = feed.media ?? []
     return {
       status: feed.media === null ? 'failed' : mediaStatus(definition.id, items),
-      meta: feed.media === null ? '媒体记录不可用' : `${items.length} 个候选 · ${items.filter((item) => item.stage === 'passed').length} 个通过`,
+      meta: '媒体记录不可用',
+      counts: feed.media === null ? null : { candidates: items.length, passed: items.filter((item) => item.stage === 'passed').length },
       runs: [] as WorkbenchRun[],
       media: items.slice(-5).reverse(),
       latest: items.at(-1)?.steps.at(-1)?.started_at ?? null,
@@ -116,14 +117,15 @@ function nodeState(definition: NodeDefinition, flow: Flow, feed: WorkbenchFeed) 
   return {
     status: unavailable ? 'failed' : definition.id === 'scheduler' && !feed.syncOnline && !feed.qualityOnline ? 'failed' : latestRun(runs),
     meta: runs[0] ? `${runStatusLabels[runs[0].status]} · ${formatClock(runs[0].start)} UTC` : '当前窗口暂无记录',
+    counts: null,
     runs: runs.slice(0, 5),
     media: [] as MediaCandidate[],
     latest: runs[0]?.start ?? null,
   }
 }
 
-export function WorkflowCanvas({ feed }: { feed: WorkbenchFeed }) {
-  const [flow, setFlow] = useState<Flow>('sync')
+export function WorkflowCanvas({ feed, initialFlow = 'sync' }: { feed: WorkbenchFeed; initialFlow?: Flow }) {
+  const [flow, setFlow] = useState<Flow>(initialFlow)
   const [selected, setSelected] = useState(syncNodes[0].id)
   const definitions = flow === 'sync' ? syncNodes : mediaNodes
   const activeDefinition = definitions.find((item) => item.id === selected) ?? definitions[0]
@@ -154,7 +156,11 @@ export function WorkflowCanvas({ feed }: { feed: WorkbenchFeed }) {
         <span className="wb-node-state">
           <i className="wb-status-dot" data-status={state.status} />
           {state.status === 'running' ? '执行中' : runStatusLabels[state.status]}
-          <small>{state.meta}</small>
+          {state.counts ? (
+            <small className="wb-node-counts">
+              <b>{state.counts.candidates.toLocaleString('zh-CN')}</b> 个候选 · <b>{state.counts.passed.toLocaleString('zh-CN')}</b> 个通过
+            </small>
+          ) : <small>{state.meta}</small>}
         </span>
       </button>
     )
@@ -216,10 +222,13 @@ export function WorkflowCanvas({ feed }: { feed: WorkbenchFeed }) {
           ))}
           {activeState.media.map((item) => (
             <article key={item.slot}>
-              <div><strong>{item.scene} · 候选 {item.variant}</strong><StatusBadge status={item.stage} label={mediaStageLabels[item.stage]} /></div>
+              <div><a className="wb-candidate-link" href={`/workbench?view=data&section=media&candidate=${item.slot}#candidate-${item.slot}`}>
+                <strong>{item.scene} · 候选 {item.variant}</strong>
+                <span>查看详情 →</span>
+              </a><StatusBadge status={item.stage} label={mediaStageLabels[item.stage]} /></div>
               <time>{formatDateTime(item.steps.at(-1)?.started_at)}</time>
               <code>候选槽位 #{item.slot} · v{item.round}</code>
-              {item.reason && <p>{item.reason}</p>}
+              {item.reason && <p className={item.stage === 'passed' ? 'wb-candidate-reason' : undefined}>{item.reason}</p>}
             </article>
           ))}
           {!activeState.runs.length && !activeState.media.length && (

@@ -1,3 +1,4 @@
+import { requireLocalWorkbench } from '../features/workbench/local'
 import { siteTitle } from '../site'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { CharacterHero } from '../features/post/character'
@@ -7,6 +8,7 @@ import { overview, character } from '../features/worlds/api'
 import css from '../features/post/character.css?url'
 
 export const Route = createFileRoute('/workbench-hero/$file')({
+  beforeLoad: () => requireLocalWorkbench(),
   validateSearch: (s: Record<string, unknown>) => {
     const focus = Number(s.focus ?? 40)
     return {

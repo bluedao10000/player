@@ -1,4 +1,5 @@
-import { getCookie } from '@tanstack/react-start/server'
+import { localWorkbenchRequest } from "./local";
+import { getRequest, getCookie } from '@tanstack/react-start/server'
 import { createServerFn } from "@tanstack/react-start";
 
 import type { ScopeAcceptance, MediaCandidate, ResearchRun, WorkKnowledgeStatus, ProductionUsage } from "@anime/shared/knowledge";
@@ -64,7 +65,7 @@ function get<T>(path: string, adminToken?: string) {
   return getJSON<T[]>(path, adminToken)
 }
 export const readFeed = createServerFn({ method: "GET" }).handler(async () => {
-  if (process.env.PLAYER_PUBLIC_ONLY === 'true') throw new Error('工作台限内部访问')
+  if (!localWorkbenchRequest(getRequest())) throw new Error('工作台限内部访问')
   const session = getCookie('folio_workbench')
   if (!session) return null
   const check = await fetch(new URL('/api/v1/editor/account',process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'),{headers:{Authorization:'Bearer '+session},cache:'no-store',redirect:'error',signal:AbortSignal.timeout(5000)})

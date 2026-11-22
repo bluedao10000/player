@@ -7,10 +7,12 @@ import resources "anime-agent/api/internal/repository/queries"
 var editorsessionsSource string
 
 var (
+	SetWorkbenchPassword           = editorsessionsSourceQueries["SetWorkbenchPassword"]
+	RevokeWorkbenchSessions        = editorsessionsSourceQueries["RevokeWorkbenchSessions"]
+	AttemptWorkbenchPassword       = editorsessionsSourceQueries["AttemptWorkbenchPassword"]
+	ResetWorkbenchPasswordAttempts = editorsessionsSourceQueries["ResetWorkbenchPasswordAttempts"]
+
 	editorsessionsSourceQueries = resources.Statements(editorsessionsSource)
-	WorkbenchEditorGranted      = editorsessionsSourceQueries["WorkbenchEditorGranted"]
-	GrantWorkbenchEditor        = editorsessionsSourceQueries["GrantWorkbenchEditor"]
-	RevokeWorkbenchEditor       = editorsessionsSourceQueries["RevokeWorkbenchEditor"]
 	RegisterWorkbenchAccount    = editorsessionsSourceQueries["RegisterWorkbenchAccount"]
 	CreateEditorSession         = editorsessionsSourceQueries["CreateEditorSession"]
 	EditorSessionOperator       = editorsessionsSourceQueries["EditorSessionOperator"]

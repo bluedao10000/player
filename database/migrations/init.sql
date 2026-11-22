@@ -1465,6 +1465,11 @@ CREATE TABLE workbench_accounts(email text PRIMARY KEY, created_at timestamptz N
 -- name: 053.sql
 CREATE TABLE workbench_editor_grants(email text PRIMARY KEY, granted_at timestamptz NOT NULL DEFAULT now());
 
+-- name: 054.sql
+ALTER TABLE workbench_accounts ADD COLUMN password_digest bytea,
+    ADD COLUMN password_attempts integer NOT NULL DEFAULT 0,
+    ADD COLUMN password_window timestamptz;
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,53) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,54) i;
 COMMIT;

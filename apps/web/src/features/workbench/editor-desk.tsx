@@ -1,4 +1,5 @@
-import { siteName } from '../../site'
+import { ArrowRight, Mail, Send, Sparkles } from 'lucide-react'
+import { WorkbenchSidebar } from './shared/shell'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { editedField, type EditorPages } from './editor-pages'
@@ -75,32 +76,20 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
     } catch {}
     throw new DeskError(
       r.status,
-      r.status === 401 ? (path === 'login' ? '管理凭证无效，请重新复制本地工作台凭证。' : '登录已过期，请重新登录。') : msg,
+      r.status === 401 && path !== 'password-login' ? '登录已过期，请重新登录。' : msg,
     )
   }
   return r.status === 204 ? (undefined as T) : r.json()
 }
-export function DeskNav({ data = false }: { data?: boolean }) {
-  return (
-    <nav className="ed-nav" aria-label="工作台">
-      <a aria-current={!data ? 'page' : undefined} href="/workbench">
-        编辑审稿
-      </a>
-      <a aria-current={data ? 'page' : undefined} href="/workbench?view=data">
-        数据运行
-      </a>
-    </nav>
-  )
-}
-export function EditorDesk() {
+export function EditorDesk({ accountView = false }: { accountView?: boolean }) {
+  const [panel, setPanel] = useState<'review' | 'plans'>('review')
   const [list, setList] = useState<List | null>(null),
     [login, setLogin] = useState(false),
     [selected, select] = useState(''),
     [task, setTask] = useState<Detail | null>(null)
-  const [superadmin,setSuperadmin]=useState(false)
-  const [notice,setNotice]=useState('')
-  const [member,setMember]=useState('')
   const [email,setEmail]=useState('')
+  const [passwordMode, setPasswordMode] = useState(false)
+  const [loginPassword, setLoginPassword] = useState('')
   const [sent,setSent]=useState(false)
   const [code,setCode]=useState('')
   const [scope, setScope] = useState('naruto-tv-2002'),
@@ -117,11 +106,6 @@ export function EditorDesk() {
       timer: ReturnType<typeof setTimeout>
     async function load() {
       try {
-        const account=await api<{email:string;editor:boolean;superadmin:boolean}>('account')
-        if(stopped)return
-        setSuperadmin(account.superadmin)
-        if(!account.editor){setMember(account.email);setLogin(false);setList(null);return}
-        setMember('')
         const all = await api<List>('tasks')
         if (stopped) return
         setLogin(false)
@@ -135,7 +119,6 @@ export function EditorDesk() {
       } catch (e) {
         if (stopped) return
         if (e instanceof DeskError && e.code === 401) {
-          setMember('')
           setLogin(true)
           setList(null)
           setTask(null)
@@ -181,6 +164,7 @@ export function EditorDesk() {
       })
       request.current = null
       setInput('')
+      setPanel('review')
       setTask(null)
       select(id)
       setNote('')
@@ -212,93 +196,92 @@ export function EditorDesk() {
     : ''
   const name = (w: string) => list?.scopes.find((s) => s.World === w)?.Name ?? w
   return (
-    <main className="wb ed">
-      <header>
-        <a href="/" className="wb-brand">
-          {siteName}
-        </a>
-        <span>/ 内容运营</span>
-        {(list || member) && (
-          <button
-            className="ed-out"
-            onClick={() =>
-              act(async () => {
-                await api('logout', {})
-                setMember('');setSent(false);setCode('')
-                setList(null)
-                setTask(null)
-                setLogin(true)
-              })
-            }
-          >
-            退出
-          </button>
-        )}
-      </header>
+    <main className={list ? 'wb wb-layout ed' : 'wb ed ed-guest'}>
+      {list && <WorkbenchSidebar current={accountView ? 'me' : 'editor'} />}
+      <div className={list ? 'wb-shell' : undefined}>
+      {list && !accountView && (
       <div className="wb-heading">
-        <h1>编辑工作台</h1>
-        <DeskNav />
+        <div><h1>编辑审稿</h1><p>查看编辑任务、对照修订稿并审核发布</p></div>
       </div>
-      {error && (
+      )}
+      {error && list && (
         <p className="ed-error" role="alert">
           {error}
         </p>
       )}
-      {list && superadmin && <section className="ed-decision"><h2>超级管理员 · 编辑权限</h2>
-      <form onSubmit={e=>{e.preventDefault();const data=new FormData(e.currentTarget);setNotice('');void act(async()=>{
-        await api('editor-access',{email:data.get('email'),action:data.get('action')});setNotice('邮箱权限已更新。')
-      })}}><label>成员邮箱<input type="email" name="email" required/></label>
-      <label>权限操作<select name="action"><option value="grant">开通编辑权限</option><option value="revoke">撤销编辑权限</option></select></label>
-      <button disabled={busy}>保存权限</button></form><p role="status">{notice}</p></section>}
-      {list && <ProductionPlans />}
-      {member ? <section className="ed-login"><h2>我的工作台账户</h2><p>{member}</p><p>已登录，当前账户为普通成员。请将上方邮箱交给管理员开通编辑权限，开通后刷新本页即可。</p></section> : !list ? (
-        <section className="ed-login">
-          <h2>登录工作台</h2>
-          <p>首次验证邮箱后自动注册。</p>
-          <form onSubmit={e=>{e.preventDefault();void act(async()=>{
-            if(!sent){await api('code',{email});setSent(true)}
-            else{await api('verify',{email,code});setCode('');setSent(false);if(location.search.includes('view=data'))location.reload()}
-          })}}>
-            <label>邮箱<input type="email" autoComplete="email" required readOnly={sent} value={email} onChange={e=>setEmail(e.target.value)}/></label>
-            {sent&&<><p>验证码已发送，5 分钟内有效。</p><label>六位验证码<input value={code} onChange={e=>setCode(e.target.value)} required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code"/></label></>}
-            <button disabled={!login||busy}>{sent?'验证并登录':'获取验证码'}</button>
-            {sent&&<button type="button" disabled={busy} onClick={()=>{setSent(false);setCode('')}}>更换邮箱或重新发码</button>}
-          </form>
-          <details><summary>超级管理员凭证登录</summary>
-          <form
-            method="post"
-            onSubmit={(e) => {
+      {list && !accountView && <nav className="wb-view-nav" aria-label="编辑工作台视图">
+        <button aria-pressed={panel==='review'} onClick={()=>setPanel('review')}>稿件审核</button>
+        <button aria-pressed={panel==='plans'} onClick={()=>setPanel('plans')}>分集制作计划</button>
+      </nav>}
+      {list && !accountView && panel==='plans' && <ProductionPlans />}
+      {!list ? (
+        <section className="ed-login-layout" aria-labelledby="workbench-login-title">
+          <div className="ed-login-art">
+            <img src="/art/night-post.webp" alt="" />
+            <a href="/">Folio 时光</a>
+          </div>
+          <div className="ed-login-body">
+            <div className="ed-login-icon"><Mail size={24} aria-hidden /></div>
+            <h1 id="workbench-login-title">登录内容工作台</h1>
+            <p>{sent ? `验证码已发送至 ${email}，5 分钟内有效。` : passwordMode ? '使用已设置的工作台密码登录。' : '使用邮箱验证码登录。首次验证会自动创建账户。'}</p>
+            {error && <p className="ed-error" role="alert">{error}</p>}
+            <form onSubmit={e => {
               e.preventDefault()
-              const form = e.currentTarget
-              const token = new FormData(form).get('token')
               void act(async () => {
-                await api('login', { token })
-                form.reset()
+                if (passwordMode) {
+                  await api('password-login', { email: email.trim(), password: loginPassword })
+                  setLoginPassword('')
+                  if (new URLSearchParams(location.search).get('view') === 'data') location.reload()
+                } else if (!sent) {
+                  const address = email.trim()
+                  await api('code', { email: address })
+                  setEmail(address)
+                  setSent(true)
+                } else {
+                  await api('verify', { email, code })
+                  setSent(false)
+                  setCode('')
+                  if (new URLSearchParams(location.search).get('view') === 'data') location.reload()
+                }
               })
-            }}
-          >
-            <label>
-              工作台管理凭证
-              <input
-                type="password"
-                autoComplete="current-password"
-                disabled={!login || busy}
-                name="token"
-                minLength={32}
-                required
-              />
-            </label>
-            <button disabled={!login || busy}>进入工作台</button>
-          </form>
-          <small>
-            {login
-              ? '使用本地 .env 中的 KNOWLEDGE_ADMIN_TOKEN。'
-              : '正在读取会话…'}
-          </small></details>
+            }}>
+              {sent ? (
+                <label>六位验证码
+                  <input key="code" value={code} onChange={e => setCode(e.target.value)} required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code" autoFocus />
+                </label>
+              ) : (
+                <label>邮箱
+                  <input key="email" type="email" autoComplete="email" placeholder="you@example.com" required value={email} onChange={e => setEmail(e.target.value)} />
+                </label>
+              )}
+              {passwordMode && <label>密码
+                <input type="password" autoComplete="current-password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
+              </label>}
+              <button className="ed-primary" disabled={!login || busy}>
+                {busy ? (sent || passwordMode ? '正在验证…' : '正在发送…') : passwordMode ? '登录' : sent ? '验证并登录' : '获取验证码'}
+                <ArrowRight size={16} aria-hidden />
+              </button>
+              {sent && <button type="button" className="ed-link-button" disabled={busy} onClick={() => {
+                setSent(false)
+                setCode('')
+                setError('')
+              }}>更换邮箱或重新发码</button>}
+              {!sent && (
+                <button type="button" className="ed-link-button" disabled={busy} onClick={() => {
+                  setPasswordMode(!passwordMode)
+                  setLoginPassword('')
+                  setError('')
+                }}>{passwordMode ? '使用邮箱验证码' : '使用密码登录'}</button>
+              )}
+            </form>
+          </div>
         </section>
-      ) : (
+      ) : accountView ? <WorkbenchAccount /> : (
         <>
-          <form className="ed-compose" onSubmit={submit}>
+          {panel === 'review' && <div className="ed-composer-dock">
+          <form id="editor-composer" className="ed-compose" onSubmit={submit} aria-label="AI 编辑助手">
+            <div className="ed-composer-title"><Sparkles size={16} aria-hidden />AI 编辑助手</div>
+            <div className="ed-composer-options">
             <label>
               本次编辑范围
               <select value={scope} onChange={(e) => setScope(e.target.value)}>
@@ -320,9 +303,12 @@ export function EditorDesk() {
                 <option value="profiles">人物介绍与世界观</option>
               </select>
             </label>
+            </div>
+            <div className="ed-composer-row">
             <label>
-              修改意见
+              <span className="ed-visually-hidden">修改意见</span>
               <textarea
+                rows={2}
                 required
                 maxLength={1400}
                 value={input}
@@ -330,10 +316,13 @@ export function EditorDesk() {
                 onChange={(e) => setInput(e.target.value)}
               />
             </label>
-            <button disabled={busy || !input.trim()}>提交编辑任务</button>
+            <button className="ed-primary" disabled={busy || !input.trim()} aria-label="提交编辑任务"><Send size={18} aria-hidden /></button>
+            </div>
           </form>
+          </div>}
+          {panel==='review' && (
           <div className="ed-grid">
-            <aside>
+            <aside className="wb-panel">
               <h2>任务队列</h2>
               {!list.tasks.length && <p>暂无任务</p>}
               {list.tasks.map((t) => (
@@ -359,7 +348,7 @@ export function EditorDesk() {
               ))}
             </aside>
             {task && (
-              <div className="ed-detail">
+              <div className="ed-detail wb-panel">
                 <small>
                   {name(task.world)} · 第 {task.round} 轮 ·{' '}
                   {status[task.status]}
@@ -488,9 +477,84 @@ export function EditorDesk() {
               </div>
             )}
           </div>
+          )}
         </>
       )}
+      </div>
     </main>
+  )
+}
+
+function WorkbenchAccount() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    api<{ email: string }>('account').then(account => {
+      if (active) setEmail(account.email)
+    }).catch((err: Error) => {
+      if (active) setError(err.message)
+    })
+    return () => { active = false }
+  }, [])
+
+  async function act(fn: () => Promise<void>) {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      await fn()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '操作未完成，请重试。')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="ed-account">
+      <div className="wb-heading"><h1>我的</h1></div>
+      <section className="wb-panel">
+        <h2>工作台账户</h2>
+        <p>{email || '正在读取邮箱…'}</p>
+      </section>
+      {error && <p className="ed-error" role="alert">{error}</p>}
+      <section className="wb-panel">
+        <h2>设置或修改密码</h2>
+        <p className="wb-muted">验证当前邮箱后可更新密码。保存后需要重新登录。</p>
+        <form onSubmit={e => {
+          e.preventDefault()
+          const fields = new FormData(e.currentTarget)
+          void act(async () => {
+            const password = fields.get('password')
+            if (password !== fields.get('confirm')) throw new Error('两次输入的密码不一致。')
+            await api('password', { code: fields.get('code'), password })
+            window.location.replace('/workbench?view=me')
+          })
+        }}>
+          <label>邮箱验证码
+            <span className="ed-account-code">
+              <input name="code" required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code" />
+              <button type="button" disabled={!email || busy} onClick={() => void act(async () => {
+                await api('code', { email })
+                setSent(true)
+              })}>{sent ? '重新获取' : '获取验证码'}</button>
+            </span>
+          </label>
+          {sent && <p className="wb-muted" role="status">验证码已发送，5 分钟内有效。</p>}
+          <label>新密码<input name="password" type="password" minLength={12} maxLength={72} autoComplete="new-password" required /></label>
+          <label>确认新密码<input name="confirm" type="password" minLength={12} maxLength={72} autoComplete="new-password" required /></label>
+          <button className="ed-primary" disabled={busy || !email}>保存密码</button>
+        </form>
+      </section>
+      <button type="button" className="ed-logout" disabled={busy} onClick={() => void act(async () => {
+        await api('logout', {})
+        window.location.replace('/workbench?view=me')
+      })}>退出登录</button>
+    </div>
   )
 }
 

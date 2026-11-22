@@ -3,6 +3,7 @@ package knowledge_test
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 	routing "anime-agent/api/internal/router"
 	domain "anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/testsupport"
@@ -23,9 +25,7 @@ func TestEditorialReviewAndPublication(t *testing.T) {
 	if err := domain.Sweep(ctx, db, "tidepost-original", true, false); err != nil {
 		t.Fatal(err)
 	}
-	admin := strings.Repeat("t", 40)
-	t.Setenv("KNOWLEDGE_ADMIN_TOKEN", admin)
-	t.Setenv("KNOWLEDGE_ADMIN_OPERATOR", "test-editor")
+	t.Setenv("WORKBENCH_LOCAL_ENABLED", "true")
 	r := gin.New()
 	routing.Register(r, db)
 	call := func(method, path, token string, payload any, want int) []byte {
@@ -52,7 +52,11 @@ func TestEditorialReviewAndPublication(t *testing.T) {
 		}
 		return v
 	}
-	session := obj(call("POST", "admin/knowledge/editor/session", admin, nil, 200))["token"]
+	session := strings.Repeat("a", 64)
+	digest := sha256.Sum256([]byte(session))
+	if _, err := db.Exec(ctx, queries.CreateEditorSession, digest[:], "email:editor@example.test"); err != nil {
+		t.Fatal(err)
+	}
 	create := func(key string) string {
 		return obj(call("POST", "editor/tasks", session, gin.H{"world": "tidepost", "chapter": "night-courier", "instruction": "修订邮筒发现的正文和场景", "request_id": key}, 200))["id"]
 	}

@@ -1,3 +1,4 @@
+import { requireLocalWorkbench } from '../features/workbench/local'
 import astryxCss from '@astryxdesign/core/astryx.css?url'
 import astryxReset from '@astryxdesign/core/reset.css?url'
 import neutralFonts from '@astryxdesign/theme-neutral/fonts.css?url'
@@ -11,8 +12,15 @@ import editorCss from '../features/workbench/editor.css?url'
 import css from '../features/workbench/board.css?url'
 
 export const Route = createFileRoute('/workbench')({
+  beforeLoad: () => requireLocalWorkbench(),
   validateSearch: (search: Record<string, unknown>) => ({
-    view: search.view === 'data' ? 'data' : 'editor',
+    section:
+      search.section === 'media' ? 'media' as const
+      : search.section === 'knowledge' ? 'knowledge' as const
+      : search.section === 'history' ? 'history' as const
+      : 'data' as const,
+    view: search.view === 'data' ? 'data' as const : search.view === 'me' ? 'me' as const : 'editor' as const,
+    candidate: Number.isSafeInteger(Number(search.candidate)) && Number(search.candidate)>0 ? Number(search.candidate) : undefined,
   }),
   loaderDeps: ({ search }) => ({ view: search.view }),
   loader: ({ deps }) => (deps.view === 'data' ? readFeed() : null),
@@ -36,5 +44,6 @@ export const Route = createFileRoute('/workbench')({
 
 function Workbench() {
   const feed = Route.useLoaderData()
-  return feed ? <Board feed={feed} /> : <EditorDesk />
+  const { section, view, candidate } = Route.useSearch()
+  return feed ? <Board feed={feed} section={section} candidate={candidate} /> : <EditorDesk accountView={view === 'me'} />
 }
