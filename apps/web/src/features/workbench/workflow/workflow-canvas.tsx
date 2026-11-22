@@ -116,7 +116,7 @@ function nodeState(definition: NodeDefinition, flow: Flow, feed: WorkbenchFeed) 
   const unavailable = definition.task === '质量扫描' ? !feed.qualityOnline : !feed.syncOnline && definition.id !== 'scheduler'
   return {
     status: unavailable ? 'failed' : definition.id === 'scheduler' && !feed.syncOnline && !feed.qualityOnline ? 'failed' : latestRun(runs),
-    meta: runs[0] ? `${runStatusLabels[runs[0].status]} · ${formatClock(runs[0].start)} UTC` : '当前窗口暂无记录',
+    meta: runs[0] ? `${runStatusLabels[runs[0].status]} · ${formatClock(runs[0].start)}` : '当前窗口暂无记录',
     counts: null,
     runs: runs.slice(0, 5),
     media: [] as MediaCandidate[],

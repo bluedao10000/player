@@ -9,7 +9,7 @@ struct Destination: View {
         DetailScroll {
           Cover(path: w.work.image, title: w.work.title, label: w.work.edition)
           Prose(text: w.premise)
-          Links(title: "登场角色", items: w.characters) { .person(work, $0) }
+          Links(title: "角色", items: w.characters) { .person(work, $0) }
           ForEach(Array(w.stories.enumerated()), id: \.offset) { _, story in
             Links(title: story.title, items: story.chapters) { .chapter(work, $0) }
           }
@@ -36,9 +36,9 @@ struct Destination: View {
             path: s.scene.image ?? s.chapter.image, title: s.scene.title, label: s.scene.subtitle)
           Prose(text: s.text)
           NavigationLink(value: Page.chapter(work, s.chapter.slug, s.anchor)) {
-            Label("回到原文", systemImage: "text.book.closed").frame(maxWidth: .infinity)
+            Label("回到章节", systemImage: "text.book.closed").frame(maxWidth: .infinity)
           }.buttonStyle(.borderedProminent).foregroundStyle(ink)
-          Links(title: "在场人物", items: s.cast) { .person(work, $0) }
+          Links(title: "本幕角色", items: s.cast) { .person(work, $0) }
         }.navigationTitle(s.scene.title)
           .toolbar { WorldMenu(work: work, href: s.scene.href) }
       }
@@ -147,7 +147,9 @@ struct Reader: View {
             Links(title: "本章场景", items: data.scenes) { .scene(work, $0) }
             if let next = data.next {
               NavigationLink(value: Page.chapter(work, next.slug)) {
-                EntryRow(title: next.title, subtitle: "下一章", image: next.image)
+                EntryRow(
+                  title: next.title,
+                  subtitle: next.subtitle.isEmpty ? "下一篇" : "下一篇 · " + next.subtitle, image: next.image)
               }
             }
           }.frame(maxWidth: 760).padding(18).padding(.bottom, viewport.size.height * 0.6).frame(
@@ -186,7 +188,7 @@ struct Reader: View {
           shelf.toggle(item)
         } label: {
           Image(systemName: saved ? "bookmark.fill" : "bookmark")
-        }.accessibilityLabel(saved ? "移出收藏" : "收藏章节")
+        }.accessibilityLabel(saved ? "移出书架" : "加入书架")
         WorldMenu(work: work, href: data.chapter.href)
       }
     }
@@ -241,6 +243,6 @@ private struct StoryBranch: View {
           Button(branch.options[i]) { selected = i }.buttonStyle(.bordered)
         }
       }
-    }.navigationTitle("进入剧情")
+    }.navigationTitle("剧情互动")
   }
 }

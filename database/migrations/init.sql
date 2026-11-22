@@ -1542,6 +1542,15 @@ CREATE TABLE episode_configuration_attempts (
 CREATE UNIQUE INDEX episode_configuration_single_attempt
     ON episode_configuration_attempts(request_id) WHERE finished_at IS NULL;
 
+-- name: 058.sql
+-- Pages branch on the canonical work type; the edition label is display text only.
+CREATE OR REPLACE VIEW published_worlds AS
+ SELECT w.*,jsonb_build_object('work_id',w.work_id,'slug',w.slug,'title',w.name,'edition_label',w.edition,'intro',w.intro,
+ 'cast_title',w.cast_title,'hero_asset_key',coalesce(a.image,w.image),'href','/work/'||w.slug,'revision',w.revision,'origin',w.origin,
+ 'format',CASE WHEN upper(k.type)='MOVIE' THEN 'film' ELSE 'series' END) card
+ FROM work_worlds w JOIN works k ON k.id=w.work_id AND k.active
+ LEFT JOIN edition_reader_art a ON (a.world_slug,a.kind,a.item_slug)=(w.slug,'work',w.slug);
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,57) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,58) i;
 COMMIT;

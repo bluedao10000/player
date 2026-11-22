@@ -121,7 +121,7 @@ export function ReaderLogin({
     : 0
   const expired = !!challenge && time >= challenge.expires
   return (
-    <Layout active="我的">
+    <Layout active="me">
       <section className="reader-login">
         <figure>
           <img src={chapter?.image || '/art/night-post.webp'} alt="" />
@@ -129,7 +129,7 @@ export function ReaderLogin({
         </figure>
         <div className="reader-form">
           <a className="return" href={returnTo}>
-            ← 返回{chapter ? '章节' : '阅读'}
+            ← {chapter ? '回到章节' : '返回'}
           </a>
           <h1>{pending ? '带上本机的阅读记录' : '读者登录'}</h1>
           {wechat && (
@@ -170,9 +170,9 @@ export function ReaderLogin({
             >
               {challenge ? (
                 <>
-                  <p>已向 {challenge.email} 发送六位验证码，5 分钟内有效。</p>
+                  <p>已向 {challenge.email} 发送 6 位验证码，5 分钟内有效。</p>
                   <label>
-                    邮箱验证码
+                    验证码
                     <input
                       autoFocus
                       autoComplete="one-time-code"
@@ -217,9 +217,9 @@ export function ReaderLogin({
                 </>
               ) : (
                 <>
-                  <p>让书架和阅读位置跟你去下一台设备。</p>
+                  <p>让书架和阅读进度跟你去下一台设备。</p>
                   <label>
-                    电子邮箱
+                    邮箱
                     <input
                       type="email"
                       autoComplete="email"
@@ -240,7 +240,7 @@ export function ReaderLogin({
           {pending && (
             <>
               <p>
-                本机有 {localBookmarks.length} 篇收藏、{positions.length}{' '}
+                本机有 {localBookmarks.length} 篇书架章节、{positions.length}{' '}
                 篇阅读进度。合并后可用 {reader.email || '微信'}{' '}
                 在其他设备接着读。
               </p>

@@ -4,7 +4,7 @@ const labels: Record<string, string> = {
   'content:collect': '取证',
   'content:write': '正文写作',
   'content:review': '正文复核',
-  'image:edit': '参考图生成',
+  'image:edit': '原图生成',
   'image:reference': '参考图生成',
   'vision:review': '验图',
   'vision:second-review': '二次验图',

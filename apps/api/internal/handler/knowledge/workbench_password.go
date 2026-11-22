@@ -21,7 +21,7 @@ func changeWorkbenchPassword(c *gin.Context, db *pgxpool.Pool) {
 		return
 	}
 	if len(in.Code) != 6 || strings.Trim(in.Code, "0123456789") != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入六位验证码。"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入 6 位验证码。"})
 		return
 	}
 	if len(in.Password) < 12 || len(in.Password) > 72 || strings.TrimSpace(in.Password) == "" {

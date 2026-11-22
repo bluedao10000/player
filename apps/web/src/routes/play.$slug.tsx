@@ -11,7 +11,7 @@ export const Route = createFileRoute('/play/$slug')({
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: siteTitle((loaderData?.title ?? '未找到故事') + ' · 剧情试玩') },
+      { title: siteTitle((loaderData?.title ?? '未找到故事') + ' · 剧情互动') },
       { name: 'description', content: loaderData?.intro },
       { name: 'robots', content: 'noindex' },
     ],

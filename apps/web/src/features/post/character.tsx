@@ -16,7 +16,7 @@ const [ferry, letter, lighthouse] = stories
 const opening = '/play/' + feature.slug
 const connections = {
   captain:
-    '船长掌着旧渡口的末班船。只要看见阿澪还在栈桥上跑，她总愿意再等一会儿。',
+    '船长掌着旧渡口的末班船。只要看见阿澪还在栈桥上跑，他总愿意再等一会儿。',
   keeper:
     '守塔人教过阿澪用铜哨回应灯语。即使隔着一片黑漆漆的海，两个人也能认出对方的回音。',
 }
@@ -74,7 +74,7 @@ export function Character({
   scene_previews,
 }: CharacterDetail) {
   return (
-    <Layout active="角色">
+    <Layout active="cast">
       <article className="mio-world">
         <WorldTrail work={work} />
         <CharacterHero name={character.name} role={character.role} />
@@ -113,7 +113,7 @@ export function Character({
               <ScenePreview story={lighthouse} />
             </div>
           </section>
-          <section id="relationships" aria-label="人物关系">
+          <section id="relationships" aria-label="角色关系">
             <SectionHeader>邮路上的熟人</SectionHeader>
             <div className="mio-people">
               {people.map((p) =>

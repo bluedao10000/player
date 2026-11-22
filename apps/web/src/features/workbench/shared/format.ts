@@ -5,21 +5,40 @@ export const runStatusLabels: Record<string, string> = {
   failed: '失败',
 }
 
-export function formatClock(value: string | null | undefined) {
-  if (!value) return '—'
+// 工作台统一按北京时间显示，见 docs/界面文案规范.md。
+const shanghaiDate = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+const shanghaiClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Shanghai',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+function parse(value: string | null | undefined) {
+  if (!value) return null
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '—' : date.toISOString().slice(11, 19)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+export function formatClock(value: string | null | undefined) {
+  const date = parse(value)
+  return date ? shanghaiClock.format(date) : '—'
 }
 
 export function formatDate(value: string | null | undefined) {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '—' : date.toISOString().slice(0, 10)
+  const date = parse(value)
+  return date ? shanghaiDate.format(date) : '—'
 }
 
 export function formatDateTime(value: string | null | undefined) {
-  if (!value) return '—'
-  return `${formatDate(value)} ${formatClock(value)} UTC`
+  const date = parse(value)
+  return date ? `${shanghaiDate.format(date)} ${shanghaiClock.format(date).slice(0, 5)}` : '—'
 }
 
 export function formatDuration(start: string, finish: string | null) {

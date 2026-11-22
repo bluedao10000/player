@@ -152,30 +152,24 @@ struct MyShelf: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 26) {
         ReaderAccountPanel()
-        if let last = shelf.records.recent.first {
+        if !shelf.records.recent.isEmpty {
           ReaderSection(title: "继续阅读") {
-            NavigationLink(value: last.page) {
-              EntryRow(title: last.title, subtitle: last.worldTitle)
-            }.accessibilityIdentifier("continue-reading")
+            ForEach(shelf.records.recent) { item in
+              NavigationLink(value: item.page) {
+                EntryRow(title: item.title, subtitle: item.worldTitle)
+              }.accessibilityIdentifier(
+                item.id == shelf.records.recent.first?.id ? "continue-reading" : "continue-\(item.id)")
+            }
           }
         }
-        ReaderSection(title: "我的收藏") {
+        ReaderSection(title: "我的书架") {
           if shelf.records.saved.isEmpty {
-            Text("阅读时轻点书签，就能把章节收藏到这台设备。").foregroundStyle(.secondary)
+            Text("阅读时轻点书签，就能把章节加入书架。").foregroundStyle(.secondary)
           }
           ForEach(shelf.records.saved) { item in
             let position = shelf.records.recent.first { $0.id == item.id }
             NavigationLink(value: (position ?? item).page) {
               EntryRow(title: item.title, subtitle: item.worldTitle)
-            }
-          }
-        }
-        if shelf.records.recent.count > 1 {
-          ReaderSection(title: "最近读过") {
-            ForEach(shelf.records.recent.dropFirst()) { item in
-              NavigationLink(value: item.page) {
-                EntryRow(title: item.title, subtitle: item.worldTitle)
-              }
             }
           }
         }

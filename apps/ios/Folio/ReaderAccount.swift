@@ -99,6 +99,8 @@ struct MemberInfo: Decodable {
   }
   let storeOrders: [StoreOrder]?
   let usedMicro: Int64
+  struct Plan: Decodable { let id: String; let credits: Int }
+  let plans: [Plan]?
 }
 @MainActor @Observable final class Shelf {
   struct Records: Codable {

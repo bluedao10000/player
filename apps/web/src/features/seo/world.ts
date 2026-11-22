@@ -16,7 +16,7 @@ function imageUrl(href: string | null | undefined) {
 function worldEntity(work: WorldOverview['work']) {
   return {
     '@type': work.origin === 'original' ? 'CreativeWork'
-      : work.edition_label.endsWith(' · 全片') ? 'Movie' : 'CreativeWorkSeries',
+      : work.format === 'film' ? 'Movie' : 'CreativeWorkSeries',
     ...ref(work.href + '#work'),
     url: publicUrl(work.href),
     name: work.title,

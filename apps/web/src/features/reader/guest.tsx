@@ -42,7 +42,7 @@ export function GuestLibrary({
   const backdrop = catalog?.find((c) => c.href.startsWith('/work/') && c.image)
   const heroImage = recent?.image || (!last && backdrop?.image)
   return (
-    <Layout active="我的">
+    <Layout active="me">
       <div className="guest-library">
         <header className="guest-heading">
           {full && (
@@ -58,15 +58,15 @@ export function GuestLibrary({
               : reader && reader !== 'error'
                 ? reader.email || '微信读者'
                 : reader === 'error'
-                  ? '读者服务暂时无法连接'
-                  : '正在打开阅读账户…'}
+                  ? '读者账户暂时没有载入'
+                  : '正在打开读者账户…'}
           </p>
           {reader === null && (
             <a
               className="return"
               href={'/login?returnTo=' + (full ? '%2Fshelf' : '%2Fme')}
             >
-              登录以同步书架和进度 <Icon name="arrow" size={16} />
+              登录以同步书架和阅读进度 <Icon name="arrow" size={16} />
             </a>
           )}
           {reader === 'error' && (
@@ -106,7 +106,7 @@ export function GuestLibrary({
         </header>
         {catalog === null && (
           <p className="guest-notice" role="status">
-            暂时无法核对公开目录。你仍可以打开已收藏的章节。
+            作品目录暂时没有载入，书架里的章节仍可打开。
           </p>
         )}
         {!full && last !== undefined && (
@@ -115,7 +115,7 @@ export function GuestLibrary({
             <div>
               {last ? (
                 <>
-                  <small>继续阅读 · {recent?.work ?? last.work}</small>
+                  <small>{['继续阅读', recent?.work ?? last.work].filter(Boolean).join(' · ')}</small>
                   <h2>{recent?.title ?? last.title}</h2>
                   <p>
                     {recent && !last.title.includes(recent.label) && (
@@ -225,10 +225,10 @@ export function GuestLibrary({
         )}
         {!full && (
           <section className="guest-characters">
-            <SectionHeader>角色互动</SectionHeader>
+            <SectionHeader>剧情互动</SectionHeader>
             <a href="/character/mio">
               <span>
-                阿澪<small>潮汐邮局 · 进入角色剧情</small>
+                阿澪<small>潮汐邮局 · 进入剧情</small>
               </span>
               <Icon name="arrow" size={18} />
             </a>

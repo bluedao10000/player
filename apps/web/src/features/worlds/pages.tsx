@@ -170,7 +170,7 @@ function IllustratedOpening({
   )
 }
 
-const isFeatureFilm = (work: WorldCard) => work.edition_label?.endsWith(' · 全片')
+const isFeatureFilm = (work: WorldCard) => work.format === 'film'
 
 export function WorkPage({
   work,
@@ -183,7 +183,7 @@ export function WorkPage({
 }: WorldOverview) {
   const film = isFeatureFilm(work)
   return (
-    <Layout active="作品">
+    <Layout active="works">
       <WorldTrail work={work} />
       <Hero
         work={work}
@@ -196,7 +196,7 @@ export function WorkPage({
         {completed_scope && (
           <section className="world-section">
             <SectionHeader>
-              {film ? '全片 · 已完成' : `第 ${completed_scope.first}–${completed_scope.last} 集 · 已完成`}
+              {film ? '已收录全片' : `已收录第 ${completed_scope.first}–${completed_scope.last} 集`}
             </SectionHeader>
             <div className="episode-illustrations">
               {completed_scope.picks.map((pic) => (
@@ -265,7 +265,7 @@ export function PersonPage({
   intro,
 }: CharacterDetail) {
   return (
-    <Layout active="角色">
+    <Layout active="cast">
       <WorldTrail work={work} />
       <header className="person-opening">
         {character.portrait && (
@@ -276,7 +276,7 @@ export function PersonPage({
           />
         )}
         <div>
-          <small className="world-kicker">{work.title} · 人物</small>
+          <small className="world-kicker">{work.title} · 角色</small>
           <h1>{character.name}</h1>
           <p className="person-role">{character.role}</p>
           {intro && <p id="character-intro">{intro}</p>}
@@ -363,13 +363,13 @@ export function ChapterPage({
   preview = false,
 }: ChapterDetail & { preview?: boolean }) {
   return (
-    <Layout active="故事">
+    <Layout active="stories">
       <WorldTrail work={work} />
       {!preview && <ReadingProgress slug={chapter.href} href={chapter.href} title={chapter.title} work={work.title} containerId="chapter-body" />}
       {accepted_art?.length ? (
         <header className="column episode-heading">
           <small className="world-kicker">
-            {work.title} · {isFeatureFilm(work) ? '全片已完成' : `${chapter.label} · 本集已完成`}
+            {work.title} · {isFeatureFilm(work) ? '全片导读' : `${chapter.label} · 本集导读`}
           </small>
           <h1>{chapter.title}</h1>
           <p>{chapter.intro}</p>
@@ -450,7 +450,7 @@ export function ScenePage({
   attribution,
 }: SceneDetail) {
   return (
-    <Layout active="故事">
+    <Layout active="stories">
       <WorldTrail work={work} />
       {scene.image ? (
         <IllustratedOpening
@@ -475,9 +475,9 @@ export function ScenePage({
         <div className="prose">
           <p>{scene.text}</p>
         </div>
-        <Button href={return_to.href}>回到故事 · {chapter.title}</Button>
+        <Button href={return_to.href}>回到章节 · {chapter.title}</Button>
         <section className="world-section">
-          <SectionHeader>本幕人物</SectionHeader>
+          <SectionHeader>本幕角色</SectionHeader>
           <PeopleList people={scene_cast} />
         </section>
         <Sources items={attribution} />

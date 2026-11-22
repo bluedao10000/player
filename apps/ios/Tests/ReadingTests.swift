@@ -18,21 +18,21 @@ final class ReadingTests: XCTestCase {
         let chapter = app.buttons["entry-last-ferry"]
         reveal(chapter, app)
         chapter.tap()
-        let save = app.buttons["收藏章节"]
-        let remove = app.buttons["移出收藏"]
+        let save = app.buttons["加入书架"]
+        let remove = app.buttons["移出书架"]
         XCTAssertTrue(save.waitForExistence(timeout: 5) || remove.exists)
         if save.exists { save.tap() }
         let scene = app.buttons["entry-ferry-register"]
         reveal(scene, app)
         scene.tap()
-        let back = app.buttons["回到原文"]
+        let back = app.buttons["回到章节"]
         XCTAssertTrue(back.waitForExistence(timeout: 8))
         back.tap()
         let paragraph = app.staticTexts["passage-missing-ticket"]
         XCTAssertTrue(paragraph.waitForExistence(timeout: 8))
         XCTAssertTrue(paragraph.isHittable)
         XCTAssertLessThan(paragraph.frame.minY, app.frame.height / 3)
-        capture("回到原文", app)
+        capture("回到章节", app)
         app.terminate()
         app.launch()
         app.tabBars.buttons["我的"].tap()

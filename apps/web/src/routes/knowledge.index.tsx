@@ -29,7 +29,7 @@ function Knowledge() {
   const page = Route.useLoaderData(),
     { q } = Route.useSearch()
   return (
-    <Layout active="">
+    <Layout>
       <div className="page-intro">
         <h1>作品知识库</h1>
         <form method="get" action="/knowledge">

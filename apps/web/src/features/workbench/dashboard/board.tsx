@@ -79,7 +79,7 @@ function BoardContent({ feed, section, candidate }: { feed: WorkbenchFeed; secti
           </div>
           <div className="wb-heading-status">
             <span><i className="wb-status-dot" data-status={feed.syncOnline || feed.qualityOnline ? 'success' : 'failed'} />{feed.syncOnline || feed.qualityOnline ? '运行记录已接入' : '记录接口不可用'}</span>
-            <code>UTC {formatClock(feed.checked)}</code>
+            <code>北京时间 {formatClock(feed.checked)}</code>
           <Button
             className="wb-button"
             variant="ghost"

@@ -108,7 +108,7 @@ export async function request(
     if (reader && (response.status === 401 || response.status === 409))
       void refresh()
     const result = await response.json().catch(() => ({}))
-    throw new Error(result?.error || '暂时无法连接读者服务，请重试。')
+    throw new Error(result?.error || '读者账户暂时没有连上，请重试。')
   }
   return response.status === 204 ? null : response.json()
 }

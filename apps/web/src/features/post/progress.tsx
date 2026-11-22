@@ -35,7 +35,7 @@ export function readLastChapter() {
     href,
     title,
     excerpt,
-    work: work || '潮汐邮局',
+    work: work || (story ? '潮汐邮局' : ''),
     percent,
     resume: href + '#' + (anchor || 'resume'),
   }
@@ -271,7 +271,7 @@ export function ContinueReading() {
     <a className="continue" href={last.resume}>
       <Icon name="bookmark" />
       <div>
-        <small>继续阅读 · {last.work}</small>
+        <small>{['继续阅读', last.work].filter(Boolean).join(' · ')}</small>
         <strong>{last.title}</strong>
       </div>
       <span>{last.percent}%</span>

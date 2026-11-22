@@ -27,7 +27,7 @@ import SwiftUI
       let link = Bundle.main.object(forInfoDictionaryKey: "FolioWechatLink") as? String,
       link.hasPrefix("https://"),
       WXApi.registerApp(app, universalLink: link)
-    else { throw AccountError.message("移动应用的微信登录配置尚未生效。") }
+    else { throw AccountError.message("微信登录暂不可用。") }
     guard WXApi.isWXAppInstalled() else { throw AccountError.message("请在这台 iPhone 上安装微信后重试。") }
     let challenge = UUID().uuidString
     let req = SendAuthReq()
@@ -93,9 +93,9 @@ struct ReaderAccountPanel: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
       if let user = shelf.user {
-        Text(user.email ?? "我的读者账户").font(.headline)
+        Text(user.email ?? "读者账户").font(.headline)
         if user.pending {
-          Text("首次登录，要带上这台设备的收藏和阅读位置吗？")
+          Text("首次登录，要带上这台设备的书架和阅读进度吗？")
           Button("合并到我的账户") { action { try await shelf.decide(true) } }.buttonStyle(
             .borderedProminent)
           Button("跳过，仅保留在本机") { action { try await shelf.decide(false) } }
@@ -134,23 +134,23 @@ struct ReaderAccountPanel: View {
             body: ["token": token, "nonce": nonce, "bundle": Bundle.main.bundleIdentifier ?? ""])
         }
       }.signInWithAppleButtonStyle(.white).frame(height: 46).disabled(nonce == nil)
-      if nonce == nil { Button("重试 Apple 登录连接") { Task { await challenge() } } }
+      if nonce == nil { Button("重试 Apple 登录") { Task { await challenge() } } }
     }
-    if shelf.user?.mobileWechatLinked != true {
-      Button(WechatLogin.configured ? (shelf.user == nil ? "微信登录" : "绑定移动端微信") : "微信登录（待配置）") {
+    if WechatLogin.configured && shelf.user?.mobileWechatLinked != true {
+      Button(shelf.user == nil ? "微信登录" : "绑定微信") {
         action {
           let code = try await WechatLogin.shared.authorize()
           try await shelf.login(
             shelf.user == nil ? "native/wechat" : "native/link/wechat", body: ["code": code])
         }
-      }.buttonStyle(.bordered).disabled(!WechatLogin.configured)
+      }.buttonStyle(.bordered)
     }
     if shelf.user?.email == nil {
       DisclosureGroup(shelf.user == nil ? "邮箱验证码登录" : "绑定邮箱") {
-        TextField("电子邮箱", text: $email).keyboardType(.emailAddress).textContentType(.emailAddress)
+        TextField("邮箱", text: $email).keyboardType(.emailAddress).textContentType(.emailAddress)
           .textInputAutocapitalization(.never).disabled(sent)
         if sent {
-          TextField("六位验证码", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+          TextField("6 位验证码", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
           Button("确认") {
             action {
               try await shelf.login(

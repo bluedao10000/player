@@ -16,7 +16,7 @@ export const Route = createFileRoute('/knowledge/$id')({
 function Work() {
   const w = Route.useLoaderData()
   return (
-    <Layout active="">
+    <Layout>
       <div className="page-intro">
         <a href="/knowledge">返回作品知识库</a>
         {w.world_href && w.cover_image && (

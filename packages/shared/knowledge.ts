@@ -63,6 +63,8 @@ export type WorldCard = {
   href: string
   revision: number
   origin: 'original' | 'external'
+  // From the canonical work type. Branch on this, never on edition_label text.
+  format?: 'film' | 'series'
 }
 export type CharacterCard = {
   slug: string

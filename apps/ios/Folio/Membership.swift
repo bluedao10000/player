@@ -13,11 +13,11 @@ import SwiftUI
       products = try await Product.products(for: Self.identifiers).filter {
         $0.type == .nonRenewable
       }.sorted { $0.price < $1.price }
-      message = products.count == 2 ? nil : "部分会员商品尚未在此 App Store 商店开放。"
+      message = products.count == 2 ? nil : "部分会员套餐暂时无法购买。"
     } catch { message = error.localizedDescription }
   }
   func deliver(_ result: VerificationResult<StoreKit.Transaction>, shelf: Shelf) async throws {
-    guard case .verified(let tx) = result else { throw AccountError.message("App Store 签名未通过验证。") }
+    guard case .verified(let tx) = result else { throw AccountError.message("购买未能完成验证，请稍后在「恢复购买」中重试。") }
     guard Self.identifiers.contains(tx.productID), let owner = shelf.user?.id,
       let id = UUID(uuidString: owner), tx.appAccountToken == id
     else { return }
@@ -82,18 +82,27 @@ import SwiftUI
 struct MembershipPanel: View {
   @Environment(Shelf.self) private var shelf
   @Environment(StoreMembership.self) private var store
+  // 付费档写「Plus 会员」「Pro 会员」，免费档只写「Free」。
+  private var planTitle: String {
+    let plan = shelf.member?.plan ?? shelf.user?.plan ?? "free"
+    return plan == "free" ? "Free" : plan.capitalized + " 会员"
+  }
+  // 档位积分以服务端会员接口为准。
+  private var planNote: String {
+    let paid = (shelf.member?.plans ?? []).filter { $0.id != "free" }
+      .map { "\($0.id.capitalized) 每期 \($0.credits) 积分" }
+    return (paid.isEmpty ? "" : paid.joined(separator: "，") + "。") + "单次购买 30 天，到期不自动续费。"
+  }
   var body: some View {
-    ReaderSection(
-      title: (shelf.member?.plan.capitalized ?? shelf.user?.plan.capitalized ?? "Free") + " 会员"
-    ) {
+    ReaderSection(title: planTitle) {
       if let m = shelf.member {
-        Text("本期可用 \((Double(m.credits)-Double(m.usedMicro)/1e6).formatted()) / \(m.credits) 积分")
+        Text("本期可用 \(max(0, Int((Double(m.credits) - Double(m.usedMicro) / 1e6).rounded(.down)))) / \(m.credits) 积分")
         if let end = try? Date(m.periodEnd, strategy: .iso8601) {
           Text("有效期至 " + end.formatted(date: .abbreviated, time: .omitted)).foregroundStyle(
             .secondary)
         }
       }
-      Text("Plus 每期 125 积分，Pro 每期 625 积分。单次购买 30 天，到期不自动续费。积分消费入口尚未开放。").font(.footnote)
+      Text(planNote).font(.footnote)
         .foregroundStyle(.secondary)
       ForEach(store.products, id: \.id) { p in
         Button("\(p.id==StoreMembership.plus ? "Plus" : "Pro") · \(p.displayPrice) / 30 天") {
@@ -104,7 +113,7 @@ struct MembershipPanel: View {
         DisclosureGroup("App Store 购买记录") {
           ForEach(orders) { order in
             VStack(alignment: .leading) {
-              Text(order.plan.capitalized + (order.refunded ? " · 已退款" : " · 已购买"))
+              Text(order.plan.capitalized + (order.refunded ? " · 已退款" : " · 已付款"))
               if let price = order.price_milli, let currency = order.currency, !currency.isEmpty {
                 Text((Decimal(price) / 1000).formatted(.currency(code: currency)))
               }
@@ -114,7 +123,7 @@ struct MembershipPanel: View {
         }
       }
       if let msg = store.message { Text(msg).font(.footnote) }
-      if store.products.count < 2 { Button("刷新 App Store 商品") { Task { await store.load() } } }
+      if store.products.count < 2 { Button("重试") { Task { await store.load() } } }
       Button("恢复购买") { Task { await store.restore(shelf) } }.disabled(store.busy)
     }.task { await store.load() }
   }

@@ -93,7 +93,7 @@ export function MediaGallery({ items: all, candidate }: { items: MediaCandidate[
         id="media-title"
         eyebrow="MEDIA ASSET MANAGEMENT"
         title="图片资产管理"
-        detail="按作品、分集与场景组织候选；仅加载当前视图和展开的版本"
+        detail="按作品、分集与场景组织候选"
         actions={all && <StatusBadge status="queued" label={`${all.length} 个候选`} />}
       />
       {all && candidate && !target && <p className="wb-muted">候选槽位 #{candidate} 不在当前记录中。</p>}
@@ -243,7 +243,7 @@ function Audit({ step }: { step: MediaStep }) {
   const decision = step.result?.decision
   return (
     <li>
-      <time>{formatClock(step.started_at)} UTC</time>
+      <time>{formatClock(step.started_at)}</time>
       <div><strong>v{step.round} · {mediaStageNames[step.step]}</strong>{step.attempt > 1 && <span> · 技术重试 {step.attempt}</span>}{step.finished_at === null && <span> · 进行中</span>}</div>
       {decision && <StatusBadge status={decision === 'pass' ? 'passed' : 'held'} label={{ pass: '通过', redraw: '退回重绘', recrop: '退回重裁' }[decision]} />}
       {step.result?.firstOpinion && <p>初检疑点 · {step.result.firstOpinion}</p>}

@@ -63,7 +63,7 @@ export function DiscoverHome({
 }) {
   const [lead, ...features] = page.featured
   return (
-    <Layout active="发现">
+    <Layout active="discover">
       {lead ? (
         <section className="folio-feature" aria-label="精选作品">
           <article className="folio-lead">
@@ -205,7 +205,7 @@ export function DirectoryPage({
       ? '搜索角色名或作品名'
       : '搜索章节名或作品名'
   return (
-    <Layout active={isWorks ? '作品' : isCast ? '角色' : '故事'}>
+    <Layout active={isWorks ? 'works' : isCast ? 'cast' : 'stories'}>
       <header className="folio-index-head">
         <h1>{titles[kind]}</h1>
         <form action={'/' + kind} method="get" key={JSON.stringify(search)}>

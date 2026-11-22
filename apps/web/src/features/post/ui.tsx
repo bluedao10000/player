@@ -19,16 +19,16 @@ export function Play({ story }: { story: Story }) {
     setChoice(n)
   }
   return (
-    <Layout active="">
+    <Layout>
       <div className="crumb">
-        <a href={storyUrl(story)}>{story.title}</a> / 私人剧情
+        <a href={storyUrl(story)}>{story.title}</a> / 剧情互动
       </div>
       <section className="play reader">
         <img className="reader-art" src={artUrl(story)} alt={story.alt} />
         <div className="reader-body">
           <div className="kicker">
             <Icon name="compass" />
-            剧情试玩 · 预设分支
+            剧情互动
           </div>
           <h1>{story.location}的来信</h1>
           <Dialogue text={story.scene} />
@@ -52,7 +52,7 @@ export function Play({ story }: { story: Story }) {
           )}
           <a className="return" href={storyUrl(story)}>
             <Icon name="back" />
-            回到故事
+            回到章节
           </a>
         </div>
       </section>

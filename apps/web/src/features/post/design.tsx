@@ -6,29 +6,31 @@ import type { Story } from './catalog'
 import { Icon } from './icons'
 import type { IconName } from './icons'
 
+// Pages pass a key, so renaming a label never changes which tab is current.
 const nav = [
-  ['发现', '/', 'compass'],
-  ['作品', '/works', 'map'],
-  ['角色', '/characters', 'people'],
-  ['故事', '/stories', 'book'],
-  ['我的', '/me', 'user'],
+  ['discover', '发现', '/', 'compass'],
+  ['works', '作品', '/works', 'map'],
+  ['cast', '角色', '/characters', 'people'],
+  ['stories', '故事', '/stories', 'book'],
+  ['me', '我的', '/me', 'user'],
 ] as const
+export type NavKey = (typeof nav)[number][0]
 function NavLink({
   item,
   active,
 }: {
   item: (typeof nav)[number]
-  active: string
+  active?: NavKey
 }) {
-  const [label, url, icon] = item
+  const [key, label, url, icon] = item
   return (
-    <a href={url} aria-current={active === label ? 'page' : undefined}>
+    <a href={url} aria-current={active === key ? 'page' : undefined}>
       <Icon name={icon} size={19} />
       {label}
     </a>
   )
 }
-export function BottomNavigation({ active }: { active: string }) {
+export function BottomNavigation({ active }: { active?: NavKey }) {
   return (
     <nav className="bottom-nav glass" aria-label="移动端主导航">
       {nav.map((item) => (
@@ -41,7 +43,7 @@ export function Layout({
   active,
   children,
 }: {
-  active: string
+  active?: NavKey
   children: ReactNode
 }) {
   return (
@@ -64,7 +66,7 @@ export function Layout({
             className="shelf-link"
             aria-label="我的"
             href="/me"
-            aria-current={active === '我的' ? 'page' : undefined}
+            aria-current={active === 'me' ? 'page' : undefined}
           >
             <Icon name="user" size={17} />
             <span>我的</span>

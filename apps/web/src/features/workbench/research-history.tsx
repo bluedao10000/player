@@ -1,4 +1,5 @@
 import type { ResearchRun } from '@anime/shared/knowledge'
+import { formatClock, formatDate } from './shared/format'
 
 const stage = {
   collect: '联网取证中',
@@ -6,7 +7,6 @@ const stage = {
   ready: '导读可预览',
   failed: '本次取证失败',
 }
-const utc = (value: string) => new Date(value).toISOString().slice(11, 19)
 
 export function ResearchHistory({ runs }: { runs: ResearchRun[] | null }) {
   return (
@@ -29,7 +29,7 @@ export function ResearchHistory({ runs }: { runs: ResearchRun[] | null }) {
           </summary>
           <p>
             知识版本 {r.version_id} · 取证规则 v{r.policy} · 第 {r.attempt}{' '}
-            次执行 · {r.started_at.slice(0, 10)} UTC{r.model && ' · ' + r.model}
+            次执行 · {formatDate(r.started_at)}{r.model && ' · ' + r.model}
           </p>
           <ol>
             {r.events?.map((e, i) => (
@@ -44,7 +44,7 @@ export function ResearchHistory({ runs }: { runs: ResearchRun[] | null }) {
               <ul>
                 {r.documents.map((d) => (
                   <li key={d.id}>
-                    <a href={d.url}>{d.locator} ↗</a> · {utc(d.fetched_at)} UTC{' '}
+                    <a href={d.url}>{d.locator} ↗</a> · {formatClock(d.fetched_at)}{' '}
                     <code title={d.sha256}>{d.sha256.slice(0, 12)}</code>
                   </li>
                 ))}

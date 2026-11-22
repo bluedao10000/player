@@ -96,7 +96,7 @@ export function LiveTerminal({
       {active && (
         <footer className="wb-terminal-detail">
           <div><span className="wb-eyebrow">SELECTED RUN</span><code>{active.id}</code></div>
-          <span>开始 {formatDate(active.start)} {formatClock(active.start)} UTC</span>
+          <span>开始 {formatDate(active.start)} {formatClock(active.start)}</span>
           <span>耗时 {formatDuration(active.start, active.finish)}</span>
           <span>失败条目 {active.failed ?? '—'}</span>
           {active.skip && <span>跳过原因 {active.skip}</span>}

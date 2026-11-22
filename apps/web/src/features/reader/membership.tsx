@@ -82,13 +82,12 @@ export function Membership({ readerId }: { readerId: string }) {
     <section className="reader-membership" aria-label="会员权益">
       {data && (
         <>
-          <strong>{names[data.plan]} 会员</strong>
+          <strong>{data.plan === 'free' ? 'Free' : names[data.plan] + ' 会员'}</strong>
           <p>
             本期可用{' '}
-            {Math.max(
-              0,
-              data.credits - data.usedMicro / 1000000,
-            ).toLocaleString('zh-CN', { maximumFractionDigits: 6 })}{' '}
+            {Math.floor(
+              Math.max(0, data.credits - data.usedMicro / 1000000),
+            ).toLocaleString('zh-CN')}{' '}
             / {data.credits} 积分 · 至{' '}
             {new Date(data.periodEnd).toLocaleDateString('zh-CN', {
               timeZone: 'Asia/Shanghai',
@@ -98,7 +97,6 @@ export function Membership({ readerId }: { readerId: string }) {
             <summary>
               {data.plan === 'free' ? '查看与购买套餐' : '查看会员权益'}
             </summary>
-            <p>积分消费入口尚未开放，当前购买可开通会员并领取本期积分。</p>
             <ul className="reader-plans">
               {data.plans.map((p) => (
                 <li key={p.id}>

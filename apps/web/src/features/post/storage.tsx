@@ -20,7 +20,7 @@ export function Save(item: Bookmark) {
         }}
       >
         <Icon name={saved ? 'check' : 'bookmark'} />
-        {error ? '保存失败，重试' : saved ? '已加入书架' : '加入书架'}
+        {error ? '重试加入书架' : saved ? '已加入书架' : '加入书架'}
       </button>
       {reader === null && saved && (
         <a

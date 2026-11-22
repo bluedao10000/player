@@ -36,7 +36,7 @@ export function Reader({
     ]
   const isFeature = story.slug === feature.slug
   return (
-    <Layout active="故事">
+    <Layout active="stories">
       {!preview && (
         <ReadingProgress
           slug={story.slug}

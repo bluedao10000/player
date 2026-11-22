@@ -82,7 +82,7 @@ export function LinkEmail({ readerId }: { readerId: string }) {
         }}
       >
         <label>
-          电子邮箱
+          邮箱
           <input
             required
             type="email"
@@ -94,7 +94,7 @@ export function LinkEmail({ readerId }: { readerId: string }) {
         </label>
         {sent && (
           <label>
-            邮箱验证码
+            验证码
             <input
               required
               value={code}

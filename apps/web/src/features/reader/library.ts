@@ -12,7 +12,7 @@ export const libraryCatalog = createServerFn({ method: 'GET' }).handler(
           title: c.title,
           work: w.title,
           edition: w.edition_label,
-          label: w.edition_label.endsWith(' · 全片') ? '全片导读' : c.label,
+          label: w.format === 'film' ? '全片导读' : c.label,
           image: c.image || w.hero_asset_key,
         })),
       )

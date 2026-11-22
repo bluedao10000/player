@@ -223,7 +223,7 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
           </div>
           <div className="ed-login-body">
             <div className="ed-login-icon"><Mail size={24} aria-hidden /></div>
-            <h1 id="workbench-login-title">登录内容工作台</h1>
+            <h1 id="workbench-login-title">登录工作台</h1>
             <p>{sent ? `验证码已发送至 ${email}，5 分钟内有效。` : passwordMode ? '使用已设置的工作台密码登录。' : '使用邮箱验证码登录。首次验证会自动创建账户。'}</p>
             {error && <p className="ed-error" role="alert">{error}</p>}
             <form onSubmit={e => {
@@ -247,7 +247,7 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
               })
             }}>
               {sent ? (
-                <label>六位验证码
+                <label>验证码
                   <input key="code" value={code} onChange={e => setCode(e.target.value)} required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code" autoFocus />
                 </label>
               ) : (
@@ -537,7 +537,7 @@ function WorkbenchAccount() {
             window.location.replace('/workbench?view=me')
           })
         }}>
-          <label>邮箱验证码
+          <label>验证码
             <span className="ed-account-code">
               <input name="code" required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code" />
               <button type="button" disabled={!email || busy} onClick={() => void act(async () => {

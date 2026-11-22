@@ -7,6 +7,7 @@
 | 判断功能归属与成熟度 | [产品架构](docs/产品架构.md)、[功能地图](docs/功能地图.md) | [H5 路由](apps/web/src/routes)、[共享契约](packages/shared/knowledge.ts) |
 | 改 H5 阅读、角色出场、场景回跳 | [技术架构](docs/技术架构.md) | [世界页面](apps/web/src/features/worlds/pages.tsx)、[Gin 读模型](apps/api/internal/handler/knowledge/world_api.go) |
 | 改 iOS 原生阅读或签名归档 | [iOS 工程与验收](apps/ios/README.md) | [SwiftUI 页面](apps/ios/Folio)、[公开阅读接口](apps/ios/server/reader.server.ts)、[XcodeGen](apps/ios/project.yml) |
+| 改界面文字、按钮、提示或状态词 | [界面文案规范](docs/界面文案规范.md) | [H5 读者端](apps/web/src/features/reader)、[原创角色与故事](apps/web/src/features/post)、[SwiftUI 页面](apps/ios/Folio)、[工作台状态表](apps/web/src/features/workbench/shared/format.ts) |
 | 接数据源、改匹配或数据质量 | [知识库与治理](docs/knowledge-base.md) | [来源适配](apps/api/internal/service/knowledge/upstream.go)、[归并事务](apps/api/internal/repository/queries/knowledge/queries.queries) |
 | 登记作品分集制作计划 | [分集配置](docs/知识库构建流程.md)、[构建流程](docs/知识库构建流程.md) | [选题清单](apps/sync/episode-plan.example.json) |
 | 改取证、自动验图或发布 | [知识库构建流程](docs/知识库构建流程.md) | [数据服务](apps/sync/cmd/sync/main.go)、[Agent 入口](apps/agent/src/server.ts) |
