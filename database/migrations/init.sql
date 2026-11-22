@@ -1551,6 +1551,286 @@ CREATE OR REPLACE VIEW published_worlds AS
  FROM work_worlds w JOIN works k ON k.id=w.work_id AND k.active
  LEFT JOIN edition_reader_art a ON (a.world_slug,a.kind,a.item_slug)=(w.slug,'work',w.slug);
 
+-- name: 059.sql
+CREATE TABLE ops_stages (
+ id text PRIMARY KEY,
+ grp text NOT NULL CHECK (grp IN ('acquisition','knowledge','research','production','release','infrastructure')),
+ position int NOT NULL,
+ title text NOT NULL,
+ eyebrow text NOT NULL,
+ upstream text[] NOT NULL DEFAULT '{}',
+ tracked boolean NOT NULL DEFAULT true,
+ UNIQUE (grp,position)
+);
+INSERT INTO ops_stages(id,grp,position,title,eyebrow,upstream,tracked) VALUES
+ ('source_sync','acquisition',1,'来源同步','SOURCE SYNC','{}',true),
+ ('normalize','knowledge',1,'清洗与归并','NORMALIZE','{source_sync}',false),
+ ('quality_scan','knowledge',2,'知识质量扫描','QUALITY SCAN','{normalize}',true),
+ ('inventory','research',1,'分集盘点','INVENTORY','{quality_scan}',false),
+ ('plan','research',2,'分集规划','EPISODE PLAN','{inventory}',true),
+ ('configuration','research',3,'制作配置','CONFIGURATION','{plan}',true),
+ ('admission','research',4,'补集准入','ADMISSION','{configuration}',true),
+ ('capture','research',5,'原文采集','CAPTURE','{admission}',true),
+ ('research','research',6,'取证与导读','RESEARCH','{capture}',true),
+ ('editorial','production',1,'编辑修订','EDITORIAL','{}',true),
+ ('media_reference','production',2,'参考图准备','REFERENCE','{research}',true),
+ ('media_generate','production',3,'原图生成','GENERATE','{media_reference}',true),
+ ('media_review','production',4,'五项验图','REVIEW','{media_generate}',true),
+ ('media_rework','production',5,'重裁与复验','REWORK','{media_review}',true),
+ ('acceptance','release',1,'五维验收','ACCEPTANCE','{research,media_review}',true),
+ ('release','release',2,'正式站发布','RELEASE','{acceptance}',true),
+ ('backup','infrastructure',1,'制作库备份','BACKUP','{}',true);
+
+CREATE TABLE ops_media_batch_worlds (
+ batch text PRIMARY KEY,
+ world_slug text NOT NULL REFERENCES work_worlds(slug)
+);
+CREATE FUNCTION ops_seed_media_batch_worlds() RETURNS void
+LANGUAGE sql AS $$
+ INSERT INTO ops_media_batch_worlds(batch,world_slug)
+ SELECT DISTINCT c.batch,
+   CASE WHEN c.batch='mio' THEN 'tidepost' ELSE 'cowboy-bebop-tv' END
+ FROM media_candidates c
+ JOIN work_worlds w ON w.slug=CASE WHEN c.batch='mio' THEN 'tidepost' ELSE 'cowboy-bebop-tv' END
+ WHERE c.batch='mio' OR c.batch LIKE 'bebop%'
+ ON CONFLICT(batch) DO NOTHING
+$$;
+SELECT ops_seed_media_batch_worlds();
+
+CREATE FUNCTION ops_policy_queue_work_item(queue_status text)
+RETURNS TABLE(state text,reason text)
+LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+ CASE queue_status
+  WHEN '待准入' THEN RETURN QUERY SELECT 'pending'::text,'awaiting_admission'::text;
+  WHEN '待采集' THEN RETURN QUERY SELECT 'pending'::text,'awaiting_capture'::text;
+  WHEN '已采集' THEN RETURN QUERY SELECT 'pending'::text,'awaiting_research'::text;
+  WHEN 'token 预算不足' THEN RETURN QUERY SELECT 'blocked'::text,'token_budget'::text;
+  WHEN '集数预算已满' THEN RETURN QUERY SELECT 'blocked'::text,'episode_budget'::text;
+  WHEN '等待有效盘点' THEN RETURN QUERY SELECT 'blocked'::text,'stale_inventory'::text;
+  WHEN '缺分集配置' THEN RETURN QUERY SELECT 'blocked'::text,'missing_configuration'::text;
+  WHEN '采集失败' THEN RETURN QUERY SELECT 'pending'::text,'capture_retry'::text;
+  WHEN '五维通过' THEN RETURN QUERY SELECT NULL::text,NULL::text;
+  WHEN '未确认缺集' THEN RETURN QUERY SELECT NULL::text,NULL::text;
+  ELSE RAISE EXCEPTION 'unmapped episode_policy_queue status: %',queue_status;
+ END CASE;
+END
+$$;
+
+CREATE FUNCTION ops_media_step_stage(step_name text)
+RETURNS text
+LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+ CASE step_name
+  WHEN 'reference' THEN RETURN 'media_reference';
+  WHEN 'generate' THEN RETURN 'media_generate';
+  WHEN 'review' THEN RETURN 'media_review';
+  WHEN 'recrop' THEN RETURN 'media_rework';
+  WHEN 'recheck' THEN RETURN 'media_rework';
+  ELSE RAISE EXCEPTION 'unmapped media_steps step: %',step_name;
+ END CASE;
+END
+$$;
+
+CREATE VIEW ops_task_runs AS
+SELECT * FROM (
+ SELECT 'source_sync:'||r.id::text AS run_key,'source_sync'::text AS stage,
+  NULL::text AS world_slug,NULL::int AS episode_first,NULL::int AS episode_last,
+  s.name AS subject,row_number() OVER (PARTITION BY r.source_id ORDER BY r.started_at,r.id)::int AS attempt,
+  CASE WHEN r.status='success' AND r.skipped THEN 'skipped'
+       WHEN r.status='pending' THEN NULL ELSE r.status END::text AS status,
+  CASE WHEN r.skipped THEN coalesce(r.skip_reason,'version_unchanged') END::text AS outcome,
+  r.started_at,r.finished_at,r.error_message AS error,
+  'knowledge_sync_runs'::text AS source_table,r.id::text AS source_id
+ FROM knowledge_sync_runs r JOIN knowledge_sources s ON s.id=r.source_id
+ UNION ALL
+ SELECT 'quality:'||r.id::text,'quality_scan',NULL::text,NULL::int,NULL::int,
+  '全库知识质量扫描',row_number() OVER (ORDER BY r.started_at,r.id)::int,
+  r.status,NULL::text,r.started_at,r.finished_at,r.error_message,
+  'knowledge_quality_runs',r.id::text
+ FROM knowledge_quality_runs r
+ UNION ALL
+ SELECT 'configuration:'||a.id::text,'configuration',r.world,
+  a.number,a.number,r.world||' · 第 '||a.number||' 集',
+  row_number() OVER (PARTITION BY a.request_id,a.number ORDER BY a.started_at,a.id)::int,
+  CASE WHEN a.finished_at IS NULL THEN 'running'
+       WHEN a.error IS NOT NULL THEN 'failed'
+       WHEN a.registered THEN 'success' ELSE 'skipped' END,
+  CASE WHEN a.registered THEN 'registered'
+       WHEN a.finished_at IS NOT NULL AND a.error IS NULL THEN 'unregistered' END,
+  a.started_at,a.finished_at,a.error,
+  'episode_configuration_attempts',a.id::text
+ FROM episode_configuration_attempts a
+ JOIN episode_production_requests r ON r.id=a.request_id
+ UNION ALL
+ SELECT 'capture:'||a.id::text,'capture',p.world_slug,p.number,p.number,p.topic,
+  row_number() OVER (PARTITION BY a.topic ORDER BY a.started_at,a.id)::int,
+  CASE WHEN a.finished_at IS NULL THEN 'running'
+       WHEN a.error IS NOT NULL THEN 'failed' ELSE 'success' END,
+  NULL::text,a.started_at,a.finished_at,a.error,
+  'episode_capture_attempts',a.id::text
+ FROM episode_capture_attempts a JOIN episode_plans p ON p.topic=a.topic
+ UNION ALL
+ SELECT 'research:'||r.id::text,'research',t.world_slug,t.first_episode,t.last_episode,t.id,
+  r.attempt,
+  CASE WHEN r.stage IN ('collect','write') THEN 'running'
+       WHEN r.stage='ready' THEN 'success' ELSE 'failed' END,
+  NULL::text,r.started_at,r.finished_at,r.error,
+  'research_runs',r.id::text
+ FROM research_runs r JOIN research_topics t ON t.id=r.topic
+ UNION ALL
+ SELECT 'editor:'||t.id::text||':r'||t.round||':a'||t.attempt,'editorial',t.world,
+  chapter.episode,chapter.episode,t.chapter,t.attempt,
+  CASE WHEN t.status IN ('evidence','drafting','checking') AND t.lease IS NOT NULL THEN 'running'
+       WHEN t.status='published' THEN 'success'
+       WHEN t.status='failed' THEN 'failed' END,
+  NULL::text,coalesce(events.started_at,t.created_at),
+  CASE WHEN t.status IN ('published','failed') THEN coalesce(t.published_at,events.finished_at) END,
+  nullif(t.issue,''),'editor_tasks',t.id::text
+ FROM editor_tasks t
+ LEFT JOIN LATERAL (
+  SELECT min(e.at) AS started_at,
+   max(e.at) FILTER (WHERE e.stage IN ('published','failed')) AS finished_at
+  FROM editor_events e
+  WHERE e.task=t.id AND e.round=t.round AND e.attempt=t.attempt
+ ) events ON true
+ LEFT JOIN LATERAL (
+  SELECT episode FROM (
+   SELECT c.episode FROM work_worlds w JOIN work_chapters c ON c.v=w.version_id
+    WHERE w.slug=t.world AND c.slug=t.chapter
+   UNION ALL
+   SELECT p.number FROM episode_plans p WHERE p.world_slug=t.world AND p.spec->>'slug'=t.chapter
+  ) found LIMIT 1
+ ) chapter ON true
+ WHERE (t.status IN ('evidence','drafting','checking') AND t.lease IS NOT NULL)
+    OR t.status IN ('published','failed')
+ UNION ALL
+ SELECT 'media:'||c.slot||':r'||s.round||':'||s.step||':a'||s.attempt,
+  ops_media_step_stage(s.step),
+  coalesce(j.world_slug,mw.world_slug),episode.number,episode.number,
+  coalesce(c.batch,'media')||' · '||c.scene||' · 候选号 '||c.variant,s.attempt,
+  CASE WHEN s.finished_at IS NULL THEN 'running'
+       WHEN s.error IS NOT NULL THEN 'failed' ELSE 'success' END,
+  CASE WHEN s.finished_at IS NOT NULL AND s.error IS NULL THEN s.result->>'decision' END,
+  s.started_at,s.finished_at,s.error,
+  'media_steps',c.slot||':r'||s.round||':'||s.step||':a'||s.attempt
+ FROM media_steps s JOIN media_candidates c ON c.slot=s.slot
+ LEFT JOIN episode_art_jobs j ON j.id=c.art_job
+ LEFT JOIN ops_media_batch_worlds mw ON mw.batch=c.batch
+ LEFT JOIN LATERAL (
+  SELECT p.number FROM episode_plans p
+  WHERE p.world_slug=j.world_slug AND p.spec->>'sceneSlug'=j.slug
+  ORDER BY p.number LIMIT 1
+ ) episode ON true
+ UNION ALL
+ SELECT 'acceptance:'||a.id::text,'acceptance',a.edition_slug,a.scope_first,a.scope_last,
+  a.edition_slug,row_number() OVER (PARTITION BY a.topic ORDER BY a.checked_at,a.id)::int,
+  'success',CASE WHEN a.passed THEN 'passed' ELSE 'rejected' END,
+  a.checked_at,a.checked_at,NULL::text,'scope_acceptances',a.id::text
+ FROM scope_acceptances a
+ UNION ALL
+ SELECT 'release:'||r.id::text,'release',p.world_slug,p.number,p.number,p.topic,
+  row_number() OVER (PARTITION BY r.topic ORDER BY r.started_at,r.id)::int,
+  CASE WHEN r.finished_at IS NULL THEN 'running'
+       WHEN r.error IS NOT NULL THEN 'failed' ELSE 'success' END,
+  NULL::text,r.started_at,r.finished_at,r.error,
+  'reader_release_attempts',r.id::text
+ FROM reader_release_attempts r JOIN episode_plans p ON p.topic=r.topic
+ UNION ALL
+ SELECT 'backup:'||r.job_uid::text,'backup',NULL::text,NULL::int,NULL::int,r.job_name,
+  row_number() OVER (PARTITION BY r.job_name ORDER BY r.started_at,r.job_uid)::int,
+  r.status,NULL::text,r.started_at,r.finished_at,r.failure_reason,
+  'backup_runs',r.job_uid::text
+ FROM backup_runs r
+) runs
+WHERE status IS NOT NULL;
+
+CREATE VIEW ops_work_items AS
+SELECT item_key,stage,world_slug,episode,subject,state,reason,since FROM (
+ SELECT 'policy:'||q.world_slug||':'||q.number AS item_key,'admission'::text AS stage,
+  q.world_slug,q.number AS episode,q.world_slug||' · 第 '||q.number||' 集' AS subject,
+  mapped.state,mapped.reason,
+  CASE WHEN q.status='采集失败' THEN q.capture_finished
+       WHEN q.status='已采集' THEN q.admitted_at END AS since
+ FROM episode_policy_queue q
+ CROSS JOIN LATERAL ops_policy_queue_work_item(q.status) mapped
+ WHERE mapped.state IS NOT NULL
+   AND (q.status<>'待采集' OR q.capture_started IS NULL OR q.capture_finished IS NOT NULL)
+   AND (q.status<>'已采集' OR NOT EXISTS (
+    SELECT FROM research_runs r WHERE r.topic=q.topic AND r.stage IN ('collect','write')))
+ UNION ALL
+ SELECT 'plan:'||r.id::text,'plan',r.world,r.first_episode,r.world||' · 第 '||
+  r.first_episode||'–'||r.last_episode||' 集',
+  CASE WHEN r.paused_reason IS NOT NULL OR r.stage='blocked' THEN 'blocked' ELSE 'pending' END,
+  CASE WHEN r.paused_reason IS NOT NULL THEN r.paused_reason
+       WHEN r.stage='blocked' THEN 'plan_blocked' ELSE 'planning' END,
+  r.updated_at
+ FROM episode_production_requests r
+ WHERE r.paused_reason IS NOT NULL OR r.stage='blocked'
+    OR r.stage IN ('inventory','planning','drafting_plan')
+ UNION ALL
+ SELECT 'editor:'||t.id::text,'editorial',t.world,chapter.episode,t.chapter,
+  CASE WHEN t.status='review' THEN 'waiting_human'
+       WHEN t.status='conflict' THEN 'blocked' ELSE 'pending' END,
+  CASE WHEN t.status='review' THEN 'awaiting_review'
+       WHEN t.status='conflict' THEN 'draft_conflict' ELSE 'awaiting_worker' END,
+  coalesce(t.due,t.created_at)
+ FROM editor_tasks t
+ LEFT JOIN LATERAL (
+  SELECT episode FROM (
+   SELECT c.episode FROM work_worlds w JOIN work_chapters c ON c.v=w.version_id
+    WHERE w.slug=t.world AND c.slug=t.chapter
+   UNION ALL
+   SELECT p.number FROM episode_plans p WHERE p.world_slug=t.world AND p.spec->>'slug'=t.chapter
+  ) found LIMIT 1
+ ) chapter ON true
+ WHERE (t.status IN ('evidence','drafting','checking') AND t.lease IS NULL)
+    OR t.status IN ('review','conflict')
+ UNION ALL
+ SELECT 'media:'||c.slot::text,'media_'||CASE WHEN c.stage='held' THEN 'review' ELSE 'reference' END,
+  coalesce(j.world_slug,mw.world_slug),episode.number,
+  coalesce(c.batch,'media')||' · '||c.scene||' · 候选号 '||c.variant,
+  CASE WHEN c.stage='held' THEN 'waiting_human' ELSE 'pending' END,
+  CASE WHEN c.stage='held' THEN 'media_held' ELSE 'awaiting_media' END,
+  c.updated_at
+ FROM media_candidates c
+ LEFT JOIN episode_art_jobs j ON j.id=c.art_job
+ LEFT JOIN ops_media_batch_worlds mw ON mw.batch=c.batch
+ LEFT JOIN LATERAL (
+  SELECT p.number FROM episode_plans p
+  WHERE p.world_slug=j.world_slug AND p.spec->>'sceneSlug'=j.slug
+  ORDER BY p.number LIMIT 1
+ ) episode ON true
+ WHERE c.stage='held'
+    OR (c.stage IN ('queued','reference') AND NOT EXISTS (
+      SELECT FROM media_steps s WHERE s.slot=c.slot AND s.finished_at IS NULL))
+) items;
+
+CREATE TABLE ops_worker_heartbeats (
+ worker_id text NOT NULL,
+ loop text NOT NULL,
+ role text NOT NULL CHECK (role IN ('sync','research-lane','media-lane','agent')),
+ node text NOT NULL,
+ version text NOT NULL,
+ expected_seconds int NOT NULL CHECK (expected_seconds>0),
+ last_tick_at timestamptz NOT NULL,
+ last_ok_at timestamptz,
+ last_error text,
+ last_error_at timestamptz,
+ consecutive_errors int NOT NULL DEFAULT 0,
+ executions jsonb,
+ PRIMARY KEY(worker_id,loop)
+);
+
+CREATE TABLE ops_daily_snapshots (
+ day date NOT NULL,
+ scope text NOT NULL,
+ definition int NOT NULL,
+ metrics jsonb NOT NULL,
+ taken_at timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(day,scope)
+);
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,58) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,59) i;
 COMMIT;

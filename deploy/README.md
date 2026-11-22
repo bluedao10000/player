@@ -2,6 +2,10 @@
 
 从仓库根目录运行以下命令。基础 Compose 启动 PostgreSQL、Gin API、sync 和 Pi Durable，H5 由 Node 运行。首次部署需要 Docker Compose v2.20 以上及 Node 24.13+。数据库、媒体归档和 Agent 检查点使用命名卷。
 
+在 `.env` 中为 `OPS_NODE_NAME` 设置该部署唯一的节点名（例如 `gz`、`sv` 或本地开发用 `local`），`sync` 启动时会拒绝缺少该值的长期运行配置。`APP_VERSION` 用于 Agent 版本心跳，可填写发布标签或 commit。分节点 systemd 部署在 `lane.env` 中设置 `OPS_NODE_NAME` 和 `APP_VERSION`，见[生产调度说明](../apps/sync/ops/production/README.md)。
+
+作品世界目录导入或分集登记新建作品时，会在同一事务内自动补齐已有 `mio`、`bebop%` 图片候选的批次归属；重复导入不会重复创建映射。
+
 ```sh
 test -f .env || (umask 077 && cp deploy/.env-example .env)
 # 在 .env 中设置随机 POSTGRES_PASSWORD，按需填写模型与登录服务的配置

@@ -115,6 +115,7 @@ services:
       MEDIA_SECOND_REVIEW_MODEL: ${MEDIA_SECOND_REVIEW_MODEL:-gpt-4.1}
       MEDIA_REVIEW_MODEL: ${MEDIA_REVIEW_MODEL:-gpt-4.1-mini}
       RESEARCH_MODEL: ${RESEARCH_MODEL:-gpt-4.1-mini}
+      APP_VERSION: ${APP_VERSION:-dev}
     volumes:
       - research-state:/state
       - media-assets:/media
@@ -137,6 +138,8 @@ services:
     restart: unless-stopped
     environment:
       <<: *database
+      OPS_NODE_NAME: ${OPS_NODE_NAME:?Set OPS_NODE_NAME in .env}
+      APP_VERSION: ${APP_VERSION:-dev}
       EPISODE_PLAN_DIR: /episode-plans
       EPISODE_BUDGET_BIND: 0.0.0.0:14328
       MEDIA_WORKER_ENABLED: ${MEDIA_WORKER_ENABLED:-false}

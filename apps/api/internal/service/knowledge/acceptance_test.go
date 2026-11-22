@@ -17,6 +17,9 @@ func TestIncompleteEpisodeScopeReportsGapsWithoutPublishing(t *testing.T) {
 	if err := Sweep(ctx, db, "tidepost-original", true, false); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec(ctx, sqltest.DeleteTestWorldOpsMappings); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec(ctx, sqltest.RenameTestWorld); err != nil {
 		t.Fatal(err)
 	}
@@ -52,6 +55,9 @@ func TestIncrementalScopeDoesNotReplaceBaseReport(t *testing.T) {
 	db := testsupport.Database(t)
 	ctx := context.Background()
 	if err := Sweep(ctx, db, "tidepost-original", true, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(ctx, sqltest.DeleteTestWorldOpsMappings); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(ctx, sqltest.RenameTestWorld); err != nil {

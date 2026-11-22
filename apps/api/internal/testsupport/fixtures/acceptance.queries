@@ -1,6 +1,9 @@
 -- name: RenameTestWorld
 UPDATE work_worlds SET slug='cowboy-bebop-tv' WHERE slug='tidepost'
 
+-- name: DeleteTestWorldOpsMappings
+DELETE FROM ops_media_batch_worlds WHERE world_slug='tidepost'
+
 -- name: CountAcceptances
 SELECT count(*) FROM scope_acceptances
 

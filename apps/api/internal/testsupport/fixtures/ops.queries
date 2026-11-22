@@ -1,0 +1,287 @@
+-- name: SeedOpsSyncRuns
+WITH source AS (
+ SELECT id FROM knowledge_sources WHERE name='tidepost-original'
+), states(status,skipped,offset_seconds,error_message,skip_reason) AS (
+ VALUES ('pending',false,5,NULL,NULL),
+        ('running',false,4,NULL,NULL),
+        ('success',true,3,NULL,'version_unchanged'),
+        ('success',false,2,NULL,NULL),
+        ('failed',false,1,'fixture source error',NULL)
+)
+INSERT INTO knowledge_sync_runs(source_id,status,skipped,started_at,finished_at,error_message,skip_reason)
+SELECT source.id,states.status,states.skipped,now()-states.offset_seconds*interval '1 second',
+ CASE WHEN states.status IN ('success','failed') THEN now()-states.offset_seconds*interval '1 second' END,
+ states.error_message,states.skip_reason
+FROM source CROSS JOIN states
+
+-- name: SeedOpsWorlds
+WITH version_source AS (
+ SELECT s.id AS source_id,r.id AS run_id
+ FROM knowledge_sources s JOIN knowledge_sync_runs r ON r.source_id=s.id
+ WHERE s.name='tidepost-original' AND r.status='success'
+ ORDER BY r.started_at LIMIT 1
+), world_inputs(slug,version,name,edition,origin,title) AS (
+ VALUES ('tidepost','ops-tidepost-v1','Tidepost fixture','Test edition','original','Ops Tidepost'),
+        ('cowboy-bebop-tv','ops-bebop-v1','Bebop fixture','Test edition','external','Ops Bebop')
+), versions AS (
+ INSERT INTO knowledge_source_versions(source_id,version,checksum,metadata,run_id)
+ SELECT source_id,world_inputs.version,md5(world_inputs.version),'{}'::jsonb,run_id
+ FROM version_source CROSS JOIN world_inputs
+ RETURNING id,version
+), works AS (
+ INSERT INTO works(canonical_title,type)
+ SELECT title,'TV' FROM world_inputs
+ RETURNING id,canonical_title
+), releases AS (
+ INSERT INTO world_releases(version_id,work_id)
+ SELECT versions.id,works.id
+ FROM versions JOIN world_inputs ON world_inputs.version=versions.version
+ JOIN works ON works.canonical_title=world_inputs.title
+ RETURNING version_id,work_id
+), worlds AS (
+ INSERT INTO work_worlds(work_id,slug,version_id,name,edition,intro,cast_title,origin)
+ SELECT releases.work_id,world_inputs.slug,releases.version_id,world_inputs.name,
+  world_inputs.edition,'fixture','Fixture cast',world_inputs.origin
+ FROM releases JOIN world_inputs ON true
+ JOIN versions ON versions.id=releases.version_id AND versions.version=world_inputs.version
+ RETURNING slug
+)
+SELECT count(*) FROM worlds
+
+-- name: SeedOpsMediaBatchWorlds
+SELECT ops_seed_media_batch_worlds()
+
+-- name: OpsExpectedBatchMappingCount
+SELECT count(DISTINCT c.batch)::int
+FROM media_candidates c
+JOIN work_worlds w ON w.slug=CASE WHEN c.batch='mio' THEN 'tidepost' ELSE 'cowboy-bebop-tv' END
+WHERE c.batch='mio' OR c.batch LIKE 'bebop%'
+
+-- name: SeedOpsQualityRuns
+INSERT INTO knowledge_quality_runs(status,started_at,finished_at,error_message)
+VALUES ('running',now()-interval '3 seconds',NULL,NULL),
+       ('success',now()-interval '2 seconds',now()-interval '1 second',NULL),
+       ('failed',now()-interval '2 seconds',now()-interval '1 second','fixture quality error')
+
+-- name: SeedOpsProductionRequests
+INSERT INTO episode_production_requests(id,world,first_episode,last_episode,token_limit,paused_reason,stage)
+VALUES ('00000000-0000-4000-8000-000000000101','tidepost',950,950,100000,NULL,'configuration'),
+       ('00000000-0000-4000-8000-000000000102','tidepost',951,951,100000,'insufficient_remaining_tokens','planning'),
+       ('00000000-0000-4000-8000-000000000103','tidepost',952,952,100000,NULL,'blocked'),
+       ('00000000-0000-4000-8000-000000000104','tidepost',953,953,100000,NULL,'inventory'),
+       ('00000000-0000-4000-8000-000000000105','tidepost',954,954,100000,NULL,'planning'),
+       ('00000000-0000-4000-8000-000000000106','tidepost',955,955,100000,NULL,'drafting_plan')
+
+-- name: SeedOpsConfigurationRuns
+INSERT INTO episode_configuration_attempts(id,request_id,revision,number,started_at,finished_at,error,registered)
+VALUES ('00000000-0000-4000-8000-000000000201','00000000-0000-4000-8000-000000000101',1,950,now()-interval '4 seconds',NULL,NULL,false),
+       ('00000000-0000-4000-8000-000000000202','00000000-0000-4000-8000-000000000101',1,950,now()-interval '3 seconds',now()-interval '2 seconds','fixture configuration error',false),
+       ('00000000-0000-4000-8000-000000000203','00000000-0000-4000-8000-000000000101',1,950,now()-interval '2 seconds',now()-interval '1 second',NULL,true),
+       ('00000000-0000-4000-8000-000000000204','00000000-0000-4000-8000-000000000101',1,950,now()-interval '1 second',now(),NULL,false)
+
+-- name: SeedOpsEpisodeRuns
+WITH seeds(topic,number,kind) AS (
+ VALUES ('ops-capture-running',901,'capture_running'),
+        ('ops-capture-failed',902,'capture_failed'),
+        ('ops-research-collect',903,'research_collect'),
+        ('ops-capture-success',904,'capture_success'),
+        ('ops-research-write',905,'research_write'),
+        ('ops-research-ready',906,'research_ready'),
+        ('ops-research-failed',907,'research_failed'),
+        ('ops-accept-pass',908,'accept_pass'),
+        ('ops-accept-reject',909,'accept_reject'),
+        ('ops-release-running',910,'release_running'),
+        ('ops-release-success',911,'release_success'),
+        ('ops-release-failed',912,'release_failed')
+), topics AS (
+ INSERT INTO research_topics(id,world_slug,first_episode,last_episode)
+ SELECT topic,'tidepost',number,number FROM seeds
+ RETURNING id,world_slug,first_episode,last_episode
+), plans AS (
+ INSERT INTO episode_plans(topic,world_slug,number,spec)
+ SELECT t.id,t.world_slug,t.first_episode,jsonb_build_object('slug',t.id,'sceneSlug',t.id||'-scene')
+ FROM topics t RETURNING topic,world_slug,number
+), capture_runs AS (
+ INSERT INTO episode_capture_attempts(topic,started_at,finished_at,error)
+ SELECT p.topic,now()-interval '3 seconds',
+  CASE WHEN s.kind='capture_running' THEN NULL ELSE now()-interval '2 seconds' END,
+  CASE WHEN s.kind='capture_failed' THEN 'fixture capture error' END
+ FROM plans p JOIN seeds s ON s.topic=p.topic
+ WHERE s.kind LIKE 'capture_%'
+ RETURNING id
+), research_runs AS (
+ INSERT INTO research_runs(topic,v,attempt,stage,started_at,finished_at,documents,claims,error)
+ SELECT t.id,w.version_id,1,
+  CASE s.kind WHEN 'research_collect' THEN 'collect' WHEN 'research_write' THEN 'write'
+       WHEN 'research_ready' THEN 'ready' ELSE 'failed' END,
+  now()-interval '3 seconds',
+  CASE WHEN s.kind IN ('research_ready','research_failed') THEN now()-interval '1 second' END,
+  CASE WHEN s.kind='research_ready' THEN '[]'::jsonb END,
+  CASE WHEN s.kind='research_ready' THEN '[]'::jsonb END,
+  CASE WHEN s.kind='research_failed' THEN 'fixture research error' END
+ FROM topics t JOIN seeds s ON s.topic=t.id
+ JOIN work_worlds w ON w.slug=t.world_slug
+ WHERE s.kind LIKE 'research_%'
+ RETURNING id
+), acceptances AS (
+ INSERT INTO scope_acceptances(topic,v,rule,fingerprint,edition_slug,scope_first,scope_last,passed,checks,picks,checked_at)
+ SELECT t.id,w.version_id,1,'ops-fixture:'||t.id,t.world_slug,t.first_episode,t.last_episode,
+  s.kind IN ('accept_pass','release_running','release_success','release_failed'),
+  '{}'::jsonb,'[]'::jsonb,now()-interval '1 second'
+ FROM topics t JOIN seeds s ON s.topic=t.id
+ JOIN work_worlds w ON w.slug=t.world_slug
+ WHERE s.kind LIKE 'accept_%' OR s.kind LIKE 'release_%'
+ RETURNING id,topic
+), release_runs AS (
+ INSERT INTO reader_release_attempts(topic,acceptance,started_at,finished_at,target_id,error)
+ SELECT a.topic,a.id,now()-interval '2 seconds',
+  CASE WHEN s.kind='release_running' THEN NULL ELSE now()-interval '1 second' END,
+  CASE WHEN s.kind='release_success' THEN 19011 END,
+  CASE WHEN s.kind='release_failed' THEN 'fixture release error' END
+ FROM acceptances a JOIN seeds s ON s.topic=a.topic
+ WHERE s.kind LIKE 'release_%'
+ RETURNING id
+)
+SELECT count(*) FROM release_runs
+
+-- name: SeedOpsPolicyItems
+INSERT INTO episode_policies(world_slug,first_episode,last_episode,priority,max_episodes,token_budget,reserve_tokens)
+VALUES ('tidepost',901,903,10,20,1000000,100)
+
+-- name: SeedOpsPolicyAdmissions
+INSERT INTO episode_admissions(topic,reserve_tokens)
+VALUES ('ops-capture-running',100),('ops-capture-failed',100),('ops-research-collect',100)
+
+-- name: SeedOpsSourceCapture
+INSERT INTO episode_source_captures(topic,spec,documents,captured_at)
+VALUES ('ops-research-collect','{}','[]',now()-interval '1 second')
+
+-- name: SeedOpsEditors
+WITH states(status,has_lease) AS (
+ VALUES ('evidence',true),('drafting',true),('checking',true),('evidence',false),
+        ('drafting',false),('checking',false),('review',false),('published',false),
+        ('failed',false),('conflict',false)
+)
+INSERT INTO editor_tasks(request_id,world,chapter,instruction,author,status,lease,base,issue,published_at)
+SELECT gen_random_uuid(),'tidepost','ops-editor-'||row_number() OVER (),
+ 'fixture instruction','fixture',states.status,
+ CASE WHEN states.has_lease THEN gen_random_uuid() END,'{}'::jsonb,
+ CASE WHEN states.status IN ('failed','conflict') THEN 'fixture editorial error' ELSE '' END,
+ CASE WHEN states.status='published' THEN now() END
+FROM states
+
+-- name: SeedOpsMediaSteps
+WITH steps(step,first_slot) AS (
+ VALUES ('reference',1),('generate',4),('review',7),('recrop',10),('recheck',13)
+), states(status,slot_offset) AS (
+ VALUES ('running',0),('success',1),('failed',2)
+), candidates AS (
+ SELECT steps.step,steps.first_slot+states.slot_offset AS slot,states.status
+ FROM steps CROSS JOIN states
+)
+INSERT INTO media_steps(slot,round,step,attempt,started_at,finished_at,result,error)
+SELECT slot,1,step,1,now()-interval '3 seconds',
+ CASE WHEN status='running' THEN NULL ELSE now()-interval '1 second' END,
+ CASE WHEN status='success' THEN '{"decision":"pass"}'::jsonb END,
+ CASE WHEN status='failed' THEN 'fixture media error' END
+FROM candidates
+
+-- name: SeedOpsMediaCandidates
+UPDATE media_candidates SET stage=CASE slot WHEN 1 THEN 'reference' WHEN 20 THEN 'held' WHEN 21 THEN 'queued' ELSE stage END
+WHERE slot IN (1,20,21)
+
+-- name: SeedOpsBackups
+INSERT INTO backup_runs(job_uid,job_name,started_at,finished_at,status,failure_reason)
+VALUES ('00000000-0000-4000-8000-000000000301','ops-fixture-running',now()-interval '3 seconds',NULL,'running',NULL),
+       ('00000000-0000-4000-8000-000000000302','ops-fixture-success',now()-interval '2 seconds',now()-interval '1 second','success',NULL),
+       ('00000000-0000-4000-8000-000000000303','ops-fixture-failed',now()-interval '2 seconds',now()-interval '1 second','failed','fixture backup error')
+
+-- name: OpsRunStatusCounts
+SELECT source_table,stage,status,outcome,count(*)::int
+FROM ops_task_runs
+GROUP BY source_table,stage,status,outcome
+ORDER BY source_table,stage,status,outcome
+
+-- name: OpsWorkItemsByKey
+SELECT stage,state,reason,world_slug,episode,subject
+FROM ops_work_items WHERE item_key=$1
+
+-- name: OpsWorkItemCounts
+SELECT stage,state,reason,count(*)::int
+FROM ops_work_items GROUP BY stage,state,reason
+
+-- name: OpsRunBySourceEpisode
+SELECT stage,status,outcome,world_slug,episode_first,episode_last
+FROM ops_task_runs WHERE source_table=$1 AND episode_first=$2
+
+-- name: OpsRunByMediaSlot
+SELECT stage,status,outcome,world_slug
+FROM ops_task_runs WHERE run_key LIKE 'media:'||$1::int::text||':%'
+ORDER BY run_key
+
+-- name: OpsBatchWorld
+SELECT world_slug FROM ops_media_batch_worlds WHERE batch=$1
+
+-- name: OpsMediaStepMapper
+SELECT ops_media_step_stage($1)
+
+-- name: OpsCaptureResearchDuplicateCount
+SELECT count(*)::int
+FROM ops_task_runs r JOIN ops_work_items w
+ ON w.world_slug=r.world_slug AND w.episode=r.episode_first
+WHERE r.status='running' AND r.source_table='episode_capture_attempts'
+ AND r.source_id=(SELECT id::text FROM episode_capture_attempts WHERE topic='ops-capture-running')
+UNION ALL
+SELECT count(*)::int
+FROM ops_task_runs r JOIN ops_work_items w
+ ON w.world_slug=r.world_slug AND w.episode=r.episode_first
+WHERE r.status='running' AND r.source_table='research_runs'
+ AND r.source_id=(SELECT id::text FROM research_runs WHERE topic='ops-research-collect')
+
+-- name: OpsMediaDuplicateCount
+SELECT count(*)::int
+FROM ops_task_runs r JOIN ops_work_items w ON w.item_key='media:1'
+WHERE r.run_key LIKE 'media:1:%' AND r.status='running'
+
+-- name: OpsQueueMapper
+SELECT state,reason FROM ops_policy_queue_work_item($1)
+
+-- name: OpsSetHeartbeat
+INSERT INTO ops_worker_heartbeats(worker_id,loop,role,node,version,expected_seconds,last_tick_at,last_ok_at,consecutive_errors)
+VALUES ('fixture/agent','status','agent','fixture','test',40,$1,$2,$3)
+ON CONFLICT(worker_id,loop) DO UPDATE SET
+ expected_seconds=excluded.expected_seconds,last_tick_at=excluded.last_tick_at,
+ last_ok_at=excluded.last_ok_at,consecutive_errors=excluded.consecutive_errors
+
+-- name: OpsHeartbeatFields
+SELECT last_tick_at,last_ok_at,consecutive_errors,last_error,last_error_at
+FROM ops_worker_heartbeats WHERE worker_id=$1 AND loop=$2
+
+-- name: OpsSnapshotCount
+SELECT count(*)::int FROM ops_daily_snapshots WHERE day=$1::date
+
+-- name: OpsSnapshotDefinitions
+SELECT count(*)::int FROM ops_daily_snapshots WHERE day=$1::date AND definition=1
+
+-- name: OpsSnapshotExpectedCount
+SELECT 1+(SELECT count(*) FROM reader_knowledge_inventory)
+
+-- name: OpsMigrationState
+SELECT (SELECT count(*) FROM knowledge_migrations WHERE version='059.sql'),
+       (SELECT count(*) FROM ops_stages),
+       (SELECT count(*) FROM ops_media_batch_worlds)
+
+-- name: OpsExistingMediaCandidateCount
+SELECT count(*)::int FROM media_candidates
+
+-- name: ResetOpsMigration059
+DROP VIEW ops_work_items;
+DROP VIEW ops_task_runs;
+DROP FUNCTION ops_seed_media_batch_worlds();
+DROP FUNCTION ops_media_step_stage(text);
+DROP FUNCTION ops_policy_queue_work_item(text);
+DROP TABLE ops_worker_heartbeats;
+DROP TABLE ops_daily_snapshots;
+DROP TABLE ops_media_batch_worlds;
+DROP TABLE ops_stages;
+DELETE FROM knowledge_migrations WHERE version='059.sql'

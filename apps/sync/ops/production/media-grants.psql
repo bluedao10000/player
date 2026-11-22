@@ -10,6 +10,7 @@ GRANT SELECT ON knowledge_migrations, episode_plans, episode_art_jobs,
   episode_source_captures, episode_inventory_snapshots TO folio_media;
 GRANT INSERT, UPDATE ON media_steps, edition_reader_art, scope_heads, model_calls,
   episode_source_captures TO folio_media;
+GRANT INSERT, UPDATE ON ops_worker_heartbeats TO folio_media;
 GRANT UPDATE ON media_candidates TO folio_media;
 GRANT UPDATE (policy) ON research_topics TO folio_media;
 GRANT UPDATE (image) ON work_worlds TO folio_media;

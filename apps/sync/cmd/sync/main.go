@@ -41,7 +41,9 @@ func main() {
 	}
 	defer db.Close()
 	if *lane != "" {
-		scheduler.RunLane(ctx, db, *lane, cfg.AgentURL)
+		if err := scheduler.RunLane(ctx, db, *lane, cfg.AgentURL); err != nil {
+			log.Fatal(err)
+		}
 		return
 	}
 	if *resumeImages != "" {

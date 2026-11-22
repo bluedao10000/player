@@ -247,6 +247,9 @@ func registerEdition(ctx context.Context, tx pgx.Tx, w editionPlan) error {
 		if _, err = tx.Exec(ctx, queries.RegisterEditionWorld, work, v, w.World, w.Title, w.Edition, w.Intro); err != nil {
 			return err
 		}
+		if _, err = tx.Exec(ctx, queries.SeedRegisteredEditionMediaBatchWorlds); err != nil {
+			return err
+		}
 		if _, err = tx.Exec(ctx, queries.AppendHomeSlot, work); err != nil {
 			return err
 		}

@@ -2,7 +2,9 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,51 +16,70 @@ import (
 
 // Split the episode scheduler by the location of its model gateway and artwork.
 // Existing single-node deployments retain their original scheduler.
-func RunLane(ctx context.Context, db *pgxpool.Pool, lane, agent string) {
+func RunLane(ctx context.Context, db *pgxpool.Pool, lane, agent string) error {
 	if agent == "" || (lane != "research" && lane != "media") {
-		log.Fatal("episode lane requires a local Pi URL and research or media role")
+		return errors.New("episode lane requires a local Pi URL and research or media role")
+	}
+	node, err := requireNodeName()
+	if err != nil {
+		return err
+	}
+	role := lane + "-lane"
+	var jobs sync.WaitGroup
+	defer jobs.Wait()
+	startAgentStatusLoop(ctx, db, node, agent, &jobs)
+	if lane == "research" {
+		startDailySnapshotLoop(ctx, db, node, role, &jobs)
 	}
 	go func() {
 		if err := serveBudget(ctx, db); err != nil && ctx.Err() == nil {
-			log.Fatal(err)
+			log.Printf("episode budget server: %v", err)
 		}
 	}()
-	run := func(name string, fn func(context.Context) error) {
-		if err := fn(ctx); err != nil && ctx.Err() == nil {
-			log.Printf("%s: %v", name, err)
-		}
+	maintenanceReporter := newLoopReporter(db, node, role, "maintenance", time.Minute, false)
+	workLoop := "research"
+	if lane == "media" {
+		workLoop = "media"
 	}
+	workReporter := newLoopReporter(db, node, role, workLoop, 5*time.Second, false)
+	usageReporter := newLoopReporter(db, node, role, "usage", 5*time.Second, false)
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	var nextMaintenance time.Time
 	for ctx.Err() == nil {
 		if time.Now().After(nextMaintenance) {
+			var cycleErr error
 			if lane == "research" {
-				run("observe reader release", func(ctx context.Context) error { _, err := db.Exec(ctx, queries.CompleteReleasedPlans); return err })
-				run("inspect production scope", func(ctx context.Context) error { _, err := db.Exec(ctx, queries.InspectPlanInventory); return err })
-				run("admit approved gaps", func(ctx context.Context) error { return knowledge.AdmitEpisode(ctx, db) })
+				_, err := db.Exec(ctx, queries.CompleteReleasedPlans)
+				addCycleError(ctx, &cycleErr, "observe reader release", err)
+				_, err = db.Exec(ctx, queries.InspectPlanInventory)
+				addCycleError(ctx, &cycleErr, "inspect production scope", err)
+				addCycleError(ctx, &cycleErr, "admit approved gaps", knowledge.AdmitEpisode(ctx, db))
 			} else {
-				run("acceptance", func(ctx context.Context) error { return knowledge.AcceptPlannedEpisodes(ctx, db) })
+				addCycleError(ctx, &cycleErr, "acceptance", knowledge.AcceptPlannedEpisodes(ctx, db))
 			}
+			maintenanceReporter.record(ctx, cycleErr, nil)
 			nextMaintenance = time.Now().Add(time.Minute)
 		}
+		var workErr error
 		if lane == "research" {
-			run("resume budget wait", func(ctx context.Context) error { _, err := db.Exec(ctx, queries.ResumeBudgetWait); return err })
-			run("draft episode plan", func(ctx context.Context) error { return draftPlan(ctx, db, agent) })
-			run("episode configuration", func(ctx context.Context) error { return prepareConfiguration(ctx, db, agent) })
-			run("observe local acceptance", func(ctx context.Context) error {
-				_, err := db.Exec(ctx, queries.Configuration["ObserveLocalAcceptance"])
-				return err
-			})
-			run("research", func(ctx context.Context) error { return knowledge.ResearchIfDue(ctx, db, false) })
+			_, err := db.Exec(ctx, queries.ResumeBudgetWait)
+			addCycleError(ctx, &workErr, "resume budget wait", err)
+			addCycleError(ctx, &workErr, "draft episode plan", draftPlan(ctx, db, agent))
+			addCycleError(ctx, &workErr, "episode configuration", prepareConfiguration(ctx, db, agent))
+			_, err = db.Exec(ctx, queries.Configuration["ObserveLocalAcceptance"])
+			addCycleError(ctx, &workErr, "observe local acceptance", err)
+			addCycleError(ctx, &workErr, "research", knowledge.ResearchIfDue(ctx, db, false))
 		} else {
-			run("media", func(ctx context.Context) error { return knowledge.SyncMedia(ctx, db, agent) })
+			addCycleError(ctx, &workErr, "media", knowledge.SyncMedia(ctx, db, agent))
 		}
-		run("usage", func(ctx context.Context) error { return modelusage.Pull(ctx, db, agent) })
+		workReporter.record(ctx, workErr, nil)
+		reportLoop(ctx, usageReporter, "usage", modelusage.Pull(ctx, db, agent))
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case <-ticker.C:
 		}
 	}
+	return nil
 }

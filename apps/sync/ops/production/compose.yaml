@@ -17,6 +17,7 @@ services:
       EPISODE_CALL_BUDGET: required
       AGENT_HOST: 127.0.0.1
       AGENT_DB_PATH: /state/agent.sqlite
+      APP_VERSION: ${APP_VERSION:-dev}
       MAGPIE_BASE_URL: http://127.0.0.1:3425/v1
       CONTENT_AI_MODE: magpie
       MAGPIE_CONTENT_MODEL: volcengine/kimi-k3.1-pro
@@ -34,6 +35,7 @@ services:
       EPISODE_CALL_BUDGET: required
       AGENT_HOST: 127.0.0.1
       AGENT_DB_PATH: /state/agent.sqlite
+      APP_VERSION: ${APP_VERSION:-dev}
     env_file:
       - path: ./pi.env
         required: false

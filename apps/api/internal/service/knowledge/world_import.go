@@ -182,6 +182,9 @@ func importWorld(ctx context.Context, conn *pgx.Conn, s source, run string, st *
 		if e != nil {
 			return e
 		}
+		if _, e = tx.Exec(ctx, queries.SeedImportedWorldMediaBatchWorlds); e != nil {
+			return e
+		}
 		_, e = tx.Exec(ctx, queries.SetHomeSlot, w.Position, work)
 		if e != nil {
 			return e

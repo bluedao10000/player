@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import sharp from 'sharp'
 import { portraits } from './bebop-portraits.ts'
 import { bebopArt, casinoArt } from '@anime/shared/media'
+import { MEDIA_TASK_KIND } from './executions.ts'
 import { BACKGROUND_CONTEXT as ctx } from '@earendil-works/chord/context'
 import {
   defineExtension,
@@ -559,7 +560,7 @@ async function review(j: Job): Promise<Result> {
 }
 
 const task = defineTask<Job, { phase: 'run' }, Result>({
-  name: 'tidepost.media-candidate',
+  name: MEDIA_TASK_KIND,
   version: 1,
   initial: () => ({ phase: 'run' }),
   phases: {

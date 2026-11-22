@@ -1,0 +1,104 @@
+-- name: HeartbeatSuccess
+INSERT INTO ops_worker_heartbeats(
+ worker_id,loop,role,node,version,expected_seconds,last_tick_at,last_ok_at,executions
+) VALUES($1,$2,$3,$4,$5,$6,now(),now(),$7::jsonb)
+ON CONFLICT(worker_id,loop) DO UPDATE SET
+ role=excluded.role,node=excluded.node,version=excluded.version,
+ expected_seconds=excluded.expected_seconds,last_tick_at=now(),last_ok_at=now(),
+ consecutive_errors=0,executions=excluded.executions
+
+-- name: HeartbeatFailure
+INSERT INTO ops_worker_heartbeats(
+ worker_id,loop,role,node,version,expected_seconds,last_tick_at,last_error,last_error_at,consecutive_errors
+) VALUES($1,$2,$3,$4,$5,$6,now(),$7,now(),$8)
+ON CONFLICT(worker_id,loop) DO UPDATE SET
+ role=excluded.role,node=excluded.node,version=excluded.version,
+ expected_seconds=excluded.expected_seconds,last_tick_at=now(),
+ last_error=excluded.last_error,last_error_at=now(),
+ consecutive_errors=excluded.consecutive_errors
+
+-- name: AgentHeartbeatFailure
+INSERT INTO ops_worker_heartbeats(
+ worker_id,loop,role,node,version,expected_seconds,last_tick_at,last_error,last_error_at,consecutive_errors
+) VALUES($1,$2,$3,$4,$5,$6,now(),$7,now(),$8)
+ON CONFLICT(worker_id,loop) DO UPDATE SET
+ last_error=excluded.last_error,
+ last_error_at=now(),consecutive_errors=excluded.consecutive_errors
+
+-- name: HeartbeatStatusAt
+SELECT CASE
+ WHEN last_ok_at IS NULL OR last_ok_at < $3::timestamptz
+      - GREATEST(expected_seconds*3,120)*interval '1 second' THEN 'offline'
+ WHEN consecutive_errors>=3 THEN 'online_error'
+ ELSE 'online'
+END
+FROM ops_worker_heartbeats
+WHERE worker_id=$1 AND loop=$2
+
+-- name: TakeDailySnapshot
+WITH inventory_totals AS (
+ SELECT jsonb_build_object(
+  'characters',coalesce(sum((card->>'characters')::int),0),
+  'portraits',coalesce(sum((card->>'portraits')::int),0),
+  'chapters',coalesce(sum((card->>'chapters')::int),0),
+  'chapterImages',coalesce(sum((card->>'chapter_images')::int),0),
+  'storylines',coalesce(sum((card->>'storylines')::int),0),
+  'scenes',coalesce(sum((card->>'scenes')::int),0),
+  'locations',coalesce(sum((card->>'settings')::int),0)
+ ) AS metrics
+ FROM reader_knowledge_inventory
+), type_totals AS (
+ SELECT type,count(*) AS total
+ FROM works WHERE active
+ GROUP BY type
+), registered AS (
+ SELECT world_slug,count(*)::int AS total
+ FROM episode_plans GROUP BY world_slug
+), accepted AS (
+ SELECT a.edition_slug AS world_slug,count(DISTINCT episode)::int AS total
+ FROM scope_heads h
+ JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest AND a.passed
+ CROSS JOIN LATERAL generate_series(a.scope_first,a.scope_last) episode
+ GROUP BY a.edition_slug
+), released AS (
+ SELECT p.world_slug,count(DISTINCT p.number)::int AS total
+ FROM reader_release_attempts r
+ JOIN episode_plans p ON p.topic=r.topic
+ WHERE r.target_id IS NOT NULL
+ GROUP BY p.world_slug
+), world_metrics AS (
+ SELECT i.slug AS scope,
+  jsonb_build_object(
+   'worldSlug',i.slug,
+   'knowledge',jsonb_build_object(
+    'characters',coalesce((i.card->>'characters')::int,0),
+    'portraits',coalesce((i.card->>'portraits')::int,0),
+    'chapters',coalesce((i.card->>'chapters')::int,0),
+    'chapterImages',coalesce((i.card->>'chapter_images')::int,0),
+    'storylines',coalesce((i.card->>'storylines')::int,0),
+    'scenes',coalesce((i.card->>'scenes')::int,0),
+    'locations',coalesce((i.card->>'settings')::int,0)
+   ),
+   'registeredEpisodes',coalesce(reg.total,0),
+   'acceptedEpisodes',coalesce(acc.total,0),
+   'releasedEpisodes',coalesce(rel.total,0)
+  ) AS metrics
+ FROM reader_knowledge_inventory i
+ LEFT JOIN registered reg ON reg.world_slug=i.slug
+ LEFT JOIN accepted acc ON acc.world_slug=i.slug
+ LEFT JOIN released rel ON rel.world_slug=i.slug
+), all_metrics AS (
+ SELECT jsonb_build_object(
+  'activeWorks',(SELECT count(*) FROM works WHERE active),
+  'workTypes',(SELECT coalesce(jsonb_agg(jsonb_build_object('type',type,'count',total)
+                       ORDER BY type NULLS LAST),'[]'::jsonb) FROM type_totals),
+  'publishedWorlds',(SELECT count(*) FROM published_worlds),
+  'knowledge',inventory_totals.metrics
+ ) AS metrics
+ FROM inventory_totals
+)
+INSERT INTO ops_daily_snapshots(day,scope,definition,metrics)
+SELECT $1::date,'all',1,metrics FROM all_metrics
+UNION ALL
+SELECT $1::date,scope,1,metrics FROM world_metrics
+ON CONFLICT(day,scope) DO NOTHING

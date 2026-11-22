@@ -24,14 +24,25 @@ type Options struct {
 func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options) error {
 	var jobs sync.WaitGroup
 	defer jobs.Wait()
+	var node string
+	if !options.Once && !options.Research {
+		var err error
+		node, err = requireNodeName()
+		if err != nil {
+			return err
+		}
+		startDailySnapshotLoop(ctx, db, node, "sync", &jobs)
+		if cfg.AgentURL != "" {
+			startAgentStatusLoop(ctx, db, node, cfg.AgentURL, &jobs)
+		}
+	}
 	if !options.Once && !options.Research {
 		base := cfg.AgentURL
 		if base != "" {
+			reporter := newLoopReporter(db, node, "sync", "editorial", 2*time.Second, false)
 			jobs.Go(func() {
 				for ctx.Err() == nil {
-					if err := knowledge.ProcessEditorial(ctx, db, base); err != nil && ctx.Err() == nil {
-						log.Printf("editorial: %v", err)
-					}
+					reportLoop(ctx, reporter, "editorial", knowledge.ProcessEditorial(ctx, db, base))
 					select {
 					case <-ctx.Done():
 						return
@@ -47,24 +58,20 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 				}
 			})
 			jobs.Go(func() {
+				reporter := newLoopReporter(db, node, "sync", "episode-planner", 15*time.Second, false)
 				ticker := time.NewTicker(15 * time.Second)
 				defer ticker.Stop()
 				for ctx.Err() == nil {
-					if _, err := db.Exec(ctx, queries.InspectPlanInventory); err != nil && ctx.Err() == nil {
-						log.Printf("episode inventory: %v", err)
-					}
-					if err := draftPlan(ctx, db, base); err != nil && ctx.Err() == nil {
-						log.Printf("episode planner: %v", err)
-					}
-					if err := prepareConfiguration(ctx, db, base); err != nil && ctx.Err() == nil {
-						log.Printf("episode configuration: %v", err)
-					}
-					if _, err := db.Exec(ctx, queries.ResumeBudgetWait); err != nil && ctx.Err() == nil {
-						log.Printf("episode budget retry: %v", err)
-					}
-					if _, err := db.Exec(ctx, queries.Configuration["ObserveLocalAcceptance"]); err != nil && ctx.Err() == nil {
-						log.Printf("episode local acceptance: %v", err)
-					}
+					var cycleErr error
+					_, err := db.Exec(ctx, queries.InspectPlanInventory)
+					addCycleError(ctx, &cycleErr, "episode inventory", err)
+					addCycleError(ctx, &cycleErr, "episode planner", draftPlan(ctx, db, base))
+					addCycleError(ctx, &cycleErr, "episode configuration", prepareConfiguration(ctx, db, base))
+					_, err = db.Exec(ctx, queries.ResumeBudgetWait)
+					addCycleError(ctx, &cycleErr, "episode budget retry", err)
+					_, err = db.Exec(ctx, queries.Configuration["ObserveLocalAcceptance"])
+					addCycleError(ctx, &cycleErr, "episode local acceptance", err)
+					reporter.record(ctx, cycleErr, nil)
 					select {
 					case <-ctx.Done():
 						return
@@ -74,15 +81,14 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 			})
 		}
 		jobs.Go(func() {
+			reporter := newLoopReporter(db, node, "sync", "usage", 5*time.Second, false)
 			for ctx.Err() == nil {
-				if e := modelusage.Replay(ctx, db, modelusage.RecoveryDir()); e != nil && ctx.Err() == nil {
-					log.Printf("model receipt recovery: %v", e)
-				}
+				var cycleErr error
+				addCycleError(ctx, &cycleErr, "model receipt recovery", modelusage.Replay(ctx, db, modelusage.RecoveryDir()))
 				if base != "" {
-					if e := modelusage.Pull(ctx, db, base); e != nil && ctx.Err() == nil {
-						log.Printf("model usage sync: %v", e)
-					}
+					addCycleError(ctx, &cycleErr, "model usage sync", modelusage.Pull(ctx, db, base))
 				}
+				reporter.record(ctx, cycleErr, nil)
 				select {
 				case <-ctx.Done():
 					return
@@ -92,10 +98,9 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 		})
 
 		jobs.Go(func() {
+			reporter := newLoopReporter(db, node, "sync", "episode-plans", 45*time.Second, false)
 			for ctx.Err() == nil {
-				if e := knowledge.LoadEpisodePlans(ctx, db); e != nil {
-					log.Printf("episode plans: %v", e)
-				}
+				reportLoop(ctx, reporter, "episode plans", knowledge.LoadEpisodePlans(ctx, db))
 				select {
 				case <-ctx.Done():
 					return
@@ -104,10 +109,9 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 			}
 		})
 		jobs.Go(func() {
+			reporter := newLoopReporter(db, node, "sync", "research", 8*time.Second, false)
 			for ctx.Err() == nil {
-				if e := knowledge.ResearchIfDue(ctx, db, false); e != nil {
-					log.Printf("episode research: %v", e)
-				}
+				reportLoop(ctx, reporter, "episode research", knowledge.ResearchIfDue(ctx, db, false))
 				select {
 				case <-ctx.Done():
 					return
@@ -116,18 +120,15 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 			}
 		})
 		jobs.Go(func() {
+			reporter := newLoopReporter(db, node, "sync", "acceptance", time.Minute, false)
 			ticker := time.NewTicker(time.Minute)
 			defer ticker.Stop()
 			for {
-				if e := knowledge.AcceptPlannedEpisodes(ctx, db); e != nil && ctx.Err() == nil {
-					log.Printf("configured acceptance: %v", e)
-				}
-				if err := knowledge.AcceptEpisodeScope(ctx, db); err != nil && ctx.Err() == nil {
-					log.Printf("episode acceptance: %v", err)
-				}
-				if err := knowledge.AcceptThirdEpisode(ctx, db); err != nil && ctx.Err() == nil {
-					log.Printf("incremental acceptance: %v", err)
-				}
+				var cycleErr error
+				addCycleError(ctx, &cycleErr, "configured acceptance", knowledge.AcceptPlannedEpisodes(ctx, db))
+				addCycleError(ctx, &cycleErr, "episode acceptance", knowledge.AcceptEpisodeScope(ctx, db))
+				addCycleError(ctx, &cycleErr, "incremental acceptance", knowledge.AcceptThirdEpisode(ctx, db))
+				reporter.record(ctx, cycleErr, nil)
 				select {
 				case <-ctx.Done():
 					return
@@ -138,12 +139,11 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 	}
 	if !options.Once && !options.Research && cfg.MediaEnabled {
 		jobs.Go(func() {
+			reporter := newLoopReporter(db, node, "sync", "media", 4*time.Second, false)
 			ticker := time.NewTicker(4 * time.Second)
 			defer ticker.Stop()
 			for {
-				if e := knowledge.SyncMedia(ctx, db, cfg.AgentURL); e != nil && ctx.Err() == nil {
-					log.Printf("media: %v", e)
-				}
+				reportLoop(ctx, reporter, "media", knowledge.SyncMedia(ctx, db, cfg.AgentURL))
 				select {
 				case <-ctx.Done():
 					return
@@ -158,21 +158,21 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 		}
 		return knowledge.ResearchIfDue(ctx, db, true)
 	}
+	sourceReporter := newLoopReporter(db, node, "sync", "source-sync", time.Minute, false)
+	qualityReporter := newLoopReporter(db, node, "sync", "quality-scan", time.Minute, false)
 	for {
 		err := knowledge.Sweep(ctx, db, options.Source, options.Once, options.Refresh)
+		reportLoop(ctx, sourceReporter, "source sync", err)
 		if err != nil && ctx.Err() == nil {
 			if options.Once {
 				return err
 			}
-			log.Print(err)
 		}
 		if options.Once || ctx.Err() != nil {
 			return nil
 		}
 
-		if err = knowledge.QualityIfDue(ctx, db); err != nil && ctx.Err() == nil {
-			log.Printf("scheduled quality: %v", err)
-		}
+		reportLoop(ctx, qualityReporter, "scheduled quality", knowledge.QualityIfDue(ctx, db))
 		select {
 		case <-ctx.Done():
 			return nil

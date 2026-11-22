@@ -13,6 +13,7 @@ import { editText } from './editor.ts'
 import { readEpisodeDocuments } from './episode-plan.ts'
 import { research, page } from './research.ts'
 import { knowledgeTools } from './knowledge.ts'
+import { ExecutionCounters, readAgentStatus } from './executions.ts'
 import { health } from '@anime/shared'
 
 const path = process.env.AGENT_DB_PATH ?? join(homedir(), '.local/share/folio/agent.sqlite')
@@ -24,11 +25,31 @@ registry.install(knowledgeTools)
 registry.install(mediaExtension)
 const harness = await Harness.open(storage, { models: createModels(), registry }, BACKGROUND_CONTEXT)
 harness.resume()
+const appVersion = process.env.APP_VERSION ?? 'dev'
+const startedAt = new Date().toISOString()
+const executionCounters = new ExecutionCounters()
 
 const server = createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(health('agent')))
+    return
+  }
+  if (req.method === 'GET' && req.url === '/internal/status') {
+    try {
+      const status = await readAgentStatus(
+        harness,
+        BACKGROUND_CONTEXT,
+        appVersion,
+        startedAt,
+        executionCounters,
+      )
+      res
+        .writeHead(200, { 'Content-Type': 'application/json' })
+        .end(JSON.stringify(status))
+    } catch {
+      res.writeHead(503).end('status unavailable')
+    }
     return
   }
   if (req.url === '/internal/model-usage' && req.method === 'GET') {
@@ -89,6 +110,7 @@ const server = createServer(async (req, res) => {
     req.method === 'POST' &&
     req.url === '/internal/editor/evidence/naruto-1'
   ) {
+    const stopExecution = executionCounters.start('editorial')
     // Only the two registered episode origins may be fetched; editorial instructions never provide a URL.
     try {
       let input = ''
@@ -116,11 +138,14 @@ const server = createServer(async (req, res) => {
     } catch (e) {
       const msg = e instanceof Error ? e.message : '来源暂不可用'
       res.writeHead(/编号|标题|原文不完整/.test(msg) ? 422 : 503).end()
+    } finally {
+      stopExecution()
     }
     return
   }
   const configuration = /^\/internal\/episode-configuration\/([0-9a-f-]{36})$/.exec(req.url ?? '')
   if (req.method === 'POST' && configuration) {
+    const stopExecution = executionCounters.start('configuration')
     try {
       let body = ''
       for await (const part of req) {
@@ -131,6 +156,8 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result))
     } catch {
       res.writeHead(502).end()
+    } finally {
+      stopExecution()
     }
     return
   }
@@ -139,6 +166,11 @@ const server = createServer(async (req, res) => {
       req.url ?? '',
     )
   if (req.method === 'POST' && edit) {
+    const stopExecution = executionCounters.start(
+      edit[4] === 'planning' || edit[4] === 'configuration'
+        ? 'configuration'
+        : 'editorial',
+    )
     try {
       const parts: Buffer[] = []
       let bytes = 0
@@ -170,11 +202,14 @@ const server = createServer(async (req, res) => {
               e instanceof Error ? e.message.slice(0, 240) : '编辑模型调用失败',
           }),
         )
+    } finally {
+      stopExecution()
     }
     return
   }
   const route = /^\/internal\/research\/([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\/(collect|write)$/.exec(req.url ?? '')
   if (req.method === 'POST' && route) {
+    const stopExecution = executionCounters.start('research')
     try {
       const chunks: Buffer[] = []
       let size = 0
@@ -188,6 +223,8 @@ const server = createServer(async (req, res) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : '取证失败'
       res.writeHead(502, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: message.slice(0, 200) }))
+    } finally {
+      stopExecution()
     }
     return
   }

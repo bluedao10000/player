@@ -31,6 +31,15 @@ SELECT has_hero,portraits,chapter_images FROM work_knowledge_status WHERE work_i
 -- name: TidepostVersion
 SELECT work_id::text,version_id FROM work_worlds WHERE slug='tidepost'
 
+-- name: OpsWorldMappingCount
+SELECT count(*)::int FROM ops_media_batch_worlds
+
+-- name: TidepostOpsMappingCount
+SELECT count(*)::int FROM ops_media_batch_worlds WHERE batch='mio' AND world_slug='tidepost'
+
+-- name: ForceWorldReimport
+UPDATE knowledge_sources SET current_version='ops-forced-reimport' WHERE name='tidepost-original'
+
 -- name: RemoveSceneCast
 DELETE FROM scene_appearances WHERE v=$1
 
