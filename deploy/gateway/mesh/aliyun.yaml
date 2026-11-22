@@ -1,0 +1,20 @@
+# Overlay on the enrolled node's existing folio-mesh Compose project.
+x-socket: &socket
+  image: alpine/socat@sha256:71131702f671a88b3808a70b7330f9679cd9b9933adcafadc191508edfe55bba
+  network_mode: service:mesh
+  user: "1000:1000"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  restart: unless-stopped
+  volumes: [/var/lib/player-edge/mesh:/mesh]
+services:
+  edge-web:
+    <<: *socket
+    command: ["UNIX-LISTEN:/mesh/web.sock,mode=0600,unlink-early,fork", "TCP4:${GZ_MESH_IP:?required}:${MESH_WEB_PORT:?required},connect-timeout=3"]
+  edge-api:
+    <<: *socket
+    command: ["UNIX-LISTEN:/mesh/api.sock,mode=0600,unlink-early,fork", "TCP4:${GZ_MESH_IP:?required}:${MESH_API_PORT:?required},connect-timeout=3"]
+  edge-image:
+    <<: *socket
+    command: ["UNIX-LISTEN:/mesh/image.sock,mode=0600,unlink-early,fork", "TCP4:${GZ_MESH_IP:?required}:${MESH_IMAGE_PORT:?required},connect-timeout=3"]

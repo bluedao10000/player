@@ -1,0 +1,23 @@
+upstream model_gateway { server unix:/relay/model.sock; keepalive 8; }
+server {
+    listen 127.0.0.1:18080;
+    access_log off;
+    client_max_body_size 32m;
+    location /v1/ {
+        proxy_ssl_name ${SV_TLS_NAME};
+        proxy_ssl_server_name on;
+        proxy_ssl_verify on;
+        proxy_ssl_trusted_certificate /tls/ca.pem;
+        proxy_ssl_certificate /tls/client.pem;
+        proxy_ssl_certificate_key /tls/client.key;
+        proxy_http_version 1.1;
+        proxy_set_header Host ${SV_TLS_NAME};
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_next_upstream off;
+        proxy_read_timeout 300s;
+        proxy_pass https://model_gateway;
+    }
+    location / { return 404; }
+}

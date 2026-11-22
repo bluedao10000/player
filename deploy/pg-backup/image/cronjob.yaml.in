@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: guangzhou-image-restore}
+spec:
+  schedule: "45 3 * * *"
+  timeZone: Asia/Shanghai
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 10800
+      backoffLimit: 2
+      template:
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          nodeSelector: {kubernetes.io/hostname: "${BACKUP_NODE}"}
+          securityContext: {runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
+          containers:
+            - name: restore
+              image: "${IMAGE_BACKUP_IMAGE}"
+              securityContext: {readOnlyRootFilesystem: true, allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+              volumeMounts:
+                - {name: snapshots, mountPath: /snapshots}
+                - {name: ssh, mountPath: /ssh, readOnly: true}
+                - {name: mesh, mountPath: /mesh, readOnly: true}
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: snapshots
+              persistentVolumeClaim: {claimName: image-snapshots}
+            - name: ssh
+              secret: {secretName: image-backup-ssh, defaultMode: 0440}
+            - name: mesh
+              hostPath: {path: "${IMAGE_BACKUP_SOCKET_DIR}", type: Directory}
+            - name: tmp
+              emptyDir: {}

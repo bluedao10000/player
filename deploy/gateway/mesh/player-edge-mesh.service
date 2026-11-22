@@ -1,0 +1,13 @@
+[Unit]
+Description=Player private Mesh connector and edge sockets
+Requires=docker.service
+After=docker.service network-online.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/etc/player-mesh
+ExecStartPre=/usr/bin/docker compose -f compose.yaml -f aliyun.yaml up -d --no-recreate mesh
+ExecStart=/usr/bin/docker compose -f compose.yaml -f aliyun.yaml up -d --no-deps edge-web edge-api edge-image
+ExecStop=/usr/bin/docker compose -f compose.yaml -f aliyun.yaml stop edge-web edge-api edge-image
+[Install]
+WantedBy=multi-user.target

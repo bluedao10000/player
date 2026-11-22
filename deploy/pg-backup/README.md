@@ -40,3 +40,12 @@ pg_dump 与逐表计数使用同一导出快照。任务写入独立快照卷，
    ```
 
 4. 部署新版内部 Gin 与 H5，确认后台接口 `GET /api/v1/admin/knowledge/backup-status` 需要管理员鉴权。查看 `kubectl -n folio-pg-backup get jobs` 并核对页面的最近采集和任务时间。
+
+## 广州图片包与读者库
+
+读者库复用 backup.sh 的一致快照流程，显式配置 SOURCE_DATABASE 和 SOURCE_USER，使用独立 namespace、目标 PostgreSQL 和 PVC。制作库原有定时任务保持自己的身份与恢复库。
+
+1. 广州按[图片手册](../../apps/image/README.md#备份与恢复)在私有暂存区生成新包。目录名使用 UTC 的 image-YYYYMMDDTHHMMSSZ；确认 COMPLETE 后在同一文件系统将目录 rename 到只读导出根，将仅含该目录名的临时文件 rename 为 LATEST。保留拉取窗口内的源包。广州先验证 rrsync 及其脚本解释器可执行。sshd 的专用受限密钥固定执行 rrsync -ro 导出根，强制 restrict 和对端来源，用只读 Unix 身份运行。导出目录只包含完整包和 LATEST。
+2. 在广州和 K3s 的现有 Mesh 项目叠加[图片备份中继](../gateway/mesh/image-backup.yaml)，只启用本节点对应服务。明确填写 GZ_PRIVATE_SSH_IP、GZ_PRIVATE_SSH_PORT（从广州 mesh 命名空间可达的私有 sshd）、双方已登记 /32 和 GZ_IMAGE_BACKUP_PORT。K3s 的 IMAGE_BACKUP_SOCKET_DIR 由 UID 10001 独占，主机上先创建该目录。只放行 BACKUP_MESH_IP 到广州此端口。
+3. 从仓库根目录构建备份镜像：`docker build --build-arg IMAGE_RUNTIME="$VERIFIED_IMAGE_RUNTIME" -t "$IMAGE_BACKUP_IMAGE" deploy/pg-backup/image`。使用与生产一致的已验收图片运行时，归档构建后镜像摘要。准备独立 PVC image-snapshots，容量覆盖七份成功包、进行中的第八份及恢复临时空间；Secret image-backup-ssh 含 config、专用密钥、known_hosts。config 的 Host source 使用 ProxyCommand /usr/bin/nc -U /mesh/image-backup.sock、HostKeyAlias、StrictHostKeyChecking yes、IdentityFile、UserKnownHostsFile、IdentitiesOnly yes 和专用只读 User。通过独立途径核对主机公钥。
+4. 对 [CronJob 模板](image/cronjob.yaml.in) 仅替换 BACKUP_NODE、IMAGE_BACKUP_IMAGE、IMAGE_BACKUP_SOCKET_DIR，先在独立命名空间验证配置，再创建一次手动作业验收。每日作业使用同一快照校验对象清单和所有摘要，启动恢复的 Axum 实例，以临时签名密钥读取样本资产并比对 SHA-256，通过后才纳入轮换。SSH、传输、校验或恢复失败时保留上次成功包。旧预览 key、旧 library 和生产签名密钥独立备份，另行定期从受限保管位置恢复并验证既有签名。[拉取与恢复脚本](image/pull-verify.sh)

@@ -1,0 +1,16 @@
+# Add to the Guangzhou mesh configuration at backup cutover.
+services:
+  mesh:
+    networks:
+      backup: {}
+  pg-export:
+    image: alpine/socat@sha256:71131702f671a88b3808a70b7330f9679cd9b9933adcafadc191508edfe55bba
+    network_mode: service:mesh
+    restart: unless-stopped
+    read_only: true
+    volumes: [./postgres-resolv.conf:/etc/resolv.conf:ro]
+    user: "1000"
+    cap_drop: [ALL]
+    command: ["TCP4-LISTEN:${GZ_BACKUP_PORT:?required},bind=${GZ_MESH_IP:?required},range=${BACKUP_MESH_IP:?required}/32,reuseaddr,fork", "TCP4:gz-pg-backup-source:5432"]
+networks:
+  backup: {external: true, name: "${GZ_BACKUP_NETWORK:?required}"}

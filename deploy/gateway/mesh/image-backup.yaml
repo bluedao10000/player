@@ -1,0 +1,18 @@
+# Select the node profile and the individual relay when adding to an existing Mesh project.
+x-relay: &relay
+  image: alpine/socat@sha256:71131702f671a88b3808a70b7330f9679cd9b9933adcafadc191508edfe55bba
+  network_mode: service:mesh
+  restart: unless-stopped
+  user: "10001:10001"
+  read_only: true
+  cap_drop: [ALL]
+services:
+  image-export-listener:
+    <<: *relay
+    profiles: [guangzhou]
+    command: ["TCP4-LISTEN:${GZ_IMAGE_BACKUP_PORT:?required},bind=${GZ_MESH_IP:?required},range=${BACKUP_MESH_IP:?required}/32,reuseaddr,fork", "TCP4:${GZ_PRIVATE_SSH_IP:-127.0.0.1}:${GZ_PRIVATE_SSH_PORT:-22}"]
+  image-export-client:
+    <<: *relay
+    profiles: [backup]
+    volumes: ["${IMAGE_BACKUP_SOCKET_DIR:-/var/lib/player-image-backup/socket}:/mesh"]
+    command: ["UNIX-LISTEN:/mesh/image-backup.sock,mode=0600,unlink-early,fork", "TCP4:${GZ_MESH_IP:?required}:${GZ_IMAGE_BACKUP_PORT:?required},connect-timeout=5"]

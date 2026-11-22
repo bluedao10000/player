@@ -34,7 +34,7 @@ export function ResearchHistory({ runs }: { runs: ResearchRun[] | null }) {
           <ol>
             {r.events?.map((e, i) => (
               <li key={i}>
-                <time>{utc(e.at)}</time> {e.message}
+                <time>{formatClock(e.at)}</time> {e.message}
               </li>
             ))}
           </ol>

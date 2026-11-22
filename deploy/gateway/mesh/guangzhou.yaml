@@ -1,0 +1,31 @@
+# Overlay on the enrolled Guangzhou Mesh project. Preserve its existing networks.
+services:
+  mesh:
+    networks:
+      origin:
+        ipv4_address: ${GZ_EDGE_BRIDGE_IP:?required}
+      transport: {}
+  reader-origin:
+    image: nginx:stable-alpine@sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54193075997b3a97e3
+    network_mode: service:mesh
+    restart: unless-stopped
+    environment:
+      GZ_MESH_IP: ${GZ_MESH_IP:?required}
+      ALI_MESH_IP: ${ALI_MESH_IP:?required}
+      MESH_WEB_PORT: ${MESH_WEB_PORT:?required}
+      MESH_API_PORT: ${MESH_API_PORT:?required}
+      MESH_IMAGE_PORT: ${MESH_IMAGE_PORT:?required}
+      NGINX_ENVSUBST_FILTER: ^(GZ_MESH_IP|ALI_MESH_IP|MESH_.*_PORT)$
+    volumes: [./reader-origin.conf.template:/etc/nginx/templates/default.conf.template:ro]
+  model-client:
+    image: alpine/socat@sha256:71131702f671a88b3808a70b7330f9679cd9b9933adcafadc191508edfe55bba
+    network_mode: service:mesh
+    restart: unless-stopped
+    read_only: true
+    user: "1000:1000"
+    cap_drop: [ALL]
+    volumes:
+      - ${MODEL_SOCKET_DIR:?private directory}:/relay
+    command: ["UNIX-LISTEN:/relay/model.sock,mode=0660,unlink-early,fork", "TCP4:${SV_MESH_IP:?required}:${SV_MODEL_PORT:?required},connect-timeout=3"]
+networks:
+  origin: {external: true, name: "${GZ_EDGE_NETWORK:?required}"}

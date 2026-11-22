@@ -1,0 +1,9 @@
+# Add only after the new snapshot and backup identities are ready.
+services:
+  postgres:
+    networks:
+      backup:
+        aliases: [gz-pg-backup-source]
+      db: {}
+networks:
+  backup: {external: true, name: "${GZ_BACKUP_NETWORK:?dedicated database backup bridge}"}

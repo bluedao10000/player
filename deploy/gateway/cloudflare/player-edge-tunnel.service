@@ -1,0 +1,17 @@
+[Unit]
+Description=Player public edge tunnel
+After=network-online.target docker.service
+Wants=network-online.target
+[Service]
+DynamicUser=yes
+SupplementaryGroups=player-edge
+LoadCredential=tunnel.json:/etc/player-edge/tunnel.json
+ExecStart=/usr/local/bin/cloudflared tunnel --config /etc/player-edge/tunnel.yml --no-autoupdate run
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+[Install]
+WantedBy=multi-user.target

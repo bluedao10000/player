@@ -1,0 +1,171 @@
+name: player-guangzhou
+x-db: &database
+  PGHOST: postgres
+  PGPORT: 5432
+  DATABASE_URL: postgresql:///?sslmode=disable
+  KNOWLEDGE_VERIFY_SCHEMA_ONLY: "true"
+  KNOWLEDGE_ARCHIVE_DIR: /archive
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?bootstrap credential required}
+    networks: [db]
+    volumes: [pg:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  api:
+    build: {context: ../.., dockerfile: apps/api/Dockerfile}
+    restart: unless-stopped
+    env_file: ${READER_ENV_FILE:?reader credentials}
+    environment:
+      <<: *database
+      API_HOST: 0.0.0.0
+      PGDATABASE: ${READER_DB:?required}
+      PGUSER: ${READER_USER:?required}
+      WORKBENCH_LOCAL_ENABLED: "false"
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [db, reader, edge]
+    volumes: [reader-archive:/archive:ro]
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:4311/healthz"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+  web:
+    build: {context: ../.., dockerfile: apps/web/Dockerfile}
+    restart: unless-stopped
+    environment:
+      KNOWLEDGE_API_URL: http://api:4311
+      PLAYER_PUBLIC_ONLY: "true"
+      WEB_TRUSTED_PROXY_IP: ${GZ_EDGE_BRIDGE_IP:?Mesh connector address on dedicated edge bridge}
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [reader, edge]
+    healthcheck:
+      test: ["CMD","node","-e","fetch('http://127.0.0.1:4310/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+  image:
+    extends: {file: ../../apps/image/compose.yaml, service: image}
+    env_file: !override ["${IMAGE_ENV_FILE:?image credentials}"]
+    ports: !reset []
+    networks: [edge, media]
+    volumes:
+      - image-data:/data
+    environment:
+      IMAGE_LEGACY_DIR: ""
+      IMAGE_AI_WORKERS: "0"
+  research-agent:
+    profiles: [workers]
+    build: {context: ../.., dockerfile: apps/agent/Dockerfile}
+    restart: unless-stopped
+    env_file: ${AGENT_ENV_FILE:?gateway identities and model routes}
+    environment:
+      AGENT_HOST: 0.0.0.0
+      AGENT_DB_PATH: /state/agent.sqlite
+      EPISODE_CALL_BUDGET: required
+      EPISODE_BUDGET_URL: http://sync:14328
+      CONTENT_AI_MODE: magpie
+      MEDIA_AI_MODE: direct
+      ORIGINAL_MEDIA_AI_MODE: direct
+      MEDIA_AI_BASE_URL: http://127.0.0.1:18080/v1
+      VISION_AI_BASE_URL: http://127.0.0.1:18080/v1
+    networks: [jobs, media]
+    volumes:
+      - state:/state
+      - media-assets:/media
+      - ../../apps/web/public/art/mio-invitation.webp:/mio-reference.webp:ro
+    healthcheck:
+      test: ["CMD","node","-e","fetch('http://127.0.0.1:4312/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+  model-egress:
+    profiles: [workers]
+    image: nginx:stable-alpine@sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54193075997b3a97e3
+    restart: unless-stopped
+    network_mode: service:research-agent
+    environment:
+      SV_TLS_NAME: ${SV_TLS_NAME:?model gateway certificate DNS name}
+      NGINX_ENVSUBST_FILTER: ^SV_TLS_NAME$
+    volumes:
+      - ./model-egress.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${MODEL_TLS_DIR:?client cert key and server CA}:/tls:ro
+      - ${MODEL_SOCKET_DIR:?private Mesh relay directory}:/relay:ro
+    user: "1000:1000"
+    read_only: true
+    tmpfs: [/etc/nginx/conf.d:uid=1000, /var/cache/nginx:uid=1000, /run:uid=1000]
+  sync: &sync
+    command: ["knowledge-sync", "-episode-lane=research"]
+    profiles: [workers]
+    build: {context: ../.., dockerfile: apps/sync/Dockerfile}
+    restart: unless-stopped
+    env_file: ${SYNC_ENV_FILE:?production database credentials}
+    environment:
+      <<: *database
+      PGDATABASE: ${PRODUCTION_DB:?required}
+      PGUSER: ${PRODUCTION_USER:?required}
+      KNOWLEDGE_RESEARCH_URL: http://research-agent:4312
+      EPISODE_BUDGET_BIND: 0.0.0.0:14328
+      EPISODE_PLAN_DIR: /episode-plans
+    networks: [db, jobs]
+    depends_on:
+      postgres: {condition: service_healthy}
+      research-agent: {condition: service_healthy}
+      model-egress: {condition: service_started}
+    volumes:
+      - production-archive:/archive
+      - media-assets:/media:ro
+      - ${EPISODE_PLAN_DIR:?production plans}:/episode-plans:ro
+      - ../../apps/web/public/art:/reader-art:ro
+  sync-media:
+    <<: *sync
+    command: ["knowledge-sync", "-episode-lane=media"]
+  release-sender:
+    profiles: [release]
+    build: {context: ../.., dockerfile: apps/sync/Dockerfile}
+    command: [reader-release, send]
+    env_file: ${SENDER_ENV_FILE:?publication DSN and public reader URL}
+    environment:
+      READER_SSH_CONFIG: /publish/ssh_config
+      KNOWLEDGE_ARCHIVE_DIR: /archive
+    volumes:
+      - production-archive:/archive:ro
+      - ${PUBLISH_SSH_DIR:?restricted sender identity}:/publish:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    networks: [db, jobs]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  release-receiver:
+    profiles: [release]
+    build: {context: ../.., dockerfile: apps/sync/Dockerfile}
+    command: [reader-release, receive]
+    env_file: ${RELEASE_ENV_FILE:?reader publication role DSN}
+    environment:
+      KNOWLEDGE_ARCHIVE_DIR: /archive
+    volumes: [reader-archive:/archive]
+    networks: [db]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+networks:
+  db: {internal: true}
+  edge: {external: true, name: "${GZ_EDGE_NETWORK:?dedicated Mesh to origin bridge}"}
+  reader: {}
+  media: {}
+  jobs: {}
+volumes:
+  pg: {external: true, name: "${PG_VOLUME:?restored PG17 cluster}"}
+  state: {external: true, name: "${AGENT_VOLUME:?drained Pi state}"}
+  reader-archive: {external: true, name: "${READER_ARCHIVE_VOLUME:?verified published art}"}
+  production-archive: {external: true, name: "${PRODUCTION_ARCHIVE_VOLUME:?production archive}"}
+  media-assets: {external: true, name: "${MEDIA_VOLUME:?media asset volume}"}
+  image-data: {external: true, name: "${IMAGE_VOLUME:?restored independent image volume}"}

@@ -1,0 +1,26 @@
+# Render into SV Nginx http{} inside the Mesh network namespace.
+# The account-aware model service holds supplier keys and enforces scoped gateway tokens.
+upstream model_service { server ${SV_PRIVATE_MODEL_UPSTREAM}; keepalive 8; }
+server {
+    listen ${SV_MESH_IP}:${SV_MODEL_PORT} ssl;
+    ssl_certificate /tls/server.pem;
+    ssl_certificate_key /tls/server.key;
+    ssl_client_certificate /tls/gz-client-ca.pem;
+    ssl_verify_client on;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    allow ${GZ_MESH_IP}/32;
+    deny all;
+    access_log off;
+    client_max_body_size 32m;
+    location /v1/ {
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $proxy_host;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_next_upstream off;
+        proxy_read_timeout 300s;
+        proxy_pass http://model_service;
+    }
+    location / { return 404; }
+}

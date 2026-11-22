@@ -16,7 +16,8 @@ npm run dev:web
 
 | 按需安装 | 入口 |
 |---|---|
-| 公网入口、Tunnel、跨节点 Mesh | [Cloudflare 部署架构](cloudflare/README.md) |
+| 新杭州独立网关、广州业务栈（分期切换） | [网关安装与回滚](gateway/README.md) · [广州部署顺序](guangzhou/README.md) |
+| 既有公网入口、Tunnel、跨节点 Mesh | [Cloudflare 部署架构](cloudflare/README.md) |
 | K3s PostgreSQL 备份及恢复校验 | [备份部署](pg-backup/README.md) |
 | 图片服务及本机 socket 转发 | [systemd 单元](image-service/folio-image.service) |
 | iOS 沙盒账户与验单服务 | [独立 Compose](compose.ios-sandbox.yaml) |

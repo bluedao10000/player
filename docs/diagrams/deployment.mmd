@@ -1,11 +1,12 @@
 flowchart TB
-  reader["H5 与 iOS"] -->|公开 HTTPS| edge["Cloudflare Tunnel / CDN"]
+  reader["H5 与 iOS"] -->|公开 HTTPS| edge["Cloudflare CDN · www"]
   subgraph ali["阿里云杭州"]
     gw["读者入口与网关"] --> site["TanStack SSR 与 Gin"]
     site -->|查询| online[("正式读库与入选图")]
     receive["受限 SSH 接收端"] -->|校验并安装单集定稿| online
   end
-  edge --> gw
+  edge -->|出站 Tunnel 承载回源| gw
+  site -->|32 位旧商户单号通知| legacy["旧 Folio · Worker / D1"]
   subgraph gz["腾讯云广州"]
     text["sync · 盘点、自动登记与文本"] --> pg[("PostgreSQL 制作库")]
     text -->|内部 HTTP| pi["Pi Durable · Magpie Kimi"]
@@ -38,3 +39,4 @@ flowchart TB
 %% push | 定时器处理明确授权的配置。第 10 集经相同接收器执行授权投递。 | apps/sync/cmd/reader-release/send.go
 %% cron | K3s 每日恢复广州制作库快照，校验后轮换归档。 | deploy/pg-backup/backup.sh
 %% local | 工作台只在本地开放，通过 Compose 的本地数据库和 Agent 执行。 | deploy/docker-compose.yml
+%% legacy | www 的支付宝通知由 H5 按商户单号分流，旧单仍在 Folio 验签。 | apps/web/src/routes/api.billing.alipay.notify.ts

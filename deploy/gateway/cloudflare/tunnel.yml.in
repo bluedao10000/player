@@ -1,0 +1,7 @@
+tunnel: TUNNEL_UUID
+credentials-file: /run/credentials/player-edge-tunnel.service/tunnel.json
+metrics: 127.0.0.1:METRICS_PORT
+ingress:
+  - hostname: PUBLIC_HOST
+    service: unix:/run/player-edge/origin.sock
+  - service: http_status:404

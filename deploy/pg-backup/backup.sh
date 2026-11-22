@@ -21,7 +21,7 @@ finish() {
 }
 trap finish EXIT
 (
-  export PGHOST=/source PGDATABASE=folio PGUSER=folio_backup_read
+  export PGHOST=/source PGDATABASE="${SOURCE_DATABASE:-folio}" PGUSER="${SOURCE_USER:-folio_backup_read}"
   PGPASSWORD=$(cat /secrets/source-password)
   export PGPASSWORD
   psql -XqAt -v ON_ERROR_STOP=1 > "$RUN_DIR/counts.tsv" <<'SQL'

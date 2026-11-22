@@ -1,0 +1,10 @@
+[Unit]
+Description=Deliver one authorized episode between Guangzhou production and reader databases
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/player
+ExecStart=/usr/bin/docker compose --env-file /etc/player-gz/settings -f deploy/guangzhou/compose.yaml run --rm --no-deps -T release-sender
+NoNewPrivileges=yes
+PrivateTmp=yes
