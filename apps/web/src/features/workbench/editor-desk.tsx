@@ -563,6 +563,7 @@ function WorkbenchAccount() {
 type PlanInfo = {
   id: string; world: string; first_episode: number; last_episode: number; revision: number
   episodes:{number:number;title:string;scene:string;research?:string;attempt?:number;elapsed:number;retries:number;blocker?:string;error?:string;accepted?:boolean;receipt?:number;href?:string}[]
+  configurations?: { id: string; number: number; finished_at?: string; error?: string; registered: boolean }[]
   calls:{stage:string;actual:number|null;seconds:number|null}[]; stage: string; plan_brief?: string; gaps: number[]; paused_reason?: string; messages: string[]
   consumed: number; reserved: number; token_limit: number
 }
@@ -604,10 +605,11 @@ function ProductionPlans() {
       <label>制作要求<textarea name="instruction" required maxLength={1400} defaultValue="按缺口补集，五维验收通过后发布。"/></label>
       <button disabled={busy}>登记范围</button></form>
       {desk.plans.map(p=><article key={p.id}><h3>{desk.works.find(w=>w.slug===p.world)?.name} · 第 {p.first_episode}–{p.last_episode} 集</h3>
-      <p>{({inventory:'等待盘点',blocked:'需要处理',planning:'等待规划',drafting_plan:'Pi 制定计划中',plan_validated:'范围校验通过',executing:'分集制作',published:'正式站已发布'} as Record<string,string>)[p.stage]||p.stage} · 第 {p.revision} 版</p>
+      <p>{({inventory:'等待盘点',blocked:'需要处理',planning:'等待规划',drafting_plan:'Pi 制定计划中',plan_validated:'范围校验通过',executing:'分集制作',local_ready:'本地验收通过',published:'正式站已发布'} as Record<string,string>)[p.stage]||p.stage} · 第 {p.revision} 版</p>
       <a href={`/workbench?view=chat&world=${encodeURIComponent(p.world)}&plan=${p.id}`}>在对话中打开计划</a>
       <p>缺集 {p.gaps.join('、')||'—'} · 已用 {p.consumed} · 在途 {p.reserved} · 预算 {p.token_limit}</p>
-      {p.episodes.map(ep=><p key={ep.number}>{ep.title} · {ep.scene} · {ep.receipt?'已发布':ep.accepted?'五维通过':ep.research||'等待取证'} {ep.attempt&&' · 取证轮次 '+ep.attempt}  · 制作 {Math.round(ep.elapsed)} 秒 · 媒体失败记录 {ep.retries} 次 {ep.blocker||ep.error} {ep.receipt&&' · 发布回执 '+ep.receipt}</p>)}
+      {p.episodes.map(ep=><p key={ep.number}>{ep.title} · {ep.scene} · {ep.receipt?'已发布':ep.accepted?'五维通过':ep.research||'等待取证'} {ep.attempt&&' · 取证轮次 '+ep.attempt}  · 制作 {Math.round(ep.elapsed)} 秒 · 媒体失败记录 {ep.retries} 次 {ep.blocker||ep.error} {ep.receipt&&' · 发布回执 '+ep.receipt} {ep.href&&<a href={ep.href}>打开章节</a>}</p>)}
+      {p.configurations?.map(a => <p key={a.id}>第 {a.number} 集配置 · {a.registered ? '已校验登记' : a.error || '正在定位来源和生成配置'}</p>)}
       {p.calls.map((call,i)=><p key={i}>{call.stage} · {call.actual??"等待回执"} token · {call.seconds?.toFixed(1)??"—"} 秒</p>)}
       {p.plan_brief&&<p>{p.plan_brief}</p>}
       {p.paused_reason&&<p>{p.paused_reason}</p>}

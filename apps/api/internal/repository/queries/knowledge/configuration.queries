@@ -1,0 +1,82 @@
+-- name: Next
+SELECT r.id,r.revision,r.world,next.number,coalesce(r.plan_brief,''),template.spec
+FROM episode_production_requests r
+JOIN LATERAL (
+ SELECT n AS number FROM unnest(r.gaps) n
+ WHERE NOT EXISTS (SELECT FROM episode_request_specs WHERE request_id=r.id AND number=n)
+ ORDER BY n LIMIT 1
+) next ON true
+LEFT JOIN LATERAL (
+ SELECT p.spec || jsonb_build_object('portraitReferences',coalesce((
+   SELECT jsonb_object_agg(a.item_slug,jsonb_build_object(
+     'referenceURL','https://www.codeiy.com'||a.image,
+     'sourceSHA',substring(a.image from '/([a-f0-9]{64})\.webp$')
+   ))
+   FROM edition_reader_art a WHERE a.world_slug=p.world_slug AND a.kind='character'
+    AND a.image ~ '^/art/portraits/[a-f0-9]{64}\.webp$'
+    AND p.spec->'people' @> jsonb_build_array(jsonb_build_object('slug',a.item_slug))
+ ),'{}')) AS spec
+ FROM episode_plans p WHERE p.world_slug=r.world AND p.number<next.number
+ AND p.spec->'sourceRules'->>'guide'='wiki-episode' AND p.spec ? 'art'
+ ORDER BY p.number DESC LIMIT 1
+) template ON true
+WHERE r.stage='plan_validated' AND NOT r.operator_paused AND r.paused_reason IS NULL
+  AND NOT EXISTS (SELECT FROM episode_configuration_attempts a WHERE a.request_id=r.id AND a.finished_at IS NULL)
+ORDER BY r.created_at FOR UPDATE OF r SKIP LOCKED LIMIT 1
+
+-- name: Reserve
+SELECT reserve_episode_call($1,$2,'configuration',16000)
+
+-- name: Start
+INSERT INTO episode_configuration_attempts(id,request_id,revision,number) VALUES($1,$2,$3,$4)
+
+-- name: Finish
+UPDATE episode_configuration_attempts SET finished_at=now(),error=$2,registered=$3
+WHERE id=$1 AND finished_at IS NULL
+
+-- name: Attempts
+SELECT count(*) FROM episode_configuration_attempts WHERE request_id=$1 AND revision=$2 AND number=$3
+
+-- name: Expire
+WITH stale AS (
+ UPDATE episode_configuration_attempts SET finished_at=now(),error='配置执行超时，需对账'
+ WHERE finished_at IS NULL AND started_at<now()-interval '5 minutes' RETURNING request_id
+)
+UPDATE episode_production_requests SET stage='blocked',paused_reason=coalesce(paused_reason,'missing_usage_receipt'),updated_at=now()
+WHERE id IN (SELECT request_id FROM stale)
+
+-- name: PlanLock
+SELECT world,revision,operator_paused,paused_reason,stage,gaps,reserved FROM episode_production_requests WHERE id=$1 FOR UPDATE
+
+-- name: Registered
+SELECT EXISTS(SELECT FROM episode_plans WHERE world_slug=$1 AND number=$2)
+ OR EXISTS(SELECT FROM visible_reader_scopes WHERE world_slug=$1 AND $2 BETWEEN first_episode AND last_episode)
+ OR EXISTS(SELECT FROM work_worlds w JOIN work_chapters c ON w.version_id=c.v WHERE w.slug=$1 AND c.episode=$2)
+
+-- name: Work
+SELECT name,edition FROM work_worlds WHERE slug=$1
+
+-- name: Attach
+INSERT INTO episode_request_specs(request_id,revision,world_slug,number,spec,documents)
+VALUES($1,$2,$3,$4,$5,$6)
+
+-- name: Enable
+UPDATE research_topics SET enabled=true WHERE id=$1
+
+-- name: Stage
+UPDATE episode_production_requests SET stage=$3,updated_at=now()
+WHERE id=$1 AND revision=$2
+
+-- name: More
+SELECT EXISTS(
+ SELECT FROM episode_production_requests r,unnest(r.gaps)n
+ WHERE r.id=$1 AND NOT EXISTS(SELECT FROM episode_request_specs WHERE request_id=$1 AND number=n)
+)
+
+-- name: ObserveLocalAcceptance
+UPDATE episode_production_requests r SET stage='local_ready',updated_at=now()
+WHERE stage='executing' AND reserved=0 AND cardinality(gaps)>0 AND NOT EXISTS (
+ SELECT FROM unnest(r.gaps)n WHERE NOT EXISTS (
+ SELECT FROM episode_request_specs s JOIN episode_plans p ON p.world_slug=s.world_slug AND p.number=s.number
+ JOIN visible_reader_scopes v ON v.topic=p.topic
+ WHERE s.request_id=r.id AND s.number=n AND v.passed AND p.spec @> '{"publishToReader":false}'))

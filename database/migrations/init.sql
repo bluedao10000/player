@@ -1527,6 +1527,21 @@ END $$;
 -- name: 056.sql
 ALTER TABLE workbench_chat_turns ADD COLUMN task_id uuid REFERENCES editor_tasks(id);
 
+-- name: 057.sql
+CREATE TABLE episode_configuration_attempts (
+    id uuid PRIMARY KEY,
+    request_id uuid NOT NULL REFERENCES episode_production_requests(id),
+    revision int NOT NULL,
+    number int NOT NULL CHECK(number>0),
+    started_at timestamptz NOT NULL DEFAULT now(),
+    finished_at timestamptz,
+    error text,
+    registered boolean NOT NULL DEFAULT false,
+    CHECK (NOT registered OR (finished_at IS NOT NULL AND error IS NULL))
+);
+CREATE UNIQUE INDEX episode_configuration_single_attempt
+    ON episode_configuration_attempts(request_id) WHERE finished_at IS NULL;
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,56) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,57) i;
 COMMIT;

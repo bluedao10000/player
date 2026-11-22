@@ -37,6 +37,7 @@ type Job = {
     episode: number
     referenceURL: string
     sourceSHA: string
+    character?: string
     box?: number[]
   }
   position?: number
@@ -69,8 +70,12 @@ const position = (j: Job) => j.position ?? j.slot
 const isPortrait = (j: Job) =>
   j.batch === 'bebop-portrait' || j.art?.kind === 'portrait'
 const portrait = (j: Job) => portraits[position(j) - 1]
+const configuredRef = (j: Job) =>
+  j.art?.character && /^[a-f0-9]{64}$/.test(j.art.sourceSHA)
+    ? j.batch + '-reference-' + j.art.sourceSHA + '.png'
+    : j.batch + '-reference.png'
 const portraitRef = (j: Job) =>
-  j.art ? j.batch + '-reference.png' : 'portrait-ref-' + portrait(j).id + '.jpg'
+  j.art ? configuredRef(j) : 'portrait-ref-' + portrait(j).id + '.jpg'
 const sceneIndex = (j: Job) => Math.floor((position(j) - 1) / 3)
 const isBebopScene = (j: Job) =>
   j.art?.kind === 'scene' || j.batch === 'bebop' || j.batch === 'bebop-e3'
@@ -91,7 +96,7 @@ const spikeTraits =
 const shaKey = (j: Job) =>
   j.step === 'reference'
     ? j.art
-      ? j.batch + '-reference'
+      ? (j.art.character ? configuredRef(j) : j.batch + '-reference')
       : isPortrait(j)
         ? portraitRef(j)
         : 'bebop-reference-v1'
@@ -109,7 +114,7 @@ async function save(name: string, data: Buffer) {
 async function ref(j: Job) {
   const data = await readFile(
     j.art
-      ? join(dir, j.batch + '-reference.png')
+      ? join(dir, configuredRef(j))
       : isPortrait(j)
         ? join(dir, portraitRef(j))
         : isBebopScene(j)
@@ -172,7 +177,7 @@ async function configuredReference(j: Job): Promise<Result> {
       || (url.host === 'www.tbs.co.jp' && url.pathname.startsWith('/anime/takopi_project/series/')))
   )
     throw Error('参考图来源无效')
-  const reference = j.batch + '-reference.png'
+  const reference = configuredRef(j)
   if (!(await cached(join(dir, reference)))) {
     const res = await fetch(url, {
       redirect: 'error',

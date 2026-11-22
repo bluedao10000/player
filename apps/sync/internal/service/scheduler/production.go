@@ -45,6 +45,11 @@ func RunLane(ctx context.Context, db *pgxpool.Pool, lane, agent string) {
 		if lane == "research" {
 			run("resume budget wait", func(ctx context.Context) error { _, err := db.Exec(ctx, queries.ResumeBudgetWait); return err })
 			run("draft episode plan", func(ctx context.Context) error { return draftPlan(ctx, db, agent) })
+			run("episode configuration", func(ctx context.Context) error { return prepareConfiguration(ctx, db, agent) })
+			run("observe local acceptance", func(ctx context.Context) error {
+				_, err := db.Exec(ctx, queries.Configuration["ObserveLocalAcceptance"])
+				return err
+			})
 			run("research", func(ctx context.Context) error { return knowledge.ResearchIfDue(ctx, db, false) })
 		} else {
 			run("media", func(ctx context.Context) error { return knowledge.SyncMedia(ctx, db, agent) })

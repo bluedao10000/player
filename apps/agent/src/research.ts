@@ -130,8 +130,12 @@ export async function research(
     const third = selection.first_episode === 3
     const plan: EpisodePlan | undefined = selection.plan
     models.setProvider(contentProvider(run, phase, 'research', Boolean(plan) && phase === 'write'))
+    const captured = plan && Array.isArray(source_documents) && source_documents.length === 2
+      ? source_documents
+      : undefined
+    if (phase === 'collect' && captured) return { model: profile('content').model, documents: captured }
     const collect = plan
-      ? episodeSources(plan, page, source_documents)
+      ? episodeSources(plan, page)
       : sourceTool(third ? 3 : 1, third ? 3 : 2)
     registry.install(
       defineExtension({ name: 'episode-research', tools: [collect] }),
@@ -189,7 +193,7 @@ export async function research(
         return { model, documents: await documents() }
       }
       await root.configure({ tools: [] }, ctx)
-      const docs = await documents()
+      const docs = captured ?? await documents()
       const outline = plan
         ? episodeOutline(plan, docs)
         : resolveBeats(docs, third)
@@ -201,7 +205,11 @@ export async function research(
             : writing) +
         JSON.stringify(outline.map((b, i) => ({ n: i + 1, ...b }))) +
         '\n清洗资料：' +
-        JSON.stringify(selection)
+        JSON.stringify(plan ? {
+          people: selection.new_cast,
+          setting: selection.plan.setting,
+          revision_notes: selection.revision_notes,
+        } : selection)
       const draft = await (
         await root.submit(
           { type: 'input', requestId: 'write', content: prompt },

@@ -175,14 +175,15 @@ async function budgetDispatch(meta:Meta, init:RequestInit) {
   const endpoint=process.env.EPISODE_BUDGET_URL || 'http://127.0.0.1:14328'
   const post=(path:string,body:unknown)=>fetch(endpoint+path,{method:'POST',body:JSON.stringify(body),signal:AbortSignal.timeout(10000)})
   const text=typeof init.body==='string'?init.body:''
-  const allowance=meta.purpose==='content'?Buffer.byteLength(text)+5120:16000
+  const episodeWriting=meta.subject.startsWith('research:') && ['write','review'].includes(meta.operation)
+  const limit=meta.purpose==='vision'?1024:episodeWriting?1536:4096
+  const allowance=meta.purpose==='content'?Buffer.byteLength(text)+limit+1024:16000
   const result=await post('/reserve',{subject:meta.subject,call,step:meta.operation,allowance})
   if(!result.ok)throw Error('分集预算未获预留 HTTP '+result.status)
   const owner=await result.json()
   if(owner==='unmanaged')return noop
   if(meta.purpose!=='image'){
     const payload=JSON.parse(text)
-    const limit=meta.purpose==='vision'?1024:4096
     if('max_completion_tokens' in payload)payload.max_completion_tokens=limit
     else if('input' in payload)payload.max_output_tokens=limit
     else payload.max_tokens=limit

@@ -8,6 +8,7 @@ import { createRegistry, Harness } from '@earendil-works/pi-durable'
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node'
 import { mediaExtension, mediaStatus } from './media.ts'
 import { openUsage, pendingUsage, acknowledgeUsage } from './model-api.ts'
+import { prepareEpisodeConfiguration } from './episode-configuration-task.ts'
 import { editText } from './editor.ts'
 import { readEpisodeDocuments } from './episode-plan.ts'
 import { research, page } from './research.ts'
@@ -115,6 +116,21 @@ const server = createServer(async (req, res) => {
     } catch (e) {
       const msg = e instanceof Error ? e.message : '来源暂不可用'
       res.writeHead(/编号|标题|原文不完整/.test(msg) ? 422 : 503).end()
+    }
+    return
+  }
+  const configuration = /^\/internal\/episode-configuration\/([0-9a-f-]{36})$/.exec(req.url ?? '')
+  if (req.method === 'POST' && configuration) {
+    try {
+      let body = ''
+      for await (const part of req) {
+        body += part
+        if (Buffer.byteLength(body) > 16000) { res.writeHead(413).end(); return }
+      }
+      const result = await prepareEpisodeConfiguration(dirname(path), configuration[1], JSON.parse(body))
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result))
+    } catch {
+      res.writeHead(502).end()
     }
     return
   }

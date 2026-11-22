@@ -56,6 +56,15 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 					if err := draftPlan(ctx, db, base); err != nil && ctx.Err() == nil {
 						log.Printf("episode planner: %v", err)
 					}
+					if err := prepareConfiguration(ctx, db, base); err != nil && ctx.Err() == nil {
+						log.Printf("episode configuration: %v", err)
+					}
+					if _, err := db.Exec(ctx, queries.ResumeBudgetWait); err != nil && ctx.Err() == nil {
+						log.Printf("episode budget retry: %v", err)
+					}
+					if _, err := db.Exec(ctx, queries.Configuration["ObserveLocalAcceptance"]); err != nil && ctx.Err() == nil {
+						log.Printf("episode local acceptance: %v", err)
+					}
 					select {
 					case <-ctx.Done():
 						return

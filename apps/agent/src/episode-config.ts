@@ -5,8 +5,9 @@ import {
   type EpisodePlan,
 } from './episode-plan.ts'
 
-type Template = EpisodePlan & {
+export type Template = EpisodePlan & {
   people: { slug: string; name: string }[]
+  portraitReferences?: Record<string, { sourceSHA: string; referenceURL: string }>
   art: { sourceSHA: string; referenceURL: string }
 }
 export async function locateEpisode(
@@ -58,8 +59,9 @@ export function compileEpisode(
     sceneName: string
     sceneBeat: number
     artBrief: string
+    artCharacter?: string
     setting: [string, number]
-    people: { slug: string; beat: number }[]
+    people: { slug: string; beat: number; evidence: string }[]
     beats: EpisodePlan['beats']
   },
 ) {
@@ -109,11 +111,22 @@ export function compileEpisode(
     )
   )
     throw Error('世界设定必须是本集具体概念')
-  const people = draft.people.map(({ slug, beat }) => {
+  const outline = episodeOutline({ ...located.source, beats }, located.docs)
+  const people = draft.people.map(({ slug, beat, evidence }) => {
     const existing = previous.people.find((p) => p.slug === slug)
     if (!existing || !validBeat(beat)) throw Error('角色或段落未登记')
-    return { slug, name: existing.name, beat }
+    if (typeof evidence !== 'string' || evidence.trim().length < 3 ||
+        !outline[beat - 1].evidence.some(source => source.text.includes(evidence))) {
+      throw Error('人物出场必须引用所在段落的原文')
+    }
+    return { slug, name: existing.name, beat, evidence }
   })
+  const references = previous.portraitReferences ?? {}
+  const reference = draft.artCharacter ? references[draft.artCharacter] : previous.art
+  if (!reference || (Object.keys(references).length > 0 && !draft.artCharacter))
+    throw Error('场景缺少可复用且与人物匹配的肖像')
+  if (draft.artCharacter && !people.some(p => p.slug === draft.artCharacter && p.beat === sceneBeat && artBrief.includes(p.name)))
+    throw Error('场景人物须在对应段落出现并和肖像匹配')
   const spec = {
     ...located.source,
     beats,
@@ -128,11 +141,11 @@ export function compileEpisode(
     setting,
     art: {
       brief: artBrief,
-      referenceURL: previous.art.referenceURL,
-      sourceSHA: previous.art.sourceSHA,
+      referenceURL: reference.referenceURL,
+      sourceSHA: reference.sourceSHA,
+      ...(draft.artCharacter ? { character: draft.artCharacter } : {}),
     },
-    publishToReader: true,
+    publishToReader: false,
   }
-  episodeOutline(spec, located.docs)
   return spec
 }

@@ -37,7 +37,19 @@ SELECT pg_advisory_unlock(82045120)
 -- name: NextCandidate
 SELECT (SELECT spec FROM episode_art_jobs WHERE id=art_job),batch,position,reference_sha,attempt,slot,round,stage,focus,reason FROM media_candidates WHERE stage NOT IN ('passed','held','failed')
 AND NOT EXISTS (SELECT FROM episode_art_jobs j JOIN episode_request_specs s ON s.world_slug=j.world_slug AND s.spec->>'sceneSlug'=j.slug
- JOIN episode_production_requests p ON p.id=s.request_id WHERE j.id=media_candidates.art_job AND p.operator_paused) ORDER BY (SELECT priority FROM episode_policies pol JOIN episode_art_jobs art ON art.world_slug=pol.world_slug WHERE art.id=media_candidates.art_job) DESC NULLS LAST,(position-1)%3,slot LIMIT 3
+ JOIN episode_production_requests p ON p.id=s.request_id WHERE j.id=media_candidates.art_job AND p.operator_paused)
+AND NOT EXISTS (
+ SELECT FROM episode_art_jobs j JOIN episode_request_specs s ON s.world_slug=j.world_slug AND s.spec->>'sceneSlug'=j.slug
+ JOIN episode_configuration_attempts cfg ON cfg.request_id=s.request_id AND cfg.number=s.number AND cfg.registered
+ JOIN episode_plans p ON p.world_slug=s.world_slug AND p.number=s.number
+ JOIN research_topics t ON t.id=p.topic
+ WHERE j.id=media_candidates.art_job AND NOT EXISTS (
+   SELECT FROM scope_heads h JOIN scope_acceptances a ON a.id=h.latest
+   JOIN research_runs r ON r.id=a.research_run AND r.policy=t.policy AND r.stage='ready'
+   WHERE h.topic=t.id AND NOT EXISTS (
+     SELECT FROM jsonb_array_elements(a.checks) dim CROSS JOIN jsonb_array_elements(dim->'items') item
+     WHERE dim->>'name'<>'图片' AND item?'gap')))
+ORDER BY (SELECT priority FROM episode_policies pol JOIN episode_art_jobs art ON art.world_slug=pol.world_slug WHERE art.id=media_candidates.art_job) DESC NULLS LAST,(position-1)%3,slot LIMIT 3
 
 -- name: StartGeneration
 UPDATE media_candidates SET stage='generate',updated_at=now() WHERE slot=$1
