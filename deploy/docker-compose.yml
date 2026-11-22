@@ -55,6 +55,7 @@ services:
       AUTH_EMAIL_FROM: ${AUTH_EMAIL_FROM:-}
       READER_LOCAL_MAIL: ${READER_LOCAL_MAIL:-}
       WORKBENCH_LOCAL_ENABLED: "true"
+      KNOWLEDGE_RESEARCH_URL: http://research-agent:4312
       API_HOST: 0.0.0.0
     volumes:
       - knowledge-archive:/var/lib/knowledge/archive
@@ -84,6 +85,8 @@ services:
     restart: unless-stopped
     environment:
       AGENT_HOST: 0.0.0.0
+      EPISODE_CALL_BUDGET: required
+      EPISODE_BUDGET_URL: http://sync:14328
       AGENT_DB_PATH: /state/agent.sqlite
       OPENAI_API_KEY: ${RESEARCH_OPENAI_API_KEY:-}
       CONTENT_AI_MODE: ${CONTENT_AI_MODE:-direct}
@@ -135,6 +138,7 @@ services:
     environment:
       <<: *database
       EPISODE_PLAN_DIR: /episode-plans
+      EPISODE_BUDGET_BIND: 0.0.0.0:14328
       MEDIA_WORKER_ENABLED: ${MEDIA_WORKER_ENABLED:-false}
       KNOWLEDGE_RESEARCH_URL: http://research-agent:4312
       GITHUB_TOKEN: ${KNOWLEDGE_GITHUB_TOKEN:-}

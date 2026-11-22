@@ -172,7 +172,7 @@ async function budgetDispatch(meta:Meta, init:RequestInit) {
   const noop = async (_body?:Receipt, _complete?:boolean) => {}
   if((process.env.EPISODE_CALL_BUDGET !== 'required' && !existsSync('/state/episode-budget.required')) || !/^(research|media):/.test(meta.subject))return noop
   const call=randomUUID()
-  const endpoint='http://127.0.0.1:14328'
+  const endpoint=process.env.EPISODE_BUDGET_URL || 'http://127.0.0.1:14328'
   const post=(path:string,body:unknown)=>fetch(endpoint+path,{method:'POST',body:JSON.stringify(body),signal:AbortSignal.timeout(10000)})
   const text=typeof init.body==='string'?init.body:''
   const allowance=meta.purpose==='content'?Buffer.byteLength(text)+5120:16000

@@ -52,7 +52,10 @@ INSERT INTO media_candidates(slot,batch,position,scene,variant,stage,art_job)
  AND NOT EXISTS(SELECT FROM media_candidates c WHERE c.art_job=a.id AND position=i) ON CONFLICT(batch,position) DO NOTHING
 
 -- name: ListDueAcceptances
-SELECT p.topic FROM episode_plans p JOIN research_topics t ON t.id=p.topic AND t.enabled LEFT JOIN scope_heads h ON h.topic=p.topic WHERE h.published IS NULL ORDER BY p.number
+SELECT p.topic FROM episode_plans p JOIN research_topics t ON t.id=p.topic AND t.enabled LEFT JOIN scope_heads h ON h.topic=p.topic WHERE h.published IS NULL
+AND NOT EXISTS (SELECT FROM episode_request_specs s JOIN episode_production_requests r ON r.id=s.request_id
+ WHERE s.world_slug=p.world_slug AND s.number=p.number AND r.operator_paused)
+ORDER BY p.number
 
 -- name: TryLockEpisode
 SELECT pg_try_advisory_xact_lock(hashtextextended($1,72))

@@ -9,3 +9,24 @@ INSERT INTO episode_inventory_snapshots VALUES(now(),'[{"slug":"schedule-fixture
 
 -- name: QueueStatus
 SELECT status FROM episode_policy_queue WHERE number=6
+
+-- name: SetChatEditionLength
+UPDATE works SET episodes=20 WHERE id=(SELECT work_id FROM work_worlds WHERE slug='tidepost')
+
+-- name: SeedChatRetry
+WITH topic AS (
+ INSERT INTO research_topics(id,world_slug,first_episode,last_episode) VALUES('chat-fixture-009','tidepost',9,9) RETURNING id
+), ep AS (
+ INSERT INTO episode_plans(topic,world_slug,number,spec) SELECT id,'tidepost',9,'{"slug":"chat-fixture-009","sceneSlug":"chat-fixture-scene"}' FROM topic RETURNING *
+), spec AS (
+ INSERT INTO episode_request_specs(request_id,revision,world_slug,number,spec,documents)
+ SELECT $1,1,world_slug,number,spec,'[]' FROM ep
+)
+INSERT INTO research_runs(topic,v,attempt,stage,finished_at,error)
+SELECT topic,(SELECT version_id FROM work_worlds WHERE slug='tidepost'),1,'failed',now(),'fixture provider failure' FROM ep
+
+-- name: ChatRetryPolicy
+SELECT policy FROM research_topics WHERE id='chat-fixture-009'
+
+-- name: ChatOperationCount
+SELECT count(*) FROM workbench_plan_operations WHERE plan_id=$1

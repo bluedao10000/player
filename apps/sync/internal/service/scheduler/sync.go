@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"log"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"anime-agent/api/internal/config"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 	"anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/service/modelusage"
 )
@@ -34,6 +36,30 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 					case <-ctx.Done():
 						return
 					case <-time.After(2 * time.Second):
+					}
+				}
+			})
+		}
+		if base != "" && os.Getenv("EPISODE_BUDGET_BIND") != "" {
+			jobs.Go(func() {
+				if err := serveBudget(ctx, db); err != nil && ctx.Err() == nil {
+					log.Printf("episode budget server: %v", err)
+				}
+			})
+			jobs.Go(func() {
+				ticker := time.NewTicker(15 * time.Second)
+				defer ticker.Stop()
+				for ctx.Err() == nil {
+					if _, err := db.Exec(ctx, queries.InspectPlanInventory); err != nil && ctx.Err() == nil {
+						log.Printf("episode inventory: %v", err)
+					}
+					if err := draftPlan(ctx, db, base); err != nil && ctx.Err() == nil {
+						log.Printf("episode planner: %v", err)
+					}
+					select {
+					case <-ctx.Done():
+						return
+					case <-ticker.C:
 					}
 				}
 			})

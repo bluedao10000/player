@@ -19,7 +19,10 @@ export const Route = createFileRoute('/workbench')({
       : search.section === 'knowledge' ? 'knowledge' as const
       : search.section === 'history' ? 'history' as const
       : 'data' as const,
-    view: search.view === 'data' ? 'data' as const : search.view === 'me' ? 'me' as const : 'editor' as const,
+    view: search.view === 'data' ? 'data' as const : search.view === 'me' ? 'me' as const : search.view === 'chat' ? 'chat' as const : 'editor' as const,
+    world: typeof search.world === 'string' ? search.world : undefined,
+    task: typeof search.task === 'string' ? search.task : undefined,
+    plan: typeof search.plan === 'string' ? search.plan : undefined,
     candidate: Number.isSafeInteger(Number(search.candidate)) && Number(search.candidate)>0 ? Number(search.candidate) : undefined,
   }),
   loaderDeps: ({ search }) => ({ view: search.view }),
@@ -44,6 +47,6 @@ export const Route = createFileRoute('/workbench')({
 
 function Workbench() {
   const feed = Route.useLoaderData()
-  const { section, view, candidate } = Route.useSearch()
-  return feed ? <Board feed={feed} section={section} candidate={candidate} /> : <EditorDesk accountView={view === 'me'} />
+  const { section, view, candidate, world, plan, task } = Route.useSearch()
+  return feed ? <Board feed={feed} section={section} candidate={candidate} /> : <EditorDesk accountView={view === 'me'} chatView={view === 'chat'} context={{world, plan, task}} />
 }

@@ -61,6 +61,7 @@ func editorRoutes(r *gin.Engine, db *pgxpool.Pool) {
 		c.Set("edit_hash", h[:])
 		c.Next()
 	})
+	chatRoutes(g, db)
 	g.POST("/password", func(c *gin.Context) { changeWorkbenchPassword(c, db) })
 	g.GET("/account", func(c *gin.Context) {
 		c.JSON(200, gin.H{"email": c.GetString("email"), "editor": true})

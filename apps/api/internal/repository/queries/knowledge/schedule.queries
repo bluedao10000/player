@@ -29,7 +29,9 @@ UPDATE episode_capture_attempts SET finished_at=now(),error='采集租约到期'
 WITH next AS (SELECT p.* FROM episode_plans p JOIN research_topics t ON t.id=p.topic
     LEFT JOIN episode_policies pol ON pol.world_slug=p.world_slug LEFT JOIN scope_heads h ON h.topic=p.topic
     LEFT JOIN episode_source_captures c ON c.topic=p.topic
-    WHERE t.enabled AND h.published IS NULL AND (c.topic IS NULL OR c.spec<>p.spec OR c.captured_at<now()-interval '12 hours')
+    WHERE t.enabled AND h.published IS NULL
+    AND NOT EXISTS (SELECT FROM episode_request_specs s JOIN episode_production_requests r ON r.id=s.request_id
+    WHERE s.world_slug=p.world_slug AND s.number=p.number AND r.operator_paused) AND (c.topic IS NULL OR c.spec<>p.spec OR c.captured_at<now()-interval '12 hours')
     AND NOT EXISTS (SELECT FROM research_runs WHERE topic=p.topic AND stage='ready' AND policy=t.policy)
     AND NOT EXISTS(SELECT FROM episode_capture_attempts a WHERE a.topic=p.topic AND (a.finished_at IS NULL OR a.finished_at>now()-interval '15 minutes'))
     ORDER BY pol.priority DESC NULLS LAST,p.number,p.world_slug LIMIT 1), lease AS (
@@ -72,10 +74,13 @@ WITH request AS (
 INSERT INTO episode_plan_messages(request_id,revision,instruction,author) SELECT id,revision,$3,$4 FROM updated
 
 -- name: InspectPlanInventory
-WITH candidate AS (SELECT * FROM episode_production_requests WHERE stage='inventory' AND (paused_reason IS NULL OR paused_reason IN ('缺少有效作品盘点','范围内没有已确认的分集缺口')) ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED),
+WITH candidate AS (SELECT * FROM episode_production_requests WHERE stage='inventory' AND NOT operator_paused AND (paused_reason IS NULL OR paused_reason IN ('缺少有效作品盘点','范围内没有已确认的分集缺口')) ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED),
 inventory AS (SELECT works FROM episode_inventory_snapshots WHERE checked_at>=now()-interval '48 hours' ORDER BY checked_at DESC LIMIT 1),
 scope AS (SELECT r.id,w.item,ARRAY(SELECT n FROM generate_series(r.first_episode,r.last_episode)n
-WHERE w.item->'missing' @> to_jsonb(ARRAY[n]) ORDER BY n) AS gaps FROM candidate r
+WHERE w.item->'missing' @> to_jsonb(ARRAY[n])
+AND NOT EXISTS (SELECT FROM visible_reader_scopes p WHERE p.world_slug=r.world AND n BETWEEN p.first_episode AND p.last_episode)
+AND NOT EXISTS (SELECT FROM work_worlds ww JOIN work_chapters cc ON cc.v=ww.version_id WHERE ww.slug=r.world AND cc.episode=n)
+ORDER BY n) AS gaps FROM candidate r
 LEFT JOIN LATERAL (SELECT item FROM inventory,jsonb_array_elements(works)item WHERE item->>'slug'=r.world)w ON true)
 UPDATE episode_production_requests r SET gaps=s.gaps,updated_at=now(),
 stage=CASE WHEN s.item IS NULL OR cardinality(s.gaps)=0 THEN 'blocked' ELSE 'planning' END,
@@ -83,10 +88,10 @@ paused_reason=CASE WHEN s.item IS NULL THEN '缺少有效作品盘点' WHEN card
 FROM scope s WHERE r.id=s.id AND r.paused_reason IS DISTINCT FROM 'token_limit_reached'
 
 -- name: ClaimPlanDraft
-WITH job AS (SELECT * FROM episode_production_requests WHERE stage='planning' AND paused_reason IS NULL ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED),
+WITH job AS (SELECT * FROM episode_production_requests WHERE stage='planning' AND NOT operator_paused AND paused_reason IS NULL ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED),
 reservation AS MATERIALIZED (SELECT job.*,gen_random_uuid() AS call FROM job),
 claimed AS (SELECT *,reserve_episode_call(id,call,'planning',16000) AS ok FROM reservation)
-SELECT id,revision,call,gaps,jsonb_build_object('world',world,'gaps',gaps,'instructions',
+SELECT id,revision,call,gaps,jsonb_build_object('world',world,'gaps',gaps,'production_policy',production_policy,'instructions',
 (SELECT jsonb_agg(instruction ORDER BY revision) FROM episode_plan_messages WHERE request_id=id))
 FROM claimed WHERE ok
 
@@ -110,7 +115,7 @@ WITH candidate AS (
  JOIN media_candidates c ON c.art_job=j.id
  JOIN LATERAL (SELECT step,attempt,error FROM media_steps WHERE slot=c.slot AND round=c.round ORDER BY started_at DESC LIMIT 1)s ON s.error=c.reason
  WHERE c.stage='failed' AND c.reason='分集预算未获预留 HTTP 429' AND r.paused_reason IS NULL
- AND r.reserved=0 AND r.token_limit-r.consumed>=16000 AND s.attempt<100
+ AND NOT r.operator_paused AND r.reserved=0 AND r.token_limit-r.consumed>=16000 AND s.attempt<100
  ORDER BY c.updated_at LIMIT 1 FOR UPDATE OF c SKIP LOCKED)
 UPDATE media_candidates c SET stage=k.step,attempt=k.attempt+1,reason='',updated_at=now()
 FROM candidate k WHERE c.slot=k.slot AND k.step IN ('generate','review','recheck')

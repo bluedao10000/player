@@ -1470,6 +1470,63 @@ ALTER TABLE workbench_accounts ADD COLUMN password_digest bytea,
     ADD COLUMN password_attempts integer NOT NULL DEFAULT 0,
     ADD COLUMN password_window timestamptz;
 
+-- name: 055.sql
+ALTER TABLE episode_production_requests
+    ADD COLUMN production_policy jsonb NOT NULL DEFAULT '{"character_consistency":"standard","preserve_published":true}',
+    ADD COLUMN operator_paused boolean NOT NULL DEFAULT false;
+
+CREATE TABLE workbench_chat_turns (
+    id uuid PRIMARY KEY,
+    owner text NOT NULL,
+    world text NOT NULL,
+    plan_id uuid REFERENCES episode_production_requests(id),
+    episode int NOT NULL DEFAULT 0,
+    prompt text NOT NULL,
+    reply text,
+    tools jsonb NOT NULL DEFAULT '[]',
+    proposal jsonb,
+    diff jsonb,
+    state text NOT NULL DEFAULT 'running' CHECK (state IN ('running','answered','pending','applied','rejected','failed')),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX workbench_chat_history ON workbench_chat_turns(owner,created_at DESC);
+CREATE TABLE workbench_plan_operations (
+    request_id uuid PRIMARY KEY REFERENCES workbench_chat_turns(id),
+    plan_id uuid NOT NULL REFERENCES episode_production_requests(id),
+    actor text NOT NULL,
+    tool text NOT NULL,
+    previous_revision int NOT NULL,
+    new_revision int NOT NULL,
+    diff jsonb NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE OR REPLACE FUNCTION reserve_episode_call(req uuid, call_key uuid, step text, allowance bigint)
+RETURNS boolean LANGUAGE plpgsql AS $$
+DECLARE budget episode_production_requests%ROWTYPE;
+BEGIN
+    IF allowance IS NULL OR allowance <= 0 THEN RAISE EXCEPTION 'invalid call allowance'; END IF;
+    SELECT * INTO STRICT budget FROM episode_production_requests WHERE id=req FOR UPDATE;
+    IF budget.operator_paused OR budget.paused_reason IS NOT NULL OR EXISTS (
+        SELECT FROM episode_call_reservations WHERE request_id=req AND call_id=call_key
+    ) THEN RETURN false; END IF;
+    IF budget.token_limit-budget.consumed-budget.reserved < allowance THEN
+        -- An in-flight reservation can still return unused capacity.
+        IF budget.reserved=0 THEN
+            UPDATE episode_production_requests SET paused_reason='insufficient_remaining_tokens' WHERE id=req;
+        END IF;
+        RETURN false;
+    END IF;
+    INSERT INTO episode_call_reservations(request_id,call_id,stage,ceiling)
+        VALUES(req,call_key,step,allowance);
+    UPDATE episode_production_requests SET reserved=reserved+allowance WHERE id=req;
+    RETURN true;
+END $$;
+
+-- name: 056.sql
+ALTER TABLE workbench_chat_turns ADD COLUMN task_id uuid REFERENCES editor_tasks(id);
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,54) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,56) i;
 COMMIT;

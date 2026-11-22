@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -46,7 +47,11 @@ func serveBudget(ctx context.Context, db *pgxpool.Pool) error {
 		}
 		w.WriteHeader(204)
 	})
-	server := http.Server{Addr: "127.0.0.1:14328", Handler: mux, ReadTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second}
+	addr := os.Getenv("EPISODE_BUDGET_BIND")
+	if addr == "" {
+		addr = "127.0.0.1:14328"
+	}
+	server := http.Server{Addr: addr, Handler: mux, ReadTimeout: 5 * time.Second, WriteTimeout: 10 * time.Second}
 	go func() { <-ctx.Done(); server.Close() }()
 	return server.ListenAndServe()
 }

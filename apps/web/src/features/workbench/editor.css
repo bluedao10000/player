@@ -243,3 +243,21 @@
 .ed-account-code { display: flex; gap: 8px; }
 .ed-account-code button { flex-shrink: 0; }
 .ed .ed-logout { display: inline-flex; align-items: center; gap: 8px; }
+
+.wb-chat-context { display: grid; grid-template-columns: repeat(3, minmax(0, 2fr)) minmax(0, 1fr); gap: 12px; }
+.wb-chat-context label { display: grid; gap: 5px; min-width: 0; }
+.wb-chat-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr); gap: 16px; }
+.wb .wb-chat-thread { display: flex; flex-direction: column; min-height: 520px; }
+.wb-chat-scroll { flex: 1; max-height: 66vh; overflow-y: auto; min-height: 0; }
+.wb-chat-message { white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; margin: 8px 0; border-radius: 10px; background: var(--wb-panel-raised); }
+.wb-chat-message:nth-child(odd) { margin-left: 14%; background: #17352f; }
+.wb-chat-compose { display: flex; align-items: end; gap: 8px; padding-top: 14px; }
+.wb-chat-audit { max-height: 77vh; overflow: auto; }
+.wb-chat-audit article { border-top: 1px solid var(--wb-line); margin-top: 10px; padding-top: 10px; overflow-wrap: anywhere; }
+.wb-chat-audit dd { display: grid; gap: 3px; }
+.wb-chat-audit del { color: var(--wb-red); }
+.wb-chat-audit ins { color: var(--wb-mint); }
+.wb-chat-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+@media (max-width: 950px) {
+  .wb-chat-layout, .wb-chat-context { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,4 +1,5 @@
 import { ArrowRight, Mail, Send, Sparkles } from 'lucide-react'
+import { WorkbenchChat } from './chat'
 import { WorkbenchSidebar } from './shared/shell'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -81,7 +82,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   }
   return r.status === 204 ? (undefined as T) : r.json()
 }
-export function EditorDesk({ accountView = false }: { accountView?: boolean }) {
+export function EditorDesk({ accountView = false, chatView = false, context }: { accountView?: boolean; chatView?: boolean; context?: { world?: string; plan?: string; task?: string } }) {
   const [panel, setPanel] = useState<'review' | 'plans'>('review')
   const [list, setList] = useState<List | null>(null),
     [login, setLogin] = useState(false),
@@ -197,9 +198,9 @@ export function EditorDesk({ accountView = false }: { accountView?: boolean }) {
   const name = (w: string) => list?.scopes.find((s) => s.World === w)?.Name ?? w
   return (
     <main className={list ? 'wb wb-layout ed' : 'wb ed ed-guest'}>
-      {list && <WorkbenchSidebar current={accountView ? 'me' : 'editor'} />}
+      {list && <WorkbenchSidebar current={accountView ? 'me' : chatView ? 'chat' : 'editor'} />}
       <div className={list ? 'wb-shell' : undefined}>
-      {list && !accountView && (
+      {list && !accountView && !chatView && (
       <div className="wb-heading">
         <div><h1>编辑审稿</h1><p>查看编辑任务、对照修订稿并审核发布</p></div>
       </div>
@@ -209,11 +210,11 @@ export function EditorDesk({ accountView = false }: { accountView?: boolean }) {
           {error}
         </p>
       )}
-      {list && !accountView && <nav className="wb-view-nav" aria-label="编辑工作台视图">
+      {list && !accountView && !chatView && <nav className="wb-view-nav" aria-label="编辑工作台视图">
         <button aria-pressed={panel==='review'} onClick={()=>setPanel('review')}>稿件审核</button>
         <button aria-pressed={panel==='plans'} onClick={()=>setPanel('plans')}>分集制作计划</button>
       </nav>}
-      {list && !accountView && panel==='plans' && <ProductionPlans />}
+      {list && !accountView && !chatView && panel==='plans' && <ProductionPlans />}
       {!list ? (
         <section className="ed-login-layout" aria-labelledby="workbench-login-title">
           <div className="ed-login-art">
@@ -276,7 +277,7 @@ export function EditorDesk({ accountView = false }: { accountView?: boolean }) {
             </form>
           </div>
         </section>
-      ) : accountView ? <WorkbenchAccount /> : (
+      ) : accountView ? <WorkbenchAccount /> : chatView ? <WorkbenchChat request={api} initialWorld={context?.world} initialPlan={context?.plan} initialTask={context?.task} /> : (
         <>
           {panel === 'review' && <div className="ed-composer-dock">
           <form id="editor-composer" className="ed-compose" onSubmit={submit} aria-label="AI 编辑助手">
@@ -354,6 +355,7 @@ export function EditorDesk({ accountView = false }: { accountView?: boolean }) {
                   {status[task.status]}
                 </small>
                 <h2>{task.instruction}</h2>
+                <a href={`/workbench?view=chat&world=${encodeURIComponent(task.world)}&task=${task.id}`}>在对话中查看任务</a>
                 {task.feedback && <p>上次退回意见 · {task.feedback}</p>}
                 {task.issue && <p className="ed-error">{task.issue}</p>}
                 {task.draft?.length > 0 &&
@@ -603,6 +605,7 @@ function ProductionPlans() {
       <button disabled={busy}>登记范围</button></form>
       {desk.plans.map(p=><article key={p.id}><h3>{desk.works.find(w=>w.slug===p.world)?.name} · 第 {p.first_episode}–{p.last_episode} 集</h3>
       <p>{({inventory:'等待盘点',blocked:'需要处理',planning:'等待规划',drafting_plan:'Pi 制定计划中',plan_validated:'范围校验通过',executing:'分集制作',published:'正式站已发布'} as Record<string,string>)[p.stage]||p.stage} · 第 {p.revision} 版</p>
+      <a href={`/workbench?view=chat&world=${encodeURIComponent(p.world)}&plan=${p.id}`}>在对话中打开计划</a>
       <p>缺集 {p.gaps.join('、')||'—'} · 已用 {p.consumed} · 在途 {p.reserved} · 预算 {p.token_limit}</p>
       {p.episodes.map(ep=><p key={ep.number}>{ep.title} · {ep.scene} · {ep.receipt?'已发布':ep.accepted?'五维通过':ep.research||'等待取证'} {ep.attempt&&' · 取证轮次 '+ep.attempt}  · 制作 {Math.round(ep.elapsed)} 秒 · 媒体失败记录 {ep.retries} 次 {ep.blocker||ep.error} {ep.receipt&&' · 发布回执 '+ep.receipt}</p>)}
       {p.calls.map((call,i)=><p key={i}>{call.stage} · {call.actual??"等待回执"} token · {call.seconds?.toFixed(1)??"—"} 秒</p>)}

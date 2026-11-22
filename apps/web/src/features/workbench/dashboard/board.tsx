@@ -30,7 +30,7 @@ const views = [
 ] as const
 
 type View = (typeof views)[number]['id']
-type DataSection = Exclude<WorkbenchSection, 'editor' | 'me'> | 'media'
+type DataSection = Exclude<WorkbenchSection, 'editor' | 'me' | 'chat'> | 'media'
 
 export function Board({ feed, section, candidate }: { feed: WorkbenchFeed; section: DataSection; candidate?: number }) {
   return (

@@ -15,8 +15,8 @@ export async function editorRequest(req: Request, path: string) {
     post = req.method === 'POST'
   if (
     !(post
-      ? ['code','verify','password-login','password', 'logout', 'tasks','plans'].includes(path) || write.test(path) || new RegExp("^plans/"+id+"/messages$").test(path)
-      : path === 'account' || path === 'plans' || path === 'tasks' || read.test(path))
+      ? ['chat','code','verify','password-login','password', 'logout', 'tasks','plans'].includes(path) || new RegExp("^chat/"+id+"/resolve$").test(path) || write.test(path) || new RegExp("^plans/"+id+"/messages$").test(path)
+      : path === 'chat' || path === 'account' || path === 'plans' || path === 'tasks' || read.test(path))
   )
     return reply(404)
   if (
@@ -64,7 +64,7 @@ export async function editorRequest(req: Request, path: string) {
       body,
       cache: 'no-store',
       redirect: 'error',
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(path === 'chat' && post ? 120000 : 15000),
     })
     const h = new Headers(headers)
     if ((path === 'verify' || path === 'password-login') && resp.ok) {

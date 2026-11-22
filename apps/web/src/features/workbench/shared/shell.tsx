@@ -1,7 +1,8 @@
-import { Activity, BookOpen, Clock3, NotebookPen, UserRound } from 'lucide-react'
+import { Activity, BookOpen, Clock3, MessageSquare, NotebookPen, UserRound } from 'lucide-react'
 import { useId, useState } from 'react'
 
 const sections = [
+  { id: 'chat', href: '/workbench?view=chat', label: '工作台对话', icon: MessageSquare },
   { id: 'data', href: '/workbench?view=data', label: '数据运行', icon: Activity },
   { id: 'knowledge', href: '/workbench?view=data&section=knowledge', label: '知识库', icon: BookOpen },
   { id: 'editor', href: '/workbench?view=editor', label: '编辑审稿', icon: NotebookPen },
