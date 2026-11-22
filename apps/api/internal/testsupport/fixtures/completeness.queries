@@ -1,0 +1,272 @@
+-- name: SeedCompletenessExamples
+DO $phase2_fixture$
+DECLARE
+  cb_id uuid;
+  tp_id uuid;
+  cb_v bigint;
+  tp_v bigint;
+  n int;
+BEGIN
+  SELECT work_id,version_id INTO cb_id,cb_v FROM work_worlds WHERE slug='cowboy-bebop-tv';
+  SELECT work_id,version_id INTO tp_id,tp_v FROM work_worlds WHERE slug='tidepost';
+  IF cb_id IS NULL OR tp_id IS NULL THEN
+    RAISE EXCEPTION 'SeedOpsWorlds must run before SeedCompletenessExamples';
+  END IF;
+
+  UPDATE works SET canonical_title='Cowboy Bebop',type='TV',episodes=26,
+    synopsis='Fixture synopsis',updated_at=now() WHERE id=cb_id;
+  UPDATE works SET canonical_title='Tidepost',type='SHORT_STORY_COLLECTION',episodes=NULL,
+    synopsis='Fixture synopsis',updated_at=now() WHERE id=tp_id;
+  UPDATE work_worlds SET image='/art/phase2-cowboy-hero.webp' WHERE work_id=cb_id;
+  UPDATE work_worlds SET image='/art/phase2-tidepost-hero.webp' WHERE work_id=tp_id;
+
+  INSERT INTO world_evidence(v,key,uri,locator,digest)
+  VALUES (cb_v,'phase2-fixture','fixture:phase2','fixture','phase2-cowboy'),
+         (tp_v,'phase2-fixture','fixture:phase2','fixture','phase2-tidepost');
+  INSERT INTO work_sources(work_id,provider,external_id,url)
+  VALUES (cb_id,'fixture','cowboy-bebop-tv','https://example.test/cowboy-bebop-tv');
+  INSERT INTO knowledge_source_records(source_id,record_key,version_id,work_id,raw,norm)
+  SELECT id,'phase2-tidepost',tp_v,tp_id,'{}'::jsonb,'{}'::jsonb
+  FROM knowledge_sources WHERE name='tidepost-original';
+
+  INSERT INTO edition_reader_intros(world_slug,premise,setting,people)
+  VALUES ('cowboy-bebop-tv','Fixture premise','Fixture setting',
+    jsonb_build_object('cb-person-1','Bio 1','cb-person-2','Bio 2','cb-person-3','Bio 3',
+      'cb-person-4','Bio 4','cb-person-5','Bio 5','cb-person-6','Bio 6')),
+         ('tidepost','Fixture premise','Fixture setting','{}'::jsonb)
+  ON CONFLICT(world_slug) DO UPDATE SET premise=excluded.premise,setting=excluded.setting,people=excluded.people;
+
+  INSERT INTO work_settings(v,name)
+  VALUES (cb_v,'Bebop location 1'),(cb_v,'Bebop location 2'),
+         (tp_v,'Tidepost location 1'),(tp_v,'Tidepost location 2');
+
+  FOR n IN 1..6 LOOP
+    INSERT INTO work_characters(v,slug,name,role,portrait,position,external_id,evidence)
+    VALUES (cb_v,'cb-person-'||n,'Cowboy person '||n,'Fixture role','/art/cb-person.webp',n,
+      'phase2-cb-person-'||n,'phase2-fixture');
+  END LOOP;
+  FOR n IN 1..3 LOOP
+    INSERT INTO work_characters(v,slug,name,role,portrait,position,evidence)
+    VALUES (tp_v,'tp-person-'||n,'Tidepost person '||n,'Fixture role','/art/tp-person.webp',n,'phase2-fixture');
+  END LOOP;
+
+  FOR n IN 1..2 LOOP
+    INSERT INTO work_chapters(v,slug,name,label,intro,image,position,episode,evidence)
+    VALUES (cb_v,'cb-chapter-'||n,'Cowboy chapter '||n,'Episode '||n,'Fixture chapter intro',
+      '/art/cb-chapter.webp',n,n,'phase2-fixture');
+  END LOOP;
+  FOR n IN 1..4 LOOP
+    INSERT INTO work_chapters(v,slug,name,label,intro,image,position,evidence)
+    VALUES (tp_v,'tp-chapter-'||n,'Tidepost chapter '||n,'Story '||n,'Fixture chapter intro',
+      '/art/tp-chapter.webp',n,'phase2-fixture');
+  END LOOP;
+  INSERT INTO chapter_blocks(v,chapter,key,text,position)
+  SELECT v,slug,'fixture','Fixture chapter text',1 FROM work_chapters
+  WHERE v IN (cb_v,tp_v);
+
+  INSERT INTO work_storylines(v,slug,title,intro,position)
+  VALUES (cb_v,'cb-main','Cowboy storyline','Fixture storyline intro',1),
+         (tp_v,'tp-main','Tidepost storyline','Fixture storyline intro',1);
+  INSERT INTO work_storyline_chapters(v,line,chapter,position)
+  SELECT cb_v,'cb-main','cb-chapter-'||seq.num,seq.num FROM generate_series(1,2) AS seq(num);
+  INSERT INTO work_storyline_chapters(v,line,chapter,position)
+  SELECT tp_v,'tp-main','tp-chapter-'||seq.num,seq.num FROM generate_series(1,4) AS seq(num);
+
+  INSERT INTO work_scenes(v,slug,chapter,name,place,text,block,position,evidence)
+  VALUES (cb_v,'cb-scene-1','cb-chapter-1','Cowboy scene 1','Bebop location 1','Fixture scene text','fixture',1,'phase2-fixture'),
+         (cb_v,'cb-scene-2','cb-chapter-2','Cowboy scene 2','Bebop location 2','Fixture scene text','fixture',1,'phase2-fixture'),
+         (tp_v,'tp-scene-1','tp-chapter-1','Tidepost scene 1','Tidepost location 1','Fixture scene text','fixture',1,'phase2-fixture'),
+         (tp_v,'tp-scene-2','tp-chapter-2','Tidepost scene 2','Tidepost location 2','Fixture scene text','fixture',1,'phase2-fixture');
+
+  INSERT INTO edition_reader_art(world_slug,kind,item_slug,image,caption,credit,source_sha256)
+  VALUES ('cowboy-bebop-tv','character','phase2-extra-a','/art/phase2-extra-a.webp','Fixture portrait','Fixture',repeat('a',64)),
+         ('cowboy-bebop-tv','character','phase2-extra-b','/art/phase2-extra-b.webp','Fixture portrait','Fixture',repeat('b',64));
+
+  UPDATE media_candidates SET stage='passed',reason='phase2 fixture',updated_at=now() WHERE slot BETWEEN 1 AND 8;
+  INSERT INTO research_runs(topic,v,attempt,stage,finished_at,documents,claims)
+  VALUES ('bebop-tv-1998-01-02',cb_v,1,'ready',now(),'[]'::jsonb,'[]'::jsonb);
+  INSERT INTO scope_acceptances(topic,v,rule,fingerprint,passed,checks,picks,edition_slug,
+    scope_first,scope_last,research_run,reader_copy)
+  SELECT 'bebop-tv-1998-01-02',cb_v,1,'phase2-base-v1',true,'{}'::jsonb,'[]'::jsonb,
+    'cowboy-bebop-tv',1,2,id,'{}'::jsonb
+  FROM research_runs WHERE topic='bebop-tv-1998-01-02' AND v=cb_v;
+  INSERT INTO scope_heads(topic,latest,published)
+  SELECT topic,id,id FROM scope_acceptances WHERE fingerprint='phase2-base-v1';
+  INSERT INTO research_topics(id,world_slug,first_episode,last_episode,enabled)
+  SELECT 'phase2-cowboy-'||seq.episode_no,'cowboy-bebop-tv',seq.episode_no,seq.episode_no,true
+  FROM generate_series(3,10) AS seq(episode_no);
+  INSERT INTO research_runs(topic,v,attempt,stage,finished_at,documents,claims)
+  SELECT id,cb_v,1,'ready',now(),'[]'::jsonb,'[]'::jsonb
+  FROM research_topics WHERE id LIKE 'phase2-cowboy-%';
+  INSERT INTO scope_acceptances(topic,v,rule,fingerprint,passed,checks,picks,edition_slug,
+    scope_first,scope_last,research_run,reader_copy)
+  SELECT t.id,cb_v,1,'phase2-fixture-v1',true,'{}'::jsonb,
+    jsonb_build_array(jsonb_build_object('slot',t.first_episode-2,'round',1,
+      'image','/art/phase2-episode-'||t.first_episode||'.webp')),
+    'cowboy-bebop-tv',t.first_episode,t.last_episode,r.id,
+    jsonb_build_object('phase2-extension-'||t.first_episode,
+      jsonb_build_array(jsonb_build_object('text','Fixture extension chapter text')))
+  FROM research_topics t JOIN research_runs r ON r.topic=t.id AND r.v=cb_v
+  WHERE t.id LIKE 'phase2-cowboy-%';
+  INSERT INTO scope_heads(topic,latest,published)
+  SELECT topic,id,id FROM scope_acceptances WHERE fingerprint='phase2-fixture-v1';
+  INSERT INTO episode_plans(topic,world_slug,number,spec)
+  SELECT id,world_slug,first_episode,jsonb_build_object('sceneSlug','phase2-scene-'||first_episode)
+  FROM research_topics WHERE id LIKE 'phase2-cowboy-%';
+  INSERT INTO episode_extensions(topic,slug,title,intro,place,scene_slug,scene_name,people)
+  SELECT id,'phase2-extension-'||first_episode,'Extension storyline '||first_episode,
+    'Fixture extension intro','Cowboy location '||first_episode,
+    'phase2-extension-scene-'||first_episode,'Extension scene '||first_episode,
+    CASE first_episode
+      WHEN 3 THEN jsonb_build_array(jsonb_build_object('slug','phase2-extra-a','name','Extra A','role','Fixture role','beat',1))
+      WHEN 4 THEN jsonb_build_array(jsonb_build_object('slug','phase2-extra-b','name','Extra B','role','Fixture role','beat',1))
+      ELSE '[]'::jsonb END
+  FROM research_topics WHERE id LIKE 'phase2-cowboy-%';
+END
+$phase2_fixture$;
+
+-- name: SeedCompletenessCatalogOnly
+INSERT INTO works(id,canonical_title,type,updated_at) VALUES
+ ('00000000-0000-4000-8000-000000000701','phase2-catalog-unknown','UNKNOWN',now()),
+ ('00000000-0000-4000-8000-000000000702','phase2-catalog-null',NULL,now())
+ON CONFLICT(id) DO NOTHING
+
+-- name: SetCowboyType
+UPDATE works SET type=$1,updated_at=now()
+WHERE id=(SELECT work_id FROM work_worlds WHERE slug='cowboy-bebop-tv')
+
+-- name: SeedPrivateMediaCandidate
+WITH candidate AS (
+ INSERT INTO media_candidates(slot,batch,position,scene,variant,stage,round)
+ VALUES (23,'phase2-private',1,'private image fixture',1,'held',1)
+ RETURNING slot
+), step AS (
+ INSERT INTO media_steps(slot,round,step,finished_at,result)
+ SELECT slot,1,'generate',now(),jsonb_build_object('image','/media/phase2-private.png') FROM candidate
+ RETURNING slot
+)
+INSERT INTO media_withdrawals(slot,round,reason)
+SELECT slot,1,'fixture withdrawn private candidate' FROM step
+
+-- name: AddWhitespaceCompletenessLocation
+INSERT INTO work_settings(v,name)
+SELECT version_id,'   ' FROM work_worlds WHERE slug='cowboy-bebop-tv'
+
+-- name: RemoveWhitespaceCompletenessLocation
+DELETE FROM work_settings WHERE name='   '
+  AND v=(SELECT version_id FROM work_worlds WHERE slug='cowboy-bebop-tv')
+
+-- name: DuplicateCompletenessLocation
+UPDATE episode_extensions SET place='Cowboy location 3' WHERE topic='phase2-cowboy-4'
+
+-- name: RestoreCompletenessLocation
+UPDATE episode_extensions SET place='Cowboy location 4' WHERE topic='phase2-cowboy-4'
+
+-- name: SeedCompletenessPendingEvidence
+WITH topic AS (
+ INSERT INTO research_topics(id,world_slug,first_episode,last_episode,enabled)
+ VALUES ('phase2-cowboy-pending','cowboy-bebop-tv',11,11,true)
+ RETURNING id,world_slug,first_episode
+), plan AS (
+ INSERT INTO episode_plans(topic,world_slug,number,spec)
+ SELECT id,world_slug,first_episode,jsonb_build_object('sceneSlug','phase2-pending-scene') FROM topic
+ RETURNING topic
+)
+INSERT INTO episode_source_captures(topic,spec,documents,captured_at)
+SELECT topic,'{}'::jsonb,'[]'::jsonb,now() FROM plan
+
+-- name: PublishCompletenessPendingEpisode
+WITH candidate AS (
+ UPDATE media_candidates SET stage='passed',reason='phase2 fixture',updated_at=now() WHERE slot=9 RETURNING slot
+), world AS (
+ SELECT version_id FROM work_worlds WHERE slug='cowboy-bebop-tv'
+), run AS (
+ INSERT INTO research_runs(topic,v,attempt,stage,finished_at,documents,claims)
+ SELECT 'phase2-cowboy-pending',version_id,1,'ready',now(),'[]'::jsonb,'[]'::jsonb FROM world
+ RETURNING id,topic,v
+), accepted AS (
+ INSERT INTO scope_acceptances(topic,v,rule,fingerprint,passed,checks,picks,edition_slug,
+   scope_first,scope_last,research_run,reader_copy)
+ SELECT topic,v,1,'phase2-pending-published',true,'{}'::jsonb,
+   jsonb_build_array(jsonb_build_object('slot',candidate.slot,'round',1,'image','/art/phase2-episode-11.webp')),
+   'cowboy-bebop-tv',11,11,id,
+   jsonb_build_object('phase2-extension-11',jsonb_build_array(jsonb_build_object('text','Published fixture text')))
+ FROM run CROSS JOIN candidate RETURNING id,topic
+), head AS (
+ INSERT INTO scope_heads(topic,latest,published)
+ SELECT topic,id,id FROM accepted RETURNING topic
+)
+INSERT INTO episode_extensions(topic,slug,title,intro,place,scene_slug,scene_name,people)
+SELECT topic,'phase2-extension-11','Extension storyline 11','Fixture extension intro',
+  'Cowboy location 11','phase2-extension-scene-11','Extension scene 11','[]'::jsonb
+FROM head
+
+-- name: CowboyPublishedVersion
+SELECT version_id FROM work_worlds WHERE slug='cowboy-bebop-tv'
+
+-- name: CreateCowboyCompletenessVersion
+WITH current AS (
+ SELECT work_id FROM work_worlds WHERE slug='cowboy-bebop-tv'
+), source_run AS (
+ SELECT s.id source_id,r.id run_id FROM knowledge_sources s
+ JOIN knowledge_sync_runs r ON r.source_id=s.id AND r.status='success'
+ WHERE s.name='tidepost-original' ORDER BY r.started_at LIMIT 1
+), version AS (
+ INSERT INTO knowledge_source_versions(source_id,version,checksum,metadata,run_id)
+ SELECT source_id,'phase2-cowboy-v2',md5('phase2-cowboy-v2'),'{}'::jsonb,run_id FROM source_run
+ RETURNING id
+), release AS (
+ INSERT INTO world_releases(version_id,work_id)
+ SELECT version.id,current.work_id FROM version CROSS JOIN current
+ RETURNING version_id,work_id
+)
+UPDATE work_worlds w SET version_id=release.version_id
+FROM release WHERE w.work_id=release.work_id
+RETURNING release.version_id
+
+-- name: CompletenessResultCountForVersion
+SELECT count(*)::int FROM knowledge_completeness_results WHERE world_slug=$1 AND version_id=$2
+
+-- name: DeactivateCompletenessCatalogOnly
+UPDATE works SET active=false,updated_at=now() WHERE id='00000000-0000-4000-8000-000000000701'
+
+-- name: CompletenessRuleCount
+SELECT count(*)::int FROM knowledge_completeness_rules WHERE rule_version=1 AND active
+
+-- name: CompletenessResultCount
+SELECT count(*)::int FROM knowledge_completeness_results
+
+-- name: OpsKnowledgeExpectedSummary
+SELECT jsonb_build_object(
+ 'active_works',(SELECT count(*)::int FROM works WHERE active),
+ 'published_worlds',(SELECT count(*)::int FROM published_worlds),
+ 'release_versions',(SELECT count(*)::int FROM world_releases),
+ 'people',(SELECT coalesce(sum((card->>'characters')::int),0)::int FROM reader_knowledge_inventory),
+ 'storylines',(SELECT coalesce(sum((card->>'storylines')::int),0)::int FROM reader_knowledge_inventory),
+ 'chapters',(SELECT coalesce(sum((card->>'chapters')::int),0)::int FROM reader_knowledge_inventory),
+ 'episodes_expected',(SELECT coalesce(sum(CASE WHEN k.type IN ('TV','ONA','OVA','SPECIAL') THEN coalesce(k.episodes,0) ELSE 0 END),0)::int FROM published_worlds w JOIN works k ON k.id=w.work_id),
+ 'episodes_covered',(SELECT coalesce(sum(jsonb_array_length(card->'readable_episodes')),0)::int FROM reader_knowledge_inventory),
+ 'scenes',(SELECT coalesce(sum((card->>'scenes')::int),0)::int FROM reader_knowledge_inventory),
+ 'locations',(SELECT coalesce(sum((card->>'settings')::int),0)::int FROM reader_knowledge_inventory),
+ 'main_visuals',(SELECT count(*)::int FROM published_worlds WHERE nullif(card->>'hero_asset_key','') IS NOT NULL),
+ 'portraits',(SELECT coalesce(sum((card->>'portraits')::int),0)::int FROM reader_knowledge_inventory),
+ 'chapter_images',(SELECT coalesce(sum((card->>'chapter_images')::int),0)::int FROM reader_knowledge_inventory))
+
+-- name: CountCompletenessRuleForWorld
+SELECT count(*)::int FROM knowledge_completeness_results WHERE world_slug=$1 AND rule_code=$2
+
+-- name: OpsLegacySnapshot
+INSERT INTO ops_daily_snapshots(day,scope,definition,metrics) VALUES($1::date,'all',1,'{"legacy":true}'::jsonb)
+ON CONFLICT(day,scope) DO NOTHING
+
+-- name: OpsSnapshotCompleteness
+SELECT metrics->'completeness' FROM ops_daily_snapshots WHERE day=$1::date AND scope='all'
+
+-- name: OpsWorldSnapshotCompleteness
+SELECT definition,metrics->'completeness' FROM ops_daily_snapshots WHERE day=$1::date AND scope=$2
+
+-- name: OpsLegacySnapshotState
+SELECT definition,metrics->>'legacy' FROM ops_daily_snapshots WHERE day=$1::date AND scope='all'
+
+-- name: OpsSnapshotActiveWorks
+SELECT (metrics->>'activeWorks')::int FROM ops_daily_snapshots WHERE day=$1::date AND scope='all'

@@ -34,6 +34,9 @@ func QualityIfDue(ctx context.Context, db *pgxpool.Pool) error {
 		return err
 	}
 	report, scanErr := Quality(ctx, db, "all", "")
+	if scanErr == nil {
+		scanErr = RecalculateCompleteness(ctx, db)
+	}
 	finish, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if scanErr != nil {

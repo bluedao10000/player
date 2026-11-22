@@ -3,6 +3,7 @@ package ops_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"anime-agent/api/internal/repository/database"
 	ops "anime-agent/api/internal/repository/queries/ops"
+	domain "anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/testsupport"
 	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
@@ -379,7 +381,37 @@ func TestOpsDailySnapshotIsIdempotent(t *testing.T) {
 	db := testsupport.Database(t)
 	ctx := context.Background()
 	day := time.Date(2026, 11, 22, 0, 0, 0, 0, time.FixedZone("Asia/Shanghai", 8*60*60))
+	legacyDay := day.AddDate(0, 0, -1)
+	for _, statement := range []string{sqltest.SeedOpsSyncRuns, sqltest.SeedOpsWorlds} {
+		if _, err := db.Exec(ctx, statement); err != nil {
+			t.Fatalf("seed published worlds for snapshot: %v", err)
+		}
+	}
+	if _, err := db.Exec(ctx, sqltest.OpsLegacySnapshot, legacyDay.Format("2006-01-02")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(ctx, sqltest.SeedCompletenessCatalogOnly); err != nil {
+		t.Fatal(err)
+	}
+	if err := domain.RecalculateCompleteness(ctx, db); err != nil {
+		t.Fatalf("calculate completeness for snapshot: %v", err)
+	}
 	if err := ops.TakeDailySnapshot(ctx, db, day); err != nil {
+		t.Fatal(err)
+	}
+	var activeWorksBefore int
+	if err := db.QueryRow(ctx, sqltest.OpsSnapshotActiveWorks, day.Format("2006-01-02")).Scan(&activeWorksBefore); err != nil {
+		t.Fatal(err)
+	}
+	var legacyDefinition int
+	var legacyMarker sql.NullString
+	if err := db.QueryRow(ctx, sqltest.OpsLegacySnapshotState, legacyDay.Format("2006-01-02")).Scan(&legacyDefinition, &legacyMarker); err != nil {
+		t.Fatal(err)
+	}
+	if legacyDefinition != 1 || !legacyMarker.Valid || legacyMarker.String != "true" {
+		t.Fatalf("legacy definition 1 snapshot changed: definition=%d marker=%+v", legacyDefinition, legacyMarker)
+	}
+	if _, err := db.Exec(ctx, sqltest.DeactivateCompletenessCatalogOnly); err != nil {
 		t.Fatal(err)
 	}
 	if err := ops.TakeDailySnapshot(ctx, db, day.Add(12*time.Hour)); err != nil {
@@ -397,7 +429,27 @@ func TestOpsDailySnapshotIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	if int64(got) != expected || int64(definitions) != expected {
-		t.Fatalf("snapshot rows=%d expected=%d definition1=%d", got, expected, definitions)
+		t.Fatalf("snapshot rows=%d expected=%d definition2=%d", got, expected, definitions)
+	}
+	var activeWorksAfter int
+	if err := db.QueryRow(ctx, sqltest.OpsSnapshotActiveWorks, day.Format("2006-01-02")).Scan(&activeWorksAfter); err != nil || activeWorksAfter != activeWorksBefore {
+		t.Fatalf("idempotent snapshot changed active works %d -> %d (err=%v)", activeWorksBefore, activeWorksAfter, err)
+	}
+	var completenessRaw []byte
+	if err := db.QueryRow(ctx, sqltest.OpsSnapshotCompleteness, day.Format("2006-01-02")).Scan(&completenessRaw); err != nil {
+		t.Fatal(err)
+	}
+	var completeness map[string]any
+	if err := json.Unmarshal(completenessRaw, &completeness); err != nil || completeness["ruleVersion"] == nil || completeness["dimensions"] == nil {
+		t.Fatalf("definition 2 snapshot omitted completeness results: %s (err=%v)", completenessRaw, err)
+	}
+	var worldDefinition int
+	var worldCompletenessRaw []byte
+	if err := db.QueryRow(ctx, sqltest.OpsWorldSnapshotCompleteness, day.Format("2006-01-02"), "cowboy-bebop-tv").Scan(&worldDefinition, &worldCompletenessRaw); err != nil {
+		t.Fatal(err)
+	}
+	if worldDefinition != 2 || len(worldCompletenessRaw) == 0 {
+		t.Fatalf("world snapshot definition=%d completeness=%s", worldDefinition, worldCompletenessRaw)
 	}
 }
 

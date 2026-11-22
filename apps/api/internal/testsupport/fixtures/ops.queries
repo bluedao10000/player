@@ -338,7 +338,7 @@ FROM ops_worker_heartbeats WHERE worker_id=$1 AND loop=$2
 SELECT count(*)::int FROM ops_daily_snapshots WHERE day=$1::date
 
 -- name: OpsSnapshotDefinitions
-SELECT count(*)::int FROM ops_daily_snapshots WHERE day=$1::date AND definition=1
+SELECT count(*)::int FROM ops_daily_snapshots WHERE day=$1::date AND definition=2
 
 -- name: OpsSnapshotExpectedCount
 SELECT 1+(SELECT count(*) FROM reader_knowledge_inventory)

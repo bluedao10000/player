@@ -1,0 +1,280 @@
+-- name: OpsKnowledgeSummary
+WITH clock AS (
+ SELECT statement_timestamp() AS as_of,
+        (date_trunc('day',statement_timestamp() AT TIME ZONE 'Asia/Shanghai') AT TIME ZONE 'Asia/Shanghai') AS day_start
+), inventory AS (
+ SELECT i.* FROM reader_knowledge_inventory i JOIN works k ON k.id=i.work_id AND k.active
+), releases AS (
+ SELECT count(*)::int total FROM world_releases
+), types AS (
+ SELECT type,count(*)::int count FROM works WHERE active GROUP BY type
+), current_results AS (
+ SELECT DISTINCT ON (r.work_id,r.version_id,r.rule_code) r.*
+ FROM knowledge_completeness_results r
+ JOIN published_worlds w ON (w.work_id,w.version_id)=(r.work_id,r.version_id)
+ WHERE r.rule_version=(SELECT max(x.rule_version) FROM knowledge_completeness_rules x WHERE x.rule_code=r.rule_code AND x.active)
+ ORDER BY r.work_id,r.version_id,r.rule_code,r.rule_version DESC,r.calculated_at DESC
+), source_records AS (
+ SELECT s.name,s.type,count(*)::int records,count(DISTINCT r.work_id)::int works
+ FROM knowledge_source_records r JOIN knowledge_sources s ON s.id=r.source_id
+ WHERE r.active GROUP BY s.name,s.type
+), provider_ids AS (
+ SELECT provider,count(*)::int external_ids,count(DISTINCT work_id)::int works
+ FROM work_sources GROUP BY provider
+), trend AS (
+ SELECT coalesce(jsonb_agg(jsonb_build_object('day',s.day,'definition',s.definition,
+   'active_works',s.metrics->'activeWorks','work_types',s.metrics->'workTypes',
+   'published_worlds',s.metrics->'publishedWorlds','knowledge',s.metrics->'knowledge',
+   'completeness',CASE WHEN s.definition>=2 THEN s.metrics->'completeness' ELSE NULL END)
+   ORDER BY s.day),'[]'::jsonb) points
+ FROM ops_daily_snapshots s CROSS JOIN clock c
+ WHERE s.scope='all' AND s.day>=((c.day_start AT TIME ZONE 'Asia/Shanghai')::date - $1::int + 1)
+), completeness_rollup AS (
+ SELECT count(*) FILTER(WHERE dimension='people' AND item_code='introductions')::int scanned,
+        coalesce(sum(completed_required_items) FILTER(WHERE dimension='people' AND item_code='introductions'),0)::int intros_complete
+ FROM current_results
+)
+SELECT jsonb_build_object(
+ 'as_of',c.as_of,'definition',2,
+ 'works',jsonb_build_object(
+   'active_total',(SELECT count(*)::int FROM works WHERE active),
+   'by_type',coalesce((SELECT jsonb_agg(jsonb_build_object('type',type,'count',count) ORDER BY type NULLS LAST) FROM types),'[]'::jsonb),
+   'published_worlds',(SELECT count(*)::int FROM published_worlds),'release_versions',(SELECT total FROM releases)),
+ 'people',jsonb_build_object(
+   'total',(SELECT coalesce(sum((card->>'characters')::int),0)::int FROM inventory),
+   'introductions_complete',CASE WHEN cr.scanned=0 THEN NULL ELSE cr.intros_complete END,
+   'relationships',jsonb_build_object('availability','no_data')),
+ 'plot',jsonb_build_object(
+   'storylines',(SELECT coalesce(sum((card->>'storylines')::int),0)::int FROM inventory),
+   'chapters',(SELECT coalesce(sum((card->>'chapters')::int),0)::int FROM inventory),
+   'episodes_expected',(SELECT coalesce(sum(CASE WHEN k.type IN ('TV','ONA','OVA','SPECIAL') THEN coalesce(k.episodes,0) ELSE 0 END),0)::int FROM published_worlds w JOIN works k ON k.id=w.work_id),
+   'episodes_covered',(SELECT coalesce(sum(jsonb_array_length(card->'readable_episodes')),0)::int FROM inventory),
+   'scenes',(SELECT coalesce(sum((card->>'scenes')::int),0)::int FROM inventory)),
+ 'world',jsonb_build_object(
+   'locations',(SELECT coalesce(sum((card->>'settings')::int),0)::int FROM inventory),
+   'organizations',jsonb_build_object('availability','no_data'),
+   'typed_settings',jsonb_build_object('availability','no_data')),
+ 'timeline',jsonb_build_object('availability','no_data','events',NULL,'chapter_links',NULL,'order_checks',NULL),
+ 'images',jsonb_build_object(
+   'main_visuals',(SELECT count(*)::int FROM published_worlds WHERE nullif(card->>'hero_asset_key','') IS NOT NULL),
+   'portraits',(SELECT coalesce(sum((card->>'portraits')::int),0)::int FROM inventory),
+   'chapter_images',(SELECT coalesce(sum((card->>'chapter_images')::int),0)::int FROM inventory)),
+ 'sources',jsonb_build_object(
+   'records_by_source',coalesce((SELECT jsonb_agg(jsonb_build_object('name',name,'type',type,'records',records,'works',works) ORDER BY name) FROM source_records),'[]'::jsonb),
+   'external_ids_by_provider',coalesce((SELECT jsonb_agg(jsonb_build_object('provider',provider,'external_ids',external_ids,'works',works) ORDER BY provider) FROM provider_ids),'[]'::jsonb)),
+ 'trend',jsonb_build_object('range_days',$1,'points',(SELECT points FROM trend))
+)
+FROM clock c CROSS JOIN completeness_rollup cr
+
+-- name: OpsKnowledgeCompleteness
+WITH selected AS (
+ SELECT k.id work_id,w.slug world_slug,w.version_id
+ FROM works k LEFT JOIN published_worlds w ON w.work_id=k.id
+ WHERE k.active AND ($1=w.slug OR $1=k.id::text)
+ LIMIT 1
+), latest AS (
+ SELECT DISTINCT ON (r.work_id,r.version_id,r.rule_code) r.* FROM knowledge_completeness_results r
+ JOIN selected s ON (s.work_id,s.version_id)=(r.work_id,r.version_id)
+ WHERE r.rule_version=(SELECT max(x.rule_version) FROM knowledge_completeness_rules x WHERE x.rule_code=r.rule_code AND x.active)
+ ORDER BY r.work_id,r.version_id,r.rule_code,r.rule_version DESC,r.calculated_at DESC
+), dimensions AS (
+ SELECT dimension,
+   CASE WHEN bool_and(data_state='no_data') THEN 'no_data'
+        WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0
+             AND count(*) FILTER(WHERE data_state='available')>0 THEN 'not_applicable'
+        WHEN bool_or(data_state='available' AND status='pending_verification') THEN 'pending_verification'
+        WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0 THEN 'no_data'
+        WHEN count(*) FILTER(WHERE data_state='available' AND status IN ('missing','partial'))=0 THEN 'completed'
+        WHEN count(*) FILTER(WHERE data_state='available' AND completed_required_items>0)=0 THEN 'missing'
+        ELSE 'partial' END status,
+   jsonb_object_agg(item_code,jsonb_build_object('data_state',data_state,'completed_required_items',completed_required_items,
+     'applicable_required_items',applicable_required_items,'status',status,'details',details) ORDER BY item_code) items
+ FROM latest GROUP BY dimension
+)
+SELECT jsonb_build_object('available',s.version_id IS NOT NULL,'work_id',s.work_id,'world_slug',s.world_slug,
+ 'version_id',s.version_id,'rule_version',coalesce((SELECT max(rule_version) FROM knowledge_completeness_rules WHERE active),1),
+ 'calculated_at',(SELECT max(calculated_at) FROM latest),
+ 'dimensions',coalesce((SELECT jsonb_agg(jsonb_build_object('key',dimension,'status',status,'items',items) ORDER BY dimension) FROM dimensions),'[]'::jsonb))
+FROM selected s
+
+-- name: OpsKnowledgeWorks
+WITH clock AS (SELECT statement_timestamp() AS as_of),
+worlds AS (
+ SELECT w.work_id,w.slug,w.version_id,w.edition,w.published_at,k.canonical_title,k.original_title,k.type,k.episodes,k.updated_at,
+        i.card,coalesce(rv.release_versions,0)::int release_versions
+ FROM works k
+ LEFT JOIN published_worlds w ON w.work_id=k.id
+ LEFT JOIN reader_knowledge_inventory i ON (i.work_id,i.slug)=(w.work_id,w.slug)
+ LEFT JOIN (SELECT work_id,count(*) release_versions FROM world_releases GROUP BY work_id) rv ON rv.work_id=k.id
+ WHERE k.active
+), operation_status AS (
+ SELECT world_slug,count(*) FILTER(WHERE state='pending')::int pending_items,
+        count(*) FILTER(WHERE state='blocked')::int blocked_items,
+        count(*) FILTER(WHERE state='waiting_human')::int waiting_items
+ FROM ops_work_items WHERE world_slug IS NOT NULL GROUP BY world_slug
+), acceptance AS (
+ SELECT p.world_slug,
+   CASE WHEN count(*)=0 THEN NULL ELSE count(*) FILTER(WHERE a.passed)::numeric/count(*) END acceptance_pass_rate
+ FROM episode_plans p JOIN scope_heads h ON h.topic=p.topic
+ JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
+ GROUP BY p.world_slug
+), counts AS (
+ SELECT w.*,
+   CASE WHEN w.version_id IS NULL THEN NULL ELSE jsonb_array_length(w.card->'readable_episodes') END episodes_covered,
+   CASE WHEN w.version_id IS NULL THEN NULL ELSE (w.card->>'characters')::int END characters,
+   CASE WHEN w.version_id IS NULL THEN NULL ELSE (w.card->>'scenes')::int END scenes,
+   CASE WHEN w.version_id IS NULL THEN NULL ELSE
+      (CASE WHEN coalesce((w.card->>'has_hero')::boolean,false) THEN 1 ELSE 0 END)
+      +coalesce((w.card->>'portraits')::int,0)+coalesce((w.card->>'chapter_images')::int,0) END images_count,
+   coalesce(os.pending_items,0) pending_items,coalesce(os.blocked_items,0) blocked_items,
+   coalesce(os.waiting_items,0) waiting_items,a.acceptance_pass_rate,
+   (SELECT max(r.calculated_at) FROM knowledge_completeness_results r WHERE r.world_slug=w.slug AND r.version_id=w.version_id) completeness_updated
+ FROM worlds w LEFT JOIN operation_status os ON os.world_slug=w.slug LEFT JOIN acceptance a ON a.world_slug=w.slug
+), current_results AS (
+ SELECT DISTINCT ON (r.work_id,r.version_id,r.rule_code) r.*
+ FROM knowledge_completeness_results r
+ WHERE r.rule_version=(SELECT max(x.rule_version) FROM knowledge_completeness_rules x WHERE x.rule_code=r.rule_code AND x.active)
+ ORDER BY r.work_id,r.version_id,r.rule_code,r.rule_version DESC,r.calculated_at DESC
+), dimensions AS (
+ SELECT work_id,version_id,dimension,
+   CASE WHEN bool_and(data_state='no_data') THEN 'no_data'
+        WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0
+             AND count(*) FILTER(WHERE data_state='available')>0 THEN 'not_applicable'
+        WHEN bool_or(data_state='available' AND status='pending_verification') THEN 'pending_verification'
+        WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0 THEN 'no_data'
+        WHEN count(*) FILTER(WHERE data_state='available' AND status IN ('missing','partial'))=0 THEN 'completed'
+        WHEN count(*) FILTER(WHERE data_state='available' AND completed_required_items>0)=0 THEN 'missing'
+        ELSE 'partial' END dimension_status,
+   jsonb_object_agg(item_code,jsonb_build_object('data_state',data_state,'completed_required_items',completed_required_items,
+     'applicable_required_items',applicable_required_items,'status',status,'details',details) ORDER BY item_code) items
+ FROM current_results GROUP BY work_id,version_id,dimension
+), completeness AS (
+ SELECT work_id,version_id,jsonb_agg(jsonb_build_object('key',dimension,'status',dimension_status,'items',items) ORDER BY dimension) value,
+        max(CASE dimension_status WHEN 'pending_verification' THEN 5 WHEN 'missing' THEN 4 WHEN 'partial' THEN 3 WHEN 'completed' THEN 2 WHEN 'not_applicable' THEN 1 ELSE 0 END) worst_status
+ FROM dimensions GROUP BY work_id,version_id
+), prepared AS (
+ SELECT c.*,
+   CASE WHEN c.blocked_items>0 THEN 'blocked' WHEN c.waiting_items>0 THEN 'waiting_human'
+        WHEN c.pending_items>0 THEN 'pending' ELSE 'idle' END production_status,
+   CASE WHEN c.completeness_updated IS NULL THEN NULL ELSE jsonb_build_object('dimensions',coalesce(comp.value,'[]'::jsonb)) END completeness,
+   greatest(c.updated_at,c.published_at,c.completeness_updated) last_updated_at,
+   coalesce(comp.worst_status,0) worst_status,
+   c.canonical_title title
+ FROM counts c LEFT JOIN completeness comp ON (comp.work_id,comp.version_id)=(c.work_id,c.version_id)
+), filtered AS (
+ SELECT p.* FROM prepared p CROSS JOIN clock c
+ WHERE ($1='' OR lower(p.title) LIKE '%'||lower($1)||'%' OR lower(coalesce(p.original_title,'')) LIKE '%'||lower($1)||'%'
+   OR EXISTS(SELECT FROM work_titles t WHERE t.work_id=p.work_id AND lower(t.title) LIKE '%'||lower($1)||'%'))
+ AND ($2='all' OR ($2='true' AND p.version_id IS NOT NULL) OR ($2='false' AND p.version_id IS NULL))
+ AND ($3='' OR ($3='__null__' AND p.type IS NULL) OR p.type=$3)
+ AND ($4='' OR EXISTS(SELECT FROM current_results r WHERE r.work_id=p.work_id AND r.version_id=p.version_id AND r.status=$4))
+ AND ($5='' OR p.production_status=$5)
+), ordered AS (
+ SELECT f.*,row_number() OVER(ORDER BY
+   CASE WHEN $6='title' THEN f.title END ASC,
+   CASE WHEN $6='type' THEN f.type END ASC NULLS LAST,
+   CASE WHEN $6='release_versions' THEN f.release_versions END DESC,
+   CASE WHEN $6='episodes_covered' THEN f.episodes_covered END DESC NULLS LAST,
+   CASE WHEN $6='characters' THEN f.characters END DESC NULLS LAST,
+   CASE WHEN $6='scenes' THEN f.scenes END DESC NULLS LAST,
+   CASE WHEN $6='images' THEN f.images_count END DESC NULLS LAST,
+   CASE WHEN $6='completeness' THEN f.worst_status END DESC,
+   CASE WHEN $6='acceptance_pass_rate' THEN f.acceptance_pass_rate END DESC NULLS LAST,
+   CASE WHEN $6='last_updated_at' OR $6='' THEN f.last_updated_at END DESC NULLS LAST,
+   f.work_id) ord
+ FROM filtered f
+), page AS (
+ SELECT * FROM ordered WHERE ord>$7::int ORDER BY ord LIMIT ($8::int+1)
+)
+SELECT jsonb_build_object('as_of',c.as_of,'definition',2,
+ 'items',coalesce((SELECT jsonb_agg(jsonb_build_object('work_id',p.work_id,'world_slug',p.slug,'title',p.title,'type',p.type,
+  'release_versions',p.release_versions,'edition',p.edition,'episodes_total',p.episodes,'episodes_covered',p.episodes_covered,
+  'characters',p.characters,'scenes',p.scenes,'images',p.images_count,'completeness',p.completeness,
+  'acceptance_pass_rate',p.acceptance_pass_rate,'production_status',p.production_status,'last_updated_at',p.last_updated_at,
+  'has_knowledge_version',p.version_id IS NOT NULL) ORDER BY p.ord) FROM page p WHERE p.ord<=$7::int+$8::int),'[]'::jsonb),
+ 'next_cursor',CASE WHEN (SELECT count(*) FROM page)>$8::int THEN ($7::int+$8::int)::text ELSE NULL END)
+FROM clock c
+
+-- name: OpsKnowledgeWork
+WITH selected AS (
+ SELECT k.*,w.slug,w.version_id,w.edition,w.name world_name,w.intro world_intro,w.origin,w.published_at,
+        i.card
+ FROM works k LEFT JOIN published_worlds w ON w.work_id=k.id
+ LEFT JOIN reader_knowledge_inventory i ON (i.work_id,i.slug)=(w.work_id,w.slug)
+ WHERE k.active AND ($1=w.slug OR $1=k.id::text)
+ LIMIT 1
+), current_results AS (
+ SELECT DISTINCT ON (r.work_id,r.version_id,r.rule_code) r.* FROM knowledge_completeness_results r JOIN selected s ON (s.id,s.version_id)=(r.work_id,r.version_id)
+ WHERE r.rule_version=(SELECT max(x.rule_version) FROM knowledge_completeness_rules x WHERE x.rule_code=r.rule_code AND x.active)
+ ORDER BY r.work_id,r.version_id,r.rule_code,r.rule_version DESC,r.calculated_at DESC
+), dimensions AS (
+ SELECT dimension,
+   CASE WHEN bool_and(data_state='no_data') THEN 'no_data'
+        WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0
+             AND count(*) FILTER(WHERE data_state='available')>0 THEN 'not_applicable'
+        WHEN bool_or(data_state='available' AND status='pending_verification') THEN 'pending_verification'
+        WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0 THEN 'no_data'
+        WHEN count(*) FILTER(WHERE data_state='available' AND status IN ('missing','partial'))=0 THEN 'completed'
+        WHEN count(*) FILTER(WHERE data_state='available' AND completed_required_items>0)=0 THEN 'missing'
+        ELSE 'partial' END status,
+   jsonb_object_agg(item_code,jsonb_build_object('data_state',data_state,'completed_required_items',completed_required_items,
+     'applicable_required_items',applicable_required_items,'status',status,'details',details) ORDER BY item_code) items
+ FROM current_results GROUP BY dimension
+), completeness AS (
+ SELECT coalesce(jsonb_agg(jsonb_build_object('key',dimension,'status',status,'items',items) ORDER BY dimension),'[]'::jsonb) value
+ FROM dimensions
+), people AS (
+ SELECT c.slug,c.card FROM published_characters c JOIN selected s ON s.version_id=c.v
+ UNION ALL SELECT e.slug,e.card FROM extension_people e JOIN selected s ON s.version_id=e.v
+ WHERE NOT EXISTS(SELECT FROM published_characters c WHERE c.v=e.v AND c.slug=e.slug)
+), chapters AS (
+ SELECT c.slug,c.card->>'title' title,c.card->>'intro' intro,c.card->>'image' image,c.episode
+ FROM published_chapters c JOIN selected s ON s.version_id=c.v
+ UNION ALL SELECT e.slug,e.chapter->>'title',e.chapter->>'intro',e.chapter->>'image',e.first_episode
+ FROM published_extensions e JOIN selected s ON s.version_id=e.v
+), scopes AS (
+ SELECT p.topic,p.number,t.first_episode,t.last_episode,a.passed,a.checked_at,a.id
+ FROM episode_plans p JOIN selected s ON s.slug=p.world_slug
+ JOIN research_topics t ON t.id=p.topic LEFT JOIN scope_heads h ON h.topic=p.topic
+ LEFT JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
+)
+SELECT jsonb_build_object(
+ 'overview',jsonb_build_object('work_id',s.id,'world_slug',s.slug,'title',s.canonical_title,'original_title',s.original_title,
+   'type',s.type,'episodes_total',s.episodes,'release_versions',(SELECT count(*)::int FROM world_releases r WHERE r.work_id=s.id),
+   'version_id',s.version_id,'edition',s.edition,'world_name',s.world_name,'world_intro',s.world_intro,'origin',s.origin,
+   'published_at',s.published_at,'has_knowledge_version',s.version_id IS NOT NULL,
+   'sources',jsonb_build_object(
+     'external_ids',coalesce((SELECT jsonb_agg(jsonb_build_object('provider',ws.provider,'external_id',ws.external_id,'url',ws.url) ORDER BY ws.provider,ws.external_id)
+       FROM work_sources ws WHERE ws.work_id=s.id),'[]'::jsonb),
+     'records',coalesce((SELECT jsonb_agg(jsonb_build_object('source',ks.name,'type',ks.type,'record_key',sr.record_key,'version_id',sr.version_id) ORDER BY ks.name,sr.record_key)
+       FROM knowledge_source_records sr JOIN knowledge_sources ks ON ks.id=sr.source_id WHERE sr.work_id=s.id AND sr.active),'[]'::jsonb)),
+   'completeness',CASE WHEN s.version_id IS NULL THEN NULL ELSE jsonb_build_object('dimensions',(SELECT value FROM completeness)) END),
+ 'characters',coalesce((SELECT jsonb_agg(jsonb_build_object('slug',p.slug,'name',p.card->>'name','role',p.card->>'role',
+    'introduction',intro.people->>p.slug,'portrait',p.card->>'portrait',
+    'evidence',(SELECT c.evidence FROM work_characters c WHERE c.v=s.version_id AND c.slug=p.slug)) ORDER BY p.slug)
+   FROM people p LEFT JOIN edition_reader_intros intro ON intro.world_slug=s.slug),'[]'::jsonb),
+ 'storylines',coalesce((SELECT jsonb_agg(jsonb_build_object('slug',l.slug,'title',l.title,'intro',l.intro,
+    'chapters',(SELECT coalesce(jsonb_agg(jsonb_build_object('slug',c.slug,'title',c.name) ORDER BY sc.position),'[]'::jsonb)
+      FROM work_storyline_chapters sc JOIN work_chapters c ON (c.v,c.slug)=(sc.v,sc.chapter) WHERE sc.v=l.v AND sc.line=l.slug)
+   ) ORDER BY l.position) FROM work_storylines l WHERE l.v=s.version_id),'[]'::jsonb),
+ 'episodes',jsonb_build_object('total',s.episodes,'readable',coalesce(s.card->'readable_episodes','[]'::jsonb),
+   'scopes',coalesce((SELECT jsonb_agg(jsonb_build_object('topic',topic,'number',number,'first',first_episode,'last',last_episode,
+     'passed',passed,'checked_at',checked_at) ORDER BY number) FROM scopes),'[]'::jsonb)),
+ 'scenes',coalesce((SELECT jsonb_agg(jsonb_build_object('slug',x.slug,'name',x.name,'chapter',x.chapter,'place',x.place,
+    'text',x.text,'image',x.card->>'image','missing_text',nullif(btrim(x.text),'') IS NULL) ORDER BY x.slug)
+   FROM (SELECT v,slug,name,chapter,place,text,card FROM published_scenes UNION ALL
+         SELECT v,scene_slug,scene_name,slug,place,NULL::text,scene FROM published_extensions) x WHERE x.v=s.version_id),'[]'::jsonb),
+ 'world_settings',jsonb_build_object('locations',coalesce((SELECT jsonb_agg(jsonb_build_object('name',name) ORDER BY name) FROM (
+    SELECT name FROM work_settings WHERE v=s.version_id UNION SELECT place AS name FROM published_extensions WHERE v=s.version_id) names),'[]'::jsonb),
+    'organizations',jsonb_build_object('availability','no_data'),'typed_settings',jsonb_build_object('availability','no_data')),
+ 'timeline',jsonb_build_object('availability','no_data'),
+ 'images',jsonb_build_object('main_visual',s.card->>'hero_asset_key',
+   'portraits',coalesce((SELECT jsonb_agg(jsonb_build_object('slug',p.slug,'name',p.card->>'name','image',p.card->>'portrait') ORDER BY p.slug) FROM people p),'[]'::jsonb),
+   'chapters',coalesce((SELECT jsonb_agg(jsonb_build_object('slug',c.slug,'title',c.title,'image',c.image) ORDER BY c.episode NULLS FIRST,c.slug) FROM chapters c),'[]'::jsonb)),
+ 'quality_report',jsonb_build_object('score',(SELECT jsonb_build_object('score',q.score,'components',q.components,'checked_at',q.checked_at) FROM knowledge_quality_scores q WHERE q.work_id=s.id),
+   'open_issues',coalesce((SELECT jsonb_agg(jsonb_build_object('rule_id',i.rule_id,'field',i.field,'severity',i.severity,'reason',i.reason,'checked_at',i.checked_at) ORDER BY i.severity,i.rule_id)
+      FROM knowledge_quality_issues i WHERE i.entity_id=s.id AND i.status='open'),'[]'::jsonb)),
+ 'acceptance_pass_rate',(SELECT CASE WHEN count(id)=0 THEN NULL ELSE count(*) FILTER(WHERE passed)::numeric/count(id) END FROM scopes),
+ 'completeness_calculated_at',(SELECT max(calculated_at) FROM current_results)
+)
+FROM selected s

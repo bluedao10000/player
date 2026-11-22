@@ -1,0 +1,225 @@
+-- name: CalculateCompleteness
+WITH worlds AS (
+ SELECT w.work_id,w.slug,w.version_id,w.name,w.edition,w.intro,w.origin,
+        k.canonical_title,k.type,k.episodes,k.synopsis,w.card AS world_card,i.card AS inventory_card
+ FROM published_worlds w
+ JOIN works k ON k.id=w.work_id AND k.active
+ JOIN reader_knowledge_inventory i ON (i.work_id,i.slug)=(w.work_id,w.slug)
+), profile_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'basic_profile.core_fields'::text rule_code,
+        x.item_key,CASE WHEN x.complete THEN 'completed' ELSE 'missing' END item_status,
+        x.evidence_ref,CASE WHEN x.complete THEN NULL ELSE x.reason END reason
+ FROM worlds w
+ LEFT JOIN edition_reader_intros intro ON intro.world_slug=w.slug
+ CROSS JOIN LATERAL (VALUES
+  ('canonical_title',nullif(btrim(w.canonical_title),'') IS NOT NULL,'works.canonical_title','缺少作品标题'),
+  ('type',w.type IS NOT NULL AND w.type<>'UNKNOWN','works.type','类型未登记或类型未知'),
+  ('world_name',nullif(btrim(w.name),'') IS NOT NULL,'work_worlds.name','缺少版本展示名'),
+  ('edition',nullif(btrim(w.edition),'') IS NOT NULL,'work_worlds.edition','缺少发行版本标签'),
+  ('synopsis',coalesce(nullif(btrim(w.synopsis),''),nullif(btrim(w.intro),''),nullif(btrim(intro.premise),'')) IS NOT NULL,'works.synopsis|work_worlds.intro|edition_reader_intros.premise','缺少作品简介'),
+  ('published_version',EXISTS(SELECT FROM world_releases r WHERE r.work_id=w.work_id AND r.version_id=w.version_id),'world_releases.version_id','缺少已发布知识版本'),
+  ('source_trace',EXISTS(SELECT FROM world_evidence e WHERE e.v=w.version_id) AND
+      (EXISTS(SELECT FROM knowledge_source_records s WHERE s.work_id=w.work_id AND s.active) OR
+       (w.origin='external' AND EXISTS(SELECT FROM work_sources s WHERE s.work_id=w.work_id))),
+      'world_evidence|knowledge_source_records|work_sources','缺少可追溯来源证据')
+ ) AS x(item_key,complete,evidence_ref,reason)
+), episode_total_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'basic_profile.episode_total'::text rule_code,
+        'episodes_total'::text item_key,
+        CASE WHEN w.type IN ('MOVIE','SHORT_STORY_COLLECTION') THEN 'not_applicable'
+             WHEN coalesce(w.episodes,0)>0 THEN 'completed' ELSE 'missing' END item_status,
+        'works.type|works.episodes'::text evidence_ref,
+        CASE WHEN w.type IN ('MOVIE','SHORT_STORY_COLLECTION') OR coalesce(w.episodes,0)>0 THEN NULL
+             ELSE '缺少已登记的总集数' END reason
+ FROM worlds w
+), people AS (
+ SELECT c.v,c.slug,c.card FROM published_characters c
+ UNION ALL
+ SELECT x.v,x.slug,x.card FROM extension_people x
+ WHERE NOT EXISTS (SELECT FROM published_characters c WHERE c.v=x.v AND c.slug=x.slug)
+), person_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'people.introductions'::text rule_code,
+        p.slug item_key,
+        CASE WHEN nullif(btrim(intro.people->>p.slug),'') IS NOT NULL THEN 'completed' ELSE 'missing' END item_status,
+        'edition_reader_intros.people.'||p.slug evidence_ref,
+        CASE WHEN nullif(btrim(intro.people->>p.slug),'') IS NOT NULL THEN NULL ELSE '缺少独立人物简介' END reason
+ FROM worlds w JOIN people p ON p.v=w.version_id
+ LEFT JOIN edition_reader_intros intro ON intro.world_slug=w.slug
+), storyline_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'plot.storylines'::text rule_code,
+        s.slug item_key,
+        CASE WHEN nullif(btrim(s.title),'') IS NOT NULL AND nullif(btrim(s.intro),'') IS NOT NULL
+                   AND EXISTS(SELECT FROM work_storyline_chapters sc WHERE sc.v=s.v AND sc.line=s.slug)
+             THEN 'completed' ELSE 'missing' END item_status,
+        'work_storylines:'||s.slug evidence_ref,
+        CASE WHEN nullif(btrim(s.title),'') IS NOT NULL AND nullif(btrim(s.intro),'') IS NOT NULL
+                   AND EXISTS(SELECT FROM work_storyline_chapters sc WHERE sc.v=s.v AND sc.line=s.slug)
+             THEN NULL ELSE '缺少标题、简介或章节关联' END reason
+ FROM worlds w JOIN work_storylines s ON s.v=w.version_id
+ UNION ALL
+ SELECT w.work_id,w.slug,w.version_id,'plot.storylines'::text rule_code,
+        e.slug item_key,
+        CASE WHEN nullif(btrim(e.title),'') IS NOT NULL AND nullif(btrim(e.intro),'') IS NOT NULL
+             THEN 'completed' ELSE 'missing' END item_status,
+        'published_extensions:'||e.slug evidence_ref,
+        CASE WHEN nullif(btrim(e.title),'') IS NOT NULL AND nullif(btrim(e.intro),'') IS NOT NULL
+             THEN NULL ELSE '缺少故事线标题或简介' END reason
+ FROM worlds w JOIN published_extensions e ON e.v=w.version_id
+), chapters AS (
+ SELECT c.v,c.slug,c.card->>'title' title,c.card->>'intro' intro,
+        EXISTS(SELECT FROM chapter_blocks b WHERE b.v=c.v AND b.chapter=c.slug AND nullif(btrim(b.text),'') IS NOT NULL)
+        OR EXISTS(SELECT FROM edition_reader_chapters e WHERE e.world_slug=(SELECT slug FROM worlds WHERE version_id=c.v)
+          AND e.chapter=c.slug AND jsonb_typeof(e.passages)='array' AND EXISTS(
+            SELECT FROM jsonb_array_elements(e.passages) p WHERE nullif(btrim(p->>'text'),'') IS NOT NULL)) body,
+        c.card->>'image' image
+ FROM published_chapters c
+ UNION ALL
+ SELECT e.v,e.slug,e.chapter->>'title',e.chapter->>'intro',
+        jsonb_typeof(e.reader_copy->e.slug)='array' AND EXISTS(
+          SELECT FROM jsonb_array_elements(e.reader_copy->e.slug) p WHERE nullif(btrim(p->>'text'),'') IS NOT NULL),
+        e.chapter->>'image'
+ FROM published_extensions e
+), chapter_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'plot.chapters'::text rule_code,
+        c.slug item_key,
+        CASE WHEN nullif(btrim(c.title),'') IS NOT NULL AND nullif(btrim(c.intro),'') IS NOT NULL AND c.body
+             THEN 'completed' ELSE 'missing' END item_status,
+        'published_chapters|published_extensions:'||c.slug evidence_ref,
+        CASE WHEN nullif(btrim(c.title),'') IS NOT NULL AND nullif(btrim(c.intro),'') IS NOT NULL AND c.body
+             THEN NULL ELSE '缺少章节简介或正文' END reason
+ FROM worlds w JOIN chapters c ON c.v=w.version_id
+), episode_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'plot.episodes'::text rule_code,
+        n::text item_key,
+        CASE WHEN EXISTS(SELECT FROM jsonb_array_elements_text(w.inventory_card->'readable_episodes') e WHERE e::int=n)
+             THEN 'completed'
+             WHEN EXISTS(
+               SELECT FROM episode_plans p
+               WHERE p.world_slug=w.slug AND p.number=n AND (
+                 EXISTS(SELECT FROM episode_source_captures c WHERE c.topic=p.topic)
+                 OR EXISTS(SELECT FROM research_runs r WHERE r.topic=p.topic AND r.v=w.version_id)
+                 OR EXISTS(SELECT FROM scope_heads h JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
+                           WHERE h.topic=p.topic AND a.v=w.version_id AND NOT a.passed)
+               )) THEN 'pending_verification'
+             ELSE 'missing' END item_status,
+        'reader_knowledge_inventory.readable_episodes'::text evidence_ref,
+        CASE WHEN EXISTS(SELECT FROM jsonb_array_elements_text(w.inventory_card->'readable_episodes') e WHERE e::int=n)
+             THEN NULL
+             WHEN EXISTS(SELECT FROM episode_plans p WHERE p.world_slug=w.slug AND p.number=n AND
+               (EXISTS(SELECT FROM episode_source_captures c WHERE c.topic=p.topic)
+                OR EXISTS(SELECT FROM research_runs r WHERE r.topic=p.topic AND r.v=w.version_id)
+                OR EXISTS(SELECT FROM scope_heads h JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
+                          WHERE h.topic=p.topic AND a.v=w.version_id AND NOT a.passed)))
+             THEN '已有来源或取证，等待范围验收通过并发布'
+             ELSE '尚无当前版本的公开分集内容' END reason
+ FROM worlds w CROSS JOIN LATERAL generate_series(1,CASE WHEN w.type IN ('MOVIE','SHORT_STORY_COLLECTION') THEN 0 ELSE greatest(coalesce(w.episodes,0),0) END) n
+ UNION ALL
+ SELECT w.work_id,w.slug,w.version_id,'plot.episodes','episode_total_unknown','missing',
+        'works.type|works.episodes','连续剧未登记总集数'
+ FROM worlds w WHERE w.type NOT IN ('MOVIE','SHORT_STORY_COLLECTION') AND coalesce(w.episodes,0)<=0
+), scene_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'scenes.scenes'::text rule_code,
+        s.slug item_key,
+        CASE WHEN nullif(btrim(s.name),'') IS NOT NULL AND nullif(btrim(s.chapter),'') IS NOT NULL
+                   AND nullif(btrim(s.place),'') IS NOT NULL AND nullif(btrim(s.text),'') IS NOT NULL
+             THEN 'completed' ELSE 'missing' END item_status,
+        'work_scenes:'||s.slug evidence_ref,
+        CASE WHEN nullif(btrim(s.name),'') IS NOT NULL AND nullif(btrim(s.chapter),'') IS NOT NULL
+                   AND nullif(btrim(s.place),'') IS NOT NULL AND nullif(btrim(s.text),'') IS NOT NULL
+             THEN NULL ELSE '缺少场景名称、章节、地点或独立场景文本' END reason
+ FROM worlds w JOIN published_scenes s ON s.v=w.version_id
+ UNION ALL
+ SELECT w.work_id,w.slug,w.version_id,'scenes.scenes',e.scene_slug,'missing',
+        'published_extensions.scene:'||e.scene_slug,'缺少独立场景文本'
+ FROM worlds w JOIN published_extensions e ON e.v=w.version_id
+), locations AS (
+ SELECT v,name FROM work_settings
+ UNION
+ SELECT v,place FROM published_extensions
+), location_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'world.locations'::text rule_code,
+        l.name item_key,
+        CASE WHEN nullif(btrim(l.name),'') IS NOT NULL THEN 'completed' ELSE 'missing' END item_status,
+        'work_settings|published_extensions.place'::text evidence_ref,
+        CASE WHEN nullif(btrim(l.name),'') IS NOT NULL THEN NULL ELSE '地点名称为空' END reason
+ FROM worlds w JOIN locations l ON l.v=w.version_id
+), main_image_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'images.main_visuals'::text rule_code,
+        'main_visual'::text item_key,
+        CASE WHEN nullif(btrim(w.world_card->>'hero_asset_key'),'') IS NOT NULL THEN 'completed' ELSE 'missing' END item_status,
+        'published_worlds.card.hero_asset_key'::text evidence_ref,
+        CASE WHEN nullif(btrim(w.world_card->>'hero_asset_key'),'') IS NOT NULL THEN NULL ELSE '缺少主视觉' END reason
+ FROM worlds w
+), portrait_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'images.portraits'::text rule_code,
+        p.slug item_key,
+        CASE WHEN nullif(btrim(p.card->>'portrait'),'') IS NOT NULL THEN 'completed' ELSE 'missing' END item_status,
+        'published_characters.card.portrait'::text evidence_ref,
+        CASE WHEN nullif(btrim(p.card->>'portrait'),'') IS NOT NULL THEN NULL ELSE '缺少人物立绘' END reason
+ FROM worlds w JOIN people p ON p.v=w.version_id
+), chapter_image_rows AS (
+ SELECT w.work_id,w.slug,w.version_id,'images.chapter_images'::text rule_code,
+        c.slug item_key,
+        CASE WHEN nullif(btrim(c.image),'') IS NOT NULL THEN 'completed' ELSE 'missing' END item_status,
+        'published_chapters.card.image|published_extensions.chapter.image'::text evidence_ref,
+        CASE WHEN nullif(btrim(c.image),'') IS NOT NULL THEN NULL ELSE '缺少章节配图' END reason
+ FROM worlds w JOIN chapters c ON c.v=w.version_id
+), item_rows AS (
+ SELECT * FROM profile_rows UNION ALL SELECT * FROM episode_total_rows
+ UNION ALL SELECT * FROM person_rows UNION ALL SELECT * FROM storyline_rows
+ UNION ALL SELECT * FROM chapter_rows UNION ALL SELECT * FROM episode_rows
+ UNION ALL SELECT * FROM scene_rows UNION ALL SELECT * FROM location_rows
+ UNION ALL SELECT * FROM main_image_rows UNION ALL SELECT * FROM portrait_rows
+ UNION ALL SELECT * FROM chapter_image_rows
+), rules AS (
+ SELECT r.* FROM knowledge_completeness_rules r
+ WHERE r.active AND r.rule_version=(SELECT max(x.rule_version) FROM knowledge_completeness_rules x WHERE x.rule_code=r.rule_code)
+), grouped AS (
+ SELECT w.work_id,w.slug world_slug,w.version_id,r.rule_code,r.rule_version,r.dimension,r.item_code,r.evaluator_code,
+        CASE WHEN r.evaluator_code='no_data' THEN 'no_data' ELSE 'available' END data_state,
+        CASE WHEN r.evaluator_code='no_data' THEN NULL ELSE count(i.item_key) FILTER(WHERE i.item_status='completed')::int END completed,
+        CASE WHEN r.evaluator_code='no_data' THEN NULL ELSE count(i.item_key) FILTER(WHERE i.item_status<>'not_applicable')::int END applicable,
+        CASE WHEN r.evaluator_code='no_data' THEN NULL
+             WHEN count(i.item_key) FILTER(WHERE i.item_status<>'not_applicable')=0 THEN 'not_applicable'
+             WHEN count(i.item_key) FILTER(WHERE i.item_status='pending_verification')>0 THEN 'pending_verification'
+             WHEN count(i.item_key) FILTER(WHERE i.item_status='completed')=count(i.item_key) FILTER(WHERE i.item_status<>'not_applicable') THEN 'completed'
+             WHEN count(i.item_key) FILTER(WHERE i.item_status='completed')=0 THEN 'missing'
+             ELSE 'partial' END status,
+        coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object('item_key',i.item_key,'status',i.item_status,
+          'evidence_ref',i.evidence_ref,'reason',i.reason)) ORDER BY i.item_key) FILTER(WHERE i.item_key IS NOT NULL),'[]'::jsonb) details
+ FROM worlds w CROSS JOIN rules r
+ LEFT JOIN item_rows i ON (i.work_id,i.version_id,i.rule_code)=(w.work_id,w.version_id,r.rule_code)
+ GROUP BY w.work_id,w.slug,w.version_id,r.rule_code,r.rule_version,r.dimension,r.item_code,r.evaluator_code
+)
+INSERT INTO knowledge_completeness_results
+ (work_id,world_slug,version_id,rule_code,rule_version,dimension,item_code,data_state,
+  completed_required_items,applicable_required_items,status,details,calculated_at)
+SELECT work_id,world_slug,version_id,rule_code,rule_version,dimension,item_code,data_state,
+       completed,applicable,status,details,statement_timestamp()
+FROM grouped
+ON CONFLICT(work_id,version_id,rule_code,rule_version) DO UPDATE SET
+ world_slug=excluded.world_slug,dimension=excluded.dimension,item_code=excluded.item_code,
+ data_state=excluded.data_state,completed_required_items=excluded.completed_required_items,
+ applicable_required_items=excluded.applicable_required_items,status=excluded.status,
+ details=excluded.details,calculated_at=excluded.calculated_at
+
+-- name: WorkCompleteness
+SELECT jsonb_build_object('available',w.version_id IS NOT NULL,'work_id',w.work_id,'world_slug',w.slug,
+ 'version_id',w.version_id,'rule_version',coalesce((SELECT max(rule_version) FROM knowledge_completeness_rules WHERE active),1),
+ 'calculated_at',(SELECT max(calculated_at) FROM knowledge_completeness_results r WHERE r.world_slug=w.slug AND r.version_id=w.version_id),
+ 'dimensions',coalesce((SELECT jsonb_agg(jsonb_build_object('key',d.dimension,'status',d.status,'items',d.items) ORDER BY d.dimension)
+   FROM (SELECT dimension,
+     CASE WHEN bool_and(data_state='no_data') THEN 'no_data'
+          WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0
+               AND count(*) FILTER(WHERE data_state='available')>0 THEN 'not_applicable'
+          WHEN bool_or(data_state='available' AND status='pending_verification') THEN 'pending_verification'
+          WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0 THEN 'no_data'
+          WHEN count(*) FILTER(WHERE data_state='available' AND status IN ('missing','partial'))=0 THEN 'completed'
+          WHEN count(*) FILTER(WHERE data_state='available' AND completed_required_items>0)=0 THEN 'missing'
+          ELSE 'partial' END status,
+     jsonb_object_agg(item_code,jsonb_build_object('data_state',data_state,'completed_required_items',completed_required_items,
+       'applicable_required_items',applicable_required_items,'status',status,'details',details) ORDER BY item_code) items
+    FROM knowledge_completeness_results r WHERE r.world_slug=w.slug AND r.version_id=w.version_id
+      AND r.rule_version=(SELECT max(x.rule_version) FROM knowledge_completeness_rules x WHERE x.rule_code=r.rule_code AND x.active)
+    GROUP BY dimension) d),'[]'::jsonb))
+FROM work_worlds w WHERE w.slug=$1

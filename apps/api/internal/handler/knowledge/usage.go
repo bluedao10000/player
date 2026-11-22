@@ -2,17 +2,92 @@ package knowledge
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	knowledgeread "anime-agent/api/internal/repository/queries/knowledge"
 	opsread "anime-agent/api/internal/repository/queries/ops"
 	"anime-agent/api/internal/repository/workbench"
 )
 
 // The usage endpoints use the same half-open UTC window and server-side admin guard.
 func usageRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
+	g.GET("/ops/knowledge/summary", func(c *gin.Context) {
+		rangeDays := 30
+		switch c.DefaultQuery("range", "30d") {
+		case "7d":
+			rangeDays = 7
+		case "30d":
+		case "90d":
+			rangeDays = 90
+		default:
+			c.JSON(400, gin.H{"error": "range must be 7d, 30d, or 90d"})
+			return
+		}
+		ctx, cancel := readContext(c)
+		defer cancel()
+		body, err := knowledgeread.OpsKnowledgeSummary(ctx, db, rangeDays)
+		writeJSON(c, body, err)
+	})
+	g.GET("/ops/knowledge/completeness", func(c *gin.Context) {
+		work := strings.TrimSpace(c.Query("world"))
+		if work == "" || len(work) > 512 {
+			c.JSON(400, gin.H{"error": "world is required"})
+			return
+		}
+		ctx, cancel := readContext(c)
+		defer cancel()
+		body, err := knowledgeread.OpsKnowledgeCompleteness(ctx, db, work)
+		writeJSON(c, body, err)
+	})
+	g.GET("/ops/knowledge/works", func(c *gin.Context) {
+		n := limit(c)
+		if n == 0 {
+			return
+		}
+		q := strings.TrimSpace(c.Query("q"))
+		hasVersion := c.DefaultQuery("has_knowledge_version", "true")
+		workType := c.Query("type")
+		completenessStatus := c.Query("completeness_status")
+		productionStatus := c.Query("production_status")
+		sort := c.DefaultQuery("sort", "last_updated_at")
+		allowedSort := map[string]bool{"title": true, "type": true, "release_versions": true, "episodes_covered": true,
+			"characters": true, "scenes": true, "images": true, "completeness": true, "acceptance_pass_rate": true, "last_updated_at": true}
+		if len(q) > 512 || len(workType) > 64 || (hasVersion != "true" && hasVersion != "false" && hasVersion != "all") ||
+			!allowedSort[sort] || (completenessStatus != "" && completenessStatus != "completed" && completenessStatus != "partial" &&
+			completenessStatus != "missing" && completenessStatus != "not_applicable" && completenessStatus != "pending_verification") ||
+			(productionStatus != "" && productionStatus != "idle" && productionStatus != "pending" && productionStatus != "blocked" && productionStatus != "waiting_human") {
+			c.JSON(400, gin.H{"error": "invalid work filter or sort"})
+			return
+		}
+		after := 0
+		if raw := c.Query("after"); raw != "" {
+			value, err := strconv.Atoi(raw)
+			if err != nil || value < 0 {
+				c.JSON(400, gin.H{"error": "after must be a non-negative cursor"})
+				return
+			}
+			after = value
+		}
+		ctx, cancel := readContext(c)
+		defer cancel()
+		body, err := knowledgeread.OpsKnowledgeWorks(ctx, db, q, hasVersion, workType, completenessStatus, productionStatus, sort, after, n)
+		writeJSON(c, body, err)
+	})
+	g.GET("/ops/knowledge/works/:work", func(c *gin.Context) {
+		work := strings.TrimSpace(c.Param("work"))
+		if work == "" || len(work) > 512 {
+			c.Status(400)
+			return
+		}
+		ctx, cancel := readContext(c)
+		defer cancel()
+		body, err := knowledgeread.OpsKnowledgeWork(ctx, db, work)
+		writeJSON(c, body, err)
+	})
 	g.GET("/ops/overview", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()

@@ -327,6 +327,11 @@ func TestPostgresSnapshotLifecycle(t *testing.T) {
 	decide(catalog.Decision{Action: "undo", Work: work, Field: "canonical_title"})
 	count(sqltest.WorkTitle, "Shared", work)
 	count(sqltest.CountDecisions, "6")
+	for _, statement := range []string{sqltest.SeedOpsSyncRuns, sqltest.SeedOpsWorlds} {
+		if _, err = db.Exec(ctx, statement); err != nil {
+			t.Fatalf("seed published worlds for scheduled completeness: %v", err)
+		}
+	}
 	if err = domain.QualityIfDue(ctx, db); err != nil {
 		t.Fatal(err)
 	}
@@ -334,6 +339,10 @@ func TestPostgresSnapshotLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	count(sqltest.CountQualityReports, "1")
+	var completenessRows int
+	if err = db.QueryRow(ctx, sqltest.CompletenessResultCount).Scan(&completenessRows); err != nil || completenessRows == 0 {
+		t.Fatalf("scheduled quality scan did not store completeness results: rows=%d err=%v", completenessRows, err)
+	}
 	exec(sqltest.AgeQualityRun)
 	if err = domain.QualityIfDue(ctx, db); err != nil {
 		t.Fatal(err)

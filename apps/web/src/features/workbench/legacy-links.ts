@@ -1,4 +1,4 @@
-export type WorkbenchRoute = '/workbench' | '/workbench/operations' | '/workbench/knowledge' | '/workbench/projects' | '/workbench/analytics' | '/workbench/exceptions' | '/workbench/assistant' | '/workbench/me'
+export type WorkbenchRoute = '/workbench' | '/workbench/operations' | '/workbench/knowledge' | `/workbench/knowledge/${string}` | '/workbench/projects' | '/workbench/analytics' | '/workbench/exceptions' | '/workbench/assistant' | '/workbench/me'
 export type WorkbenchRouteSearch = Record<string, string | number>
 export type LegacyWorkbenchSearch = Record<string, unknown> & { view?: unknown; section?: unknown }
 
@@ -13,8 +13,8 @@ export function resolveLegacyWorkbench(search: LegacyWorkbenchSearch): { pathnam
   if (view === 'chat') pathname = '/workbench/assistant'
   else if (view === 'me') pathname = '/workbench/me'
   else if (view === 'editor') pathname = '/workbench/exceptions'
-  else if (view === 'data') pathname = dataSection(section)
-  else if (section !== undefined) pathname = dataSection(section)
+  else if (view === 'data') pathname = dataSection(section, search.world)
+  else if (section !== undefined) pathname = dataSection(section, search.world)
   else pathname = '/workbench/exceptions'
 
   const forwarded: WorkbenchRouteSearch = {}
@@ -26,10 +26,12 @@ export function resolveLegacyWorkbench(search: LegacyWorkbenchSearch): { pathnam
   return { pathname, search: forwarded }
 }
 
-function dataSection(section: string | undefined): WorkbenchRoute {
+function dataSection(section: string | undefined, world: unknown): WorkbenchRoute {
   switch (section) {
     case 'knowledge':
-    case 'media': return '/workbench/knowledge'
+    case 'media': return typeof world === 'string' && world !== ''
+      ? `/workbench/knowledge/${encodeURIComponent(world)}`
+      : '/workbench/knowledge'
     case 'history': return '/workbench/operations'
     default: return '/workbench'
   }

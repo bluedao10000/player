@@ -2000,6 +2000,61 @@ SELECT 'run:'||r.run_key,'failed_run','medium',r.stage,r.world_slug,r.world_slug
 FROM ops_task_runs r CROSS JOIN clock c
 WHERE r.status='failed' AND r.finished_at>=c.as_of-interval '24 hours';
 
+-- name: 061.sql
+CREATE TABLE knowledge_completeness_rules (
+ rule_code text PRIMARY KEY,
+ dimension text NOT NULL,
+ item_code text NOT NULL,
+ label text NOT NULL,
+ applicability jsonb NOT NULL,
+ evaluator_code text NOT NULL,
+ requires_scope_acceptance boolean NOT NULL DEFAULT false,
+ rule_version int NOT NULL CHECK (rule_version > 0),
+ position int NOT NULL,
+ active boolean NOT NULL DEFAULT true,
+ UNIQUE(rule_version,dimension,item_code)
+);
+INSERT INTO knowledge_completeness_rules
+ (rule_code,dimension,item_code,label,applicability,evaluator_code,requires_scope_acceptance,rule_version,position)
+VALUES
+ ('basic_profile.core_fields','basic_profile','core_fields','基础档案字段','{"scope":"published_work"}','profile_fields',false,1,1),
+ ('basic_profile.episode_total','basic_profile','episode_total','总集数','{"scope":"published_work"}','episode_total',false,1,2),
+ ('people.introductions','people','introductions','人物介绍','{"scope":"published_character"}','person_introductions',false,1,1),
+ ('people.relationships','people','relationships','人物关系','{"availability":"no_data"}','no_data',false,1,2),
+ ('plot.storylines','plot','storylines','故事线','{"scope":"published_storyline"}','storylines',true,1,1),
+ ('plot.chapters','plot','chapters','章节','{"scope":"published_chapter"}','chapters',true,1,2),
+ ('plot.episodes','plot','episodes','分集覆盖','{"scope":"declared_episode"}','episode_coverage',true,1,3),
+ ('scenes.scenes','scenes','scenes','场景','{"scope":"published_scene"}','scenes',true,1,1),
+ ('world.locations','world','locations','地点','{"scope":"published_location"}','locations',false,1,1),
+ ('world.organizations','world','organizations','组织','{"availability":"no_data"}','no_data',false,1,2),
+ ('world.typed_settings','world','typed_settings','设定类型','{"availability":"no_data"}','no_data',false,1,3),
+ ('timeline.events','timeline','events','时间线事件','{"availability":"no_data"}','no_data',false,1,1),
+ ('timeline.chapter_links','timeline','chapter_links','关联章节','{"availability":"no_data"}','no_data',false,1,2),
+ ('timeline.order_checks','timeline','order_checks','顺序校验','{"availability":"no_data"}','no_data',false,1,3),
+ ('images.main_visuals','images','main_visuals','主视觉','{"scope":"published_work"}','main_visuals',false,1,1),
+ ('images.portraits','images','portraits','人物立绘','{"scope":"published_character"}','portraits',false,1,2),
+ ('images.chapter_images','images','chapter_images','章节配图','{"scope":"published_chapter"}','chapter_images',false,1,3);
+
+CREATE TABLE knowledge_completeness_results (
+ work_id uuid NOT NULL REFERENCES works(id),
+ world_slug text NOT NULL REFERENCES work_worlds(slug),
+ version_id bigint NOT NULL REFERENCES world_releases(version_id),
+ rule_code text NOT NULL REFERENCES knowledge_completeness_rules(rule_code),
+ rule_version int NOT NULL CHECK (rule_version > 0),
+ dimension text NOT NULL,
+ item_code text NOT NULL,
+ data_state text NOT NULL CHECK (data_state IN ('available','no_data')),
+ completed_required_items int,
+ applicable_required_items int,
+ status text CHECK (status IN ('completed','partial','missing','not_applicable','pending_verification')),
+ details jsonb NOT NULL DEFAULT '[]'::jsonb,
+ calculated_at timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(work_id,version_id,rule_code,rule_version),
+ CHECK ((data_state='no_data' AND completed_required_items IS NULL AND applicable_required_items IS NULL AND status IS NULL)
+     OR (data_state='available' AND completed_required_items IS NOT NULL AND applicable_required_items IS NOT NULL AND status IS NOT NULL))
+);
+CREATE INDEX knowledge_completeness_current ON knowledge_completeness_results(world_slug,version_id,dimension,item_code,rule_version DESC);
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,60) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,61) i;
 COMMIT;

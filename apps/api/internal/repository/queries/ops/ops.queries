@@ -121,6 +121,70 @@ WITH inventory_totals AS (
  JOIN episode_plans p ON p.topic=r.topic
  WHERE r.target_id IS NOT NULL
  GROUP BY p.world_slug
+), current_completeness AS (
+ SELECT DISTINCT ON (r.work_id,r.version_id,r.rule_code) r.*
+ FROM knowledge_completeness_results r
+ JOIN published_worlds w ON (w.work_id,w.version_id)=(r.work_id,r.version_id)
+ WHERE r.rule_version=(SELECT max(x.rule_version) FROM knowledge_completeness_rules x WHERE x.rule_code=r.rule_code AND x.active)
+ ORDER BY r.work_id,r.version_id,r.rule_code,r.rule_version DESC,r.calculated_at DESC
+), dimension_states AS (
+ SELECT work_id,world_slug,version_id,dimension,max(rule_version) rule_version,
+  CASE WHEN bool_and(data_state='no_data') THEN 'no_data'
+       WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0
+            AND count(*) FILTER(WHERE data_state='available')>0 THEN 'not_applicable'
+       WHEN bool_or(data_state='available' AND status='pending_verification') THEN 'pending_verification'
+       WHEN count(*) FILTER(WHERE data_state='available' AND applicable_required_items>0)=0 THEN 'no_data'
+       WHEN count(*) FILTER(WHERE data_state='available' AND status IN ('missing','partial'))=0 THEN 'completed'
+       WHEN count(*) FILTER(WHERE data_state='available' AND completed_required_items>0)=0 THEN 'missing'
+       ELSE 'partial' END status
+ FROM current_completeness GROUP BY work_id,world_slug,version_id,dimension
+), world_item_docs AS (
+ SELECT world_slug,version_id,dimension,
+  jsonb_object_agg(item_code,jsonb_build_object('data_state',data_state,
+   'completed_required_items',completed_required_items,'applicable_required_items',applicable_required_items,
+   'status',status,'details',details) ORDER BY item_code) items
+ FROM current_completeness GROUP BY world_slug,version_id,dimension
+), world_completeness AS (
+ SELECT d.world_slug,max(d.rule_version) rule_version,
+  jsonb_object_agg(d.dimension,jsonb_build_object('status',d.status,'items',i.items) ORDER BY d.dimension) dimensions
+ FROM dimension_states d JOIN world_item_docs i USING(world_slug,version_id,dimension)
+ GROUP BY d.world_slug
+), global_items AS (
+ SELECT dimension,item_code,
+  count(*) FILTER(WHERE data_state='available') available_works,
+  count(*) FILTER(WHERE data_state='no_data') no_data_works,
+  sum(completed_required_items) completed,
+  sum(applicable_required_items) applicable,
+  count(*) FILTER(WHERE data_state='available' AND status='completed') completed_works,
+  count(*) FILTER(WHERE data_state='available' AND status='partial') partial_works,
+  count(*) FILTER(WHERE data_state='available' AND status='missing') missing_works,
+  count(*) FILTER(WHERE data_state='available' AND status='not_applicable') not_applicable_works,
+  count(*) FILTER(WHERE data_state='available' AND status='pending_verification') pending_works
+ FROM current_completeness GROUP BY dimension,item_code
+), global_item_docs AS (
+ SELECT dimension,jsonb_object_agg(item_code,jsonb_build_object(
+   'data_state',CASE WHEN available_works=0 THEN 'no_data' ELSE 'available' END,
+   'completed_required_items',CASE WHEN available_works=0 THEN NULL ELSE coalesce(completed,0) END,
+   'applicable_required_items',CASE WHEN available_works=0 THEN NULL ELSE coalesce(applicable,0) END,
+   'statusCounts',jsonb_build_object('completed',completed_works,'partial',partial_works,'missing',missing_works,
+      'notApplicable',not_applicable_works,'pendingVerification',pending_works),
+   'noDataWorks',no_data_works) ORDER BY item_code) items
+ FROM global_items GROUP BY dimension
+), global_dimension_docs AS (
+ SELECT d.dimension,jsonb_build_object(
+  'statusCounts',jsonb_build_object(
+   'completed',count(*) FILTER(WHERE d.status='completed'),
+   'partial',count(*) FILTER(WHERE d.status='partial'),
+   'missing',count(*) FILTER(WHERE d.status='missing'),
+   'notApplicable',count(*) FILTER(WHERE d.status='not_applicable'),
+   'pendingVerification',count(*) FILTER(WHERE d.status='pending_verification'),
+   'noData',count(*) FILTER(WHERE d.status='no_data')),
+  'items',coalesce(i.items,'{}'::jsonb)) definition
+ FROM dimension_states d LEFT JOIN global_item_docs i USING(dimension)
+ GROUP BY d.dimension,i.items
+), global_completeness AS (
+ SELECT jsonb_build_object('ruleVersion',coalesce((SELECT max(rule_version) FROM current_completeness),1),
+   'dimensions',coalesce((SELECT jsonb_object_agg(dimension,definition ORDER BY dimension) FROM global_dimension_docs),'{}'::jsonb)) metrics
 ), world_metrics AS (
  SELECT i.slug AS scope,
   jsonb_build_object(
@@ -136,24 +200,27 @@ WITH inventory_totals AS (
    ),
    'registeredEpisodes',coalesce(reg.total,0),
    'acceptedEpisodes',coalesce(acc.total,0),
-   'releasedEpisodes',coalesce(rel.total,0)
+   'releasedEpisodes',coalesce(rel.total,0),
+   'completeness',jsonb_build_object('ruleVersion',coalesce(wc.rule_version,1),'dimensions',coalesce(wc.dimensions,'{}'::jsonb))
   ) AS metrics
  FROM reader_knowledge_inventory i
  LEFT JOIN registered reg ON reg.world_slug=i.slug
  LEFT JOIN accepted acc ON acc.world_slug=i.slug
  LEFT JOIN released rel ON rel.world_slug=i.slug
+ LEFT JOIN world_completeness wc ON wc.world_slug=i.slug
 ), all_metrics AS (
  SELECT jsonb_build_object(
   'activeWorks',(SELECT count(*) FROM works WHERE active),
   'workTypes',(SELECT coalesce(jsonb_agg(jsonb_build_object('type',type,'count',total)
                        ORDER BY type NULLS LAST),'[]'::jsonb) FROM type_totals),
   'publishedWorlds',(SELECT count(*) FROM published_worlds),
-  'knowledge',inventory_totals.metrics
+  'knowledge',inventory_totals.metrics,
+  'completeness',global_completeness.metrics
  ) AS metrics
- FROM inventory_totals
+ FROM inventory_totals CROSS JOIN global_completeness
 )
 INSERT INTO ops_daily_snapshots(day,scope,definition,metrics)
-SELECT $1::date,'all',1,metrics FROM all_metrics
+SELECT $1::date,'all',2,metrics FROM all_metrics
 UNION ALL
-SELECT $1::date,scope,1,metrics FROM world_metrics
+SELECT $1::date,scope,2,metrics FROM world_metrics
 ON CONFLICT(day,scope) DO NOTHING

@@ -54,6 +54,59 @@ export type OpsOverview = {
 }
 export type OpsAttentionFeed = { as_of: string; attention: OverviewAttention[] }
 
+export type CompletenessItem = {
+  data_state: 'available' | 'no_data'
+  completed_required_items: number | null
+  applicable_required_items: number | null
+  status: 'completed' | 'partial' | 'missing' | 'not_applicable' | 'pending_verification' | null
+  details: { item_key: string; status: string; evidence_ref?: string; reason?: string }[]
+}
+export type CompletenessDimension = { key: string; status: string; items: Record<string, CompletenessItem> }
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+export type KnowledgeCompleteness = {
+  available: boolean; work_id: string; world_slug: string | null; version_id: number | null
+  rule_version: number; calculated_at: string | null; dimensions: CompletenessDimension[]
+}
+export type KnowledgeSummary = {
+  as_of: string; definition: number
+  works: { active_total: number; by_type: { type: string | null; count: number }[]; published_worlds: number; release_versions: number }
+  people: { total: number; introductions_complete: number | null; relationships: { availability: string } }
+  plot: { storylines: number; chapters: number; episodes_expected: number; episodes_covered: number; scenes: number }
+  world: { locations: number; organizations: { availability: string }; typed_settings: { availability: string } }
+  timeline: { availability: string; events: number | null; chapter_links: number | null; order_checks: number | null }
+  images: { main_visuals: number; portraits: number; chapter_images: number }
+  sources: { records_by_source: { name: string; type: string; records: number; works: number }[]; external_ids_by_provider: { provider: string; external_ids: number; works: number }[] }
+  trend: { range_days: number; points: { day: string; definition: number; completeness: JsonValue; [key: string]: JsonValue }[] }
+}
+export type KnowledgeWorkRow = {
+  work_id: string; world_slug: string | null; title: string; type: string | null; release_versions: number
+  edition: string | null; episodes_total: number | null; episodes_covered: number | null; characters: number | null
+  scenes: number | null; images: number | null; completeness: { dimensions: CompletenessDimension[] } | null
+  acceptance_pass_rate: number | null; production_status: string; last_updated_at: string | null; has_knowledge_version: boolean
+}
+export type KnowledgeWorksPage = { as_of: string; definition: number; items: KnowledgeWorkRow[]; next_cursor: string | null }
+export type KnowledgeWorkDetail = {
+  overview: {
+    work_id: string; world_slug: string | null; title: string; original_title: string | null; type: string | null
+    episodes_total: number | null; release_versions: number; version_id: number | null; edition: string | null
+    world_name: string | null; world_intro: string | null; origin: string | null; published_at: string | null
+    has_knowledge_version: boolean; completeness: { dimensions: CompletenessDimension[] } | null
+    sources: { external_ids: { provider: string; external_id: string; url: string }[]; records: { source: string; type: string; record_key: string; version_id: number }[] }
+  }
+  characters: { slug: string; name: string | null; role: string | null; introduction: string | null; portrait: string | null }[]
+  storylines: { slug: string; title: string; intro: string; chapters: { slug: string; title: string }[] }[]
+  episodes: { total: number | null; readable: number[]; scopes: { topic: string; number: number; first: number; last: number; passed: boolean | null; checked_at: string | null }[] }
+  scenes: { slug: string; name: string; chapter: string; place: string; text: string | null; image: string | null; missing_text: boolean }[]
+  world_settings: { locations: { name: string }[]; organizations: { availability: string }; typed_settings: { availability: string } }
+  timeline: { availability: string }
+  images: { main_visual: string | null; portraits: { slug: string; name: string | null; image: string | null }[]; chapters: { slug: string; title: string | null; image: string | null }[] }
+  quality_report: { score: { score: number; components: Record<string, JsonValue>; checked_at: string } | null; open_issues: { rule_id: string; field: string; severity: string; reason: string; checked_at: string }[] }
+  acceptance_pass_rate: number | null
+  completeness_calculated_at: string | null
+}
+export type KnowledgeCenterFeed = { summary: KnowledgeSummary | null; works: KnowledgeWorksPage | null; checked: string }
+export type KnowledgeWorkFeed = { detail: KnowledgeWorkDetail | null; scopes: ScopeAcceptance[] | null; media: MediaCandidate[] | null; checked: string }
+
 async function getJSON<T>(path: string, adminToken?: string, withLimit = true): Promise<T | null> {
   try {
     const base = process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'
@@ -140,6 +193,58 @@ export const readKnowledgeFeed = createServerFn({ method: 'GET' }).handler(async
   ])
   return emptyFeed({ worlds, scopes, media })
 })
+
+export const readKnowledgeCenterFeed = createServerFn({ method: 'GET' }).handler(async (): Promise<KnowledgeCenterFeed | null> => {
+  if (!(await validEditorSession())) return null
+  const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
+  if (!admin) return { summary: null, works: null, checked: new Date().toISOString() }
+  const [summary, works] = await Promise.all([
+    getJSON<KnowledgeSummary>('ops/knowledge/summary?range=30d', admin, false),
+    getJSON<KnowledgeWorksPage>('ops/knowledge/works?has_knowledge_version=true&limit=50&sort=last_updated_at', admin, false),
+  ])
+  return { summary, works, checked: summary?.as_of ?? works?.as_of ?? new Date().toISOString() }
+})
+
+export type KnowledgeWorkFilters = {
+  q: string; has_knowledge_version: 'true' | 'false' | 'all'; type: string; completeness_status: string
+  production_status: string; sort: string; after: string
+}
+
+export const readKnowledgeWorksPage = createServerFn({ method: 'GET' })
+  .validator((filters: KnowledgeWorkFilters) => filters)
+  .handler(async ({ data }): Promise<KnowledgeWorksPage | null> => {
+    if (!(await validEditorSession())) return null
+    const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
+    if (!admin) return null
+    const params = new URLSearchParams({
+      q: data.q, has_knowledge_version: data.has_knowledge_version, sort: data.sort, limit: '50',
+    })
+    if (data.type) params.set('type', data.type)
+    if (data.completeness_status) params.set('completeness_status', data.completeness_status)
+    if (data.production_status) params.set('production_status', data.production_status)
+    if (data.after) params.set('after', data.after)
+    return getJSON<KnowledgeWorksPage>('ops/knowledge/works?' + params.toString(), admin, false)
+  })
+
+export const readKnowledgeWorkFeed = createServerFn({ method: 'GET' })
+  .validator((work: string) => work)
+  .handler(async ({ data: work }): Promise<KnowledgeWorkFeed | null> => {
+    if (!(await validEditorSession())) return null
+    const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
+    if (!admin) return { detail: null, scopes: null, media: null, checked: new Date().toISOString() }
+    const [detail, scopes, media] = await Promise.all([
+      getJSON<KnowledgeWorkDetail>('ops/knowledge/works/' + encodeURIComponent(work), admin, false),
+      getJSON<ScopeAcceptance[]>('scope-acceptances'),
+      getJSON<MediaCandidate[]>('media-candidates'),
+    ])
+    const slug = detail?.overview.world_slug
+    return {
+      detail,
+      scopes: slug ? scopes?.filter((scope) => scope.world === slug) ?? null : [],
+      media: slug ? media?.filter((item) => item.world_slug === slug) ?? null : [],
+      checked: detail?.completeness_calculated_at ?? new Date().toISOString(),
+    }
+  })
 
 export const readProjectFeed = createServerFn({ method: 'GET' }).handler(async () => {
   if (!(await validEditorSession())) return null

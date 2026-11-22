@@ -261,6 +261,7 @@ export type MediaStep = {
   }|null
 }
 export type MediaCandidate = {
+  world_slug?: string | null;
   reader_href?: string | null;
   character_slug?: string | null;
   art?: {kind:"scene"|"portrait";series:string;title:string;episode:number}; batch:string;position:number;reference_sha:string;

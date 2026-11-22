@@ -43,6 +43,8 @@ import { Route as WorkbenchProjectsRouteImport } from './routes/workbench.projec
 import { Route as ArtEpisodeScenesFileRouteImport } from './routes/art.episode-scenes.$file'
 import { Route as ArtPortraitsFileRouteImport } from './routes/art.portraits.$file'
 import { Route as WorkWorkIndexRouteImport } from './routes/work.$work.index'
+import { Route as WorkbenchKnowledgeIndexRouteImport } from './routes/workbench.knowledge.index'
+import { Route as WorkbenchKnowledgeWorkRouteImport } from './routes/workbench.knowledge.$work'
 import { Route as ApiBillingAlipayNotifyRouteImport } from './routes/api.billing.alipay.notify'
 import { Route as WorkWorkKindSlugRouteImport } from './routes/work.$work.$kind.$slug'
 
@@ -216,6 +218,16 @@ const WorkWorkIndexRoute = WorkWorkIndexRouteImport.update({
   path: '/work/$work/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkbenchKnowledgeIndexRoute = WorkbenchKnowledgeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkbenchKnowledgeRoute,
+} as any)
+const WorkbenchKnowledgeWorkRoute = WorkbenchKnowledgeWorkRouteImport.update({
+  id: '/$work',
+  path: '/$work',
+  getParentRoute: () => WorkbenchKnowledgeRoute,
+} as any)
 const ApiBillingAlipayNotifyRoute = ApiBillingAlipayNotifyRouteImport.update({
   id: '/api/billing/alipay/notify',
   path: '/api/billing/alipay/notify',
@@ -253,7 +265,7 @@ export interface FileRoutesByFullPath {
   '/workbench/analytics': typeof WorkbenchAnalyticsRoute
   '/workbench/assistant': typeof WorkbenchAssistantRoute
   '/workbench/exceptions': typeof WorkbenchExceptionsRoute
-  '/workbench/knowledge': typeof WorkbenchKnowledgeRoute
+  '/workbench/knowledge': typeof WorkbenchKnowledgeRouteWithChildren
   '/workbench/me': typeof WorkbenchMeRoute
   '/workbench/operations': typeof WorkbenchOperationsRoute
   '/workbench/projects': typeof WorkbenchProjectsRoute
@@ -261,7 +273,9 @@ export interface FileRoutesByFullPath {
   '/workbench/': typeof WorkbenchIndexRoute
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
+  '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work/': typeof WorkWorkIndexRoute
+  '/workbench/knowledge/': typeof WorkbenchKnowledgeIndexRoute
   '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
@@ -290,7 +304,6 @@ export interface FileRoutesByTo {
   '/workbench/analytics': typeof WorkbenchAnalyticsRoute
   '/workbench/assistant': typeof WorkbenchAssistantRoute
   '/workbench/exceptions': typeof WorkbenchExceptionsRoute
-  '/workbench/knowledge': typeof WorkbenchKnowledgeRoute
   '/workbench/me': typeof WorkbenchMeRoute
   '/workbench/operations': typeof WorkbenchOperationsRoute
   '/workbench/projects': typeof WorkbenchProjectsRoute
@@ -298,7 +311,9 @@ export interface FileRoutesByTo {
   '/workbench': typeof WorkbenchIndexRoute
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
+  '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work': typeof WorkWorkIndexRoute
+  '/workbench/knowledge': typeof WorkbenchKnowledgeIndexRoute
   '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
@@ -329,7 +344,7 @@ export interface FileRoutesById {
   '/workbench/analytics': typeof WorkbenchAnalyticsRoute
   '/workbench/assistant': typeof WorkbenchAssistantRoute
   '/workbench/exceptions': typeof WorkbenchExceptionsRoute
-  '/workbench/knowledge': typeof WorkbenchKnowledgeRoute
+  '/workbench/knowledge': typeof WorkbenchKnowledgeRouteWithChildren
   '/workbench/me': typeof WorkbenchMeRoute
   '/workbench/operations': typeof WorkbenchOperationsRoute
   '/workbench/projects': typeof WorkbenchProjectsRoute
@@ -337,7 +352,9 @@ export interface FileRoutesById {
   '/workbench/': typeof WorkbenchIndexRoute
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
+  '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work/': typeof WorkWorkIndexRoute
+  '/workbench/knowledge/': typeof WorkbenchKnowledgeIndexRoute
   '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
@@ -377,7 +394,9 @@ export interface FileRouteTypes {
     | '/workbench/'
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
+    | '/workbench/knowledge/$work'
     | '/work/$work/'
+    | '/workbench/knowledge/'
     | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -406,7 +425,6 @@ export interface FileRouteTypes {
     | '/workbench/analytics'
     | '/workbench/assistant'
     | '/workbench/exceptions'
-    | '/workbench/knowledge'
     | '/workbench/me'
     | '/workbench/operations'
     | '/workbench/projects'
@@ -414,7 +432,9 @@ export interface FileRouteTypes {
     | '/workbench'
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
+    | '/workbench/knowledge/$work'
     | '/work/$work'
+    | '/workbench/knowledge'
     | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   id:
@@ -452,7 +472,9 @@ export interface FileRouteTypes {
     | '/workbench/'
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
+    | '/workbench/knowledge/$work'
     | '/work/$work/'
+    | '/workbench/knowledge/'
     | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   fileRoutesById: FileRoutesById
@@ -728,6 +750,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkWorkIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workbench/knowledge/': {
+      id: '/workbench/knowledge/'
+      path: '/'
+      fullPath: '/workbench/knowledge/'
+      preLoaderRoute: typeof WorkbenchKnowledgeIndexRouteImport
+      parentRoute: typeof WorkbenchKnowledgeRoute
+    }
+    '/workbench/knowledge/$work': {
+      id: '/workbench/knowledge/$work'
+      path: '/$work'
+      fullPath: '/workbench/knowledge/$work'
+      preLoaderRoute: typeof WorkbenchKnowledgeWorkRouteImport
+      parentRoute: typeof WorkbenchKnowledgeRoute
+    }
     '/api/billing/alipay/notify': {
       id: '/api/billing/alipay/notify'
       path: '/api/billing/alipay/notify'
@@ -745,11 +781,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface WorkbenchKnowledgeRouteChildren {
+  WorkbenchKnowledgeWorkRoute: typeof WorkbenchKnowledgeWorkRoute
+  WorkbenchKnowledgeIndexRoute: typeof WorkbenchKnowledgeIndexRoute
+}
+
+const WorkbenchKnowledgeRouteChildren: WorkbenchKnowledgeRouteChildren = {
+  WorkbenchKnowledgeWorkRoute: WorkbenchKnowledgeWorkRoute,
+  WorkbenchKnowledgeIndexRoute: WorkbenchKnowledgeIndexRoute,
+}
+
+const WorkbenchKnowledgeRouteWithChildren =
+  WorkbenchKnowledgeRoute._addFileChildren(WorkbenchKnowledgeRouteChildren)
+
 interface WorkbenchRouteChildren {
   WorkbenchAnalyticsRoute: typeof WorkbenchAnalyticsRoute
   WorkbenchAssistantRoute: typeof WorkbenchAssistantRoute
   WorkbenchExceptionsRoute: typeof WorkbenchExceptionsRoute
-  WorkbenchKnowledgeRoute: typeof WorkbenchKnowledgeRoute
+  WorkbenchKnowledgeRoute: typeof WorkbenchKnowledgeRouteWithChildren
   WorkbenchMeRoute: typeof WorkbenchMeRoute
   WorkbenchOperationsRoute: typeof WorkbenchOperationsRoute
   WorkbenchProjectsRoute: typeof WorkbenchProjectsRoute
@@ -760,7 +809,7 @@ const WorkbenchRouteChildren: WorkbenchRouteChildren = {
   WorkbenchAnalyticsRoute: WorkbenchAnalyticsRoute,
   WorkbenchAssistantRoute: WorkbenchAssistantRoute,
   WorkbenchExceptionsRoute: WorkbenchExceptionsRoute,
-  WorkbenchKnowledgeRoute: WorkbenchKnowledgeRoute,
+  WorkbenchKnowledgeRoute: WorkbenchKnowledgeRouteWithChildren,
   WorkbenchMeRoute: WorkbenchMeRoute,
   WorkbenchOperationsRoute: WorkbenchOperationsRoute,
   WorkbenchProjectsRoute: WorkbenchProjectsRoute,
