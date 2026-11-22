@@ -193,6 +193,9 @@ func TestKnowledgeStatusRequiresLinkedRelease(t *testing.T) {
 	if _, err := db.Exec(ctx, sqltest.RemoveHomeSlot, id); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec(ctx, sqltest.RemoveOpsWorldMapping, id); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec(ctx, sqltest.RemoveWorld, id); err != nil {
 		t.Fatal(err)
 	}

@@ -43,7 +43,7 @@ func versions() []migration {
 		}})
 	}
 	steps = append(steps, migration{"049.sql", addBackupAttempts})
-	for i := 50; i <= 59; i++ {
+	for i := 50; i <= 60; i++ {
 		version := fmt.Sprintf("%03d.sql", i)
 		steps = append(steps, migration{version, func(tx *gorm.DB) error {
 			return tx.Exec(section(version)).Error

@@ -7,11 +7,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	opsread "anime-agent/api/internal/repository/queries/ops"
 	"anime-agent/api/internal/repository/workbench"
 )
 
 // The usage endpoints use the same half-open UTC window and server-side admin guard.
 func usageRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
+	g.GET("/ops/overview", func(c *gin.Context) {
+		ctx, cancel := readContext(c)
+		defer cancel()
+		body, err := opsread.Overview(ctx, db)
+		writeJSON(c, body, err)
+	})
+	g.GET("/ops/attention", func(c *gin.Context) {
+		ctx, cancel := readContext(c)
+		defer cancel()
+		body, err := opsread.Attention(ctx, db)
+		writeJSON(c, body, err)
+	})
 	g.GET("/backup-status", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()

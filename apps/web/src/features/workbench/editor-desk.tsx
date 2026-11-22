@@ -4,6 +4,7 @@ import { WorkbenchSidebar } from './shared/shell'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { editedField, type EditorPages } from './editor-pages'
+import { api } from './editor-api'
 
 type Scope = { World: string; Chapter: string; Name: string }
 type Task = {
@@ -51,42 +52,10 @@ const status: Record<string, string> = {
   created: '已登记',
   returned: '已退回',
 }
-class DeskError extends Error {
-  constructor(
-    readonly code: number,
-    message: string,
-  ) {
-    super(message)
-  }
-}
-async function api<T>(path: string, body?: unknown): Promise<T> {
-  const r = await fetch('/editor-api/' + path, {
-    cache: 'no-store',
-    ...(body === undefined
-      ? {}
-      : {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        }),
-  })
-  if (!r.ok) {
-    let msg = '请求失败，请重试'
-    try {
-      msg = (await r.json()).error || msg
-    } catch {}
-    throw new DeskError(
-      r.status,
-      r.status === 401 && path !== 'password-login' ? '登录已过期，请重新登录。' : msg,
-    )
-  }
-  return r.status === 204 ? (undefined as T) : r.json()
-}
-export function EditorDesk({ accountView = false, chatView = false, context }: { accountView?: boolean; chatView?: boolean; context?: { world?: string; plan?: string; task?: string } }) {
-  const [panel, setPanel] = useState<'review' | 'plans'>('review')
+export function EditorDesk({ accountView = false, chatView = false, embedded = false, context }: { accountView?: boolean; chatView?: boolean; embedded?: boolean; context?: { world?: string; plan?: string; task?: string; episode?: number } }) {
   const [list, setList] = useState<List | null>(null),
     [login, setLogin] = useState(false),
-    [selected, select] = useState(''),
+    [selected, select] = useState(context?.task ?? ''),
     [task, setTask] = useState<Detail | null>(null)
   const [email,setEmail]=useState('')
   const [passwordMode, setPasswordMode] = useState(false)
@@ -119,7 +88,7 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
         } else setTask(null)
       } catch (e) {
         if (stopped) return
-        if (e instanceof DeskError && e.code === 401) {
+        if (e instanceof Error && 'code' in e && e.code === 401) {
           setLogin(true)
           setList(null)
           setTask(null)
@@ -133,6 +102,7 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
       clearTimeout(timer)
     }
   }, [selected, tick])
+  useEffect(() => { select(context?.task ?? '') }, [context?.task])
   async function act(fn: () => Promise<void>) {
     if (lock.current) return
     lock.current = true
@@ -165,7 +135,6 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
       })
       request.current = null
       setInput('')
-      setPanel('review')
       setTask(null)
       select(id)
       setNote('')
@@ -196,11 +165,12 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
         : '')
     : ''
   const name = (w: string) => list?.scopes.find((s) => s.World === w)?.Name ?? w
+  const Root = embedded ? 'div' : 'main'
   return (
-    <main className={list ? 'wb wb-layout ed' : 'wb ed ed-guest'}>
-      {list && <WorkbenchSidebar current={accountView ? 'me' : chatView ? 'chat' : 'editor'} />}
-      <div className={list ? 'wb-shell' : undefined}>
-      {list && !accountView && !chatView && (
+    <Root className={embedded ? 'ed ed-embedded' : list ? 'wb wb-layout ed' : 'wb ed ed-guest'}>
+      {list && !embedded && <WorkbenchSidebar current={accountView ? 'me' : chatView ? 'assistant' : 'exceptions'} />}
+      <div className={embedded ? undefined : list ? 'wb-shell' : undefined}>
+      {list && !accountView && !chatView && !embedded && (
       <div className="wb-heading">
         <div><h1>编辑审稿</h1><p>查看编辑任务、对照修订稿并审核发布</p></div>
       </div>
@@ -210,11 +180,6 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
           {error}
         </p>
       )}
-      {list && !accountView && !chatView && <nav className="wb-view-nav" aria-label="编辑工作台视图">
-        <button aria-pressed={panel==='review'} onClick={()=>setPanel('review')}>稿件审核</button>
-        <button aria-pressed={panel==='plans'} onClick={()=>setPanel('plans')}>分集制作计划</button>
-      </nav>}
-      {list && !accountView && !chatView && panel==='plans' && <ProductionPlans />}
       {!list ? (
         <section className="ed-login-layout" aria-labelledby="workbench-login-title">
           <div className="ed-login-art">
@@ -232,7 +197,7 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
                 if (passwordMode) {
                   await api('password-login', { email: email.trim(), password: loginPassword })
                   setLoginPassword('')
-                  if (new URLSearchParams(location.search).get('view') === 'data') location.reload()
+                  location.reload()
                 } else if (!sent) {
                   const address = email.trim()
                   await api('code', { email: address })
@@ -242,7 +207,7 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
                   await api('verify', { email, code })
                   setSent(false)
                   setCode('')
-                  if (new URLSearchParams(location.search).get('view') === 'data') location.reload()
+                  location.reload()
                 }
               })
             }}>
@@ -277,9 +242,9 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
             </form>
           </div>
         </section>
-      ) : accountView ? <WorkbenchAccount /> : chatView ? <WorkbenchChat request={api} initialWorld={context?.world} initialPlan={context?.plan} initialTask={context?.task} /> : (
+      ) : accountView ? <WorkbenchAccount showHeading={!embedded} /> : chatView ? <WorkbenchChat request={api} initialWorld={context?.world} initialPlan={context?.plan} initialTask={context?.task} initialEpisode={context?.episode} /> : (
         <>
-          {panel === 'review' && <div className="ed-composer-dock">
+          <div className="ed-composer-dock">
           <form id="editor-composer" className="ed-compose" onSubmit={submit} aria-label="AI 编辑助手">
             <div className="ed-composer-title"><Sparkles size={16} aria-hidden />AI 编辑助手</div>
             <div className="ed-composer-options">
@@ -320,8 +285,7 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
             <button className="ed-primary" disabled={busy || !input.trim()} aria-label="提交编辑任务"><Send size={18} aria-hidden /></button>
             </div>
           </form>
-          </div>}
-          {panel==='review' && (
+          </div>
           <div className="ed-grid">
             <aside className="wb-panel">
               <h2>任务队列</h2>
@@ -355,7 +319,7 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
                   {status[task.status]}
                 </small>
                 <h2>{task.instruction}</h2>
-                <a href={`/workbench?view=chat&world=${encodeURIComponent(task.world)}&task=${task.id}`}>在对话中查看任务</a>
+                <a href={`/workbench/assistant?world=${encodeURIComponent(task.world)}&task=${task.id}`}>在对话中查看任务</a>
                 {task.feedback && <p>上次退回意见 · {task.feedback}</p>}
                 {task.issue && <p className="ed-error">{task.issue}</p>}
                 {task.draft?.length > 0 &&
@@ -479,15 +443,13 @@ export function EditorDesk({ accountView = false, chatView = false, context }: {
               </div>
             )}
           </div>
-          )}
         </>
       )}
       </div>
-    </main>
+    </Root>
   )
 }
-
-function WorkbenchAccount() {
+function WorkbenchAccount({ showHeading = true }: { showHeading?: boolean }) {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -518,7 +480,7 @@ function WorkbenchAccount() {
 
   return (
     <div className="ed-account">
-      <div className="wb-heading"><h1>我的</h1></div>
+      {showHeading && <div className="wb-heading"><h1>我的</h1></div>}
       <section className="wb-panel">
         <h2>工作台账户</h2>
         <p>{email || '正在读取邮箱…'}</p>
@@ -534,7 +496,7 @@ function WorkbenchAccount() {
             const password = fields.get('password')
             if (password !== fields.get('confirm')) throw new Error('两次输入的密码不一致。')
             await api('password', { code: fields.get('code'), password })
-            window.location.replace('/workbench?view=me')
+            window.location.replace('/workbench/me')
           })
         }}>
           <label>验证码
@@ -554,67 +516,8 @@ function WorkbenchAccount() {
       </section>
       <button type="button" className="ed-logout" disabled={busy} onClick={() => void act(async () => {
         await api('logout', {})
-        window.location.replace('/workbench?view=me')
+        window.location.replace('/workbench/me')
       })}>退出登录</button>
     </div>
   )
-}
-
-type PlanInfo = {
-  id: string; world: string; first_episode: number; last_episode: number; revision: number
-  episodes:{number:number;title:string;scene:string;research?:string;attempt?:number;elapsed:number;retries:number;blocker?:string;error?:string;accepted?:boolean;receipt?:number;href?:string}[]
-  configurations?: { id: string; number: number; finished_at?: string; error?: string; registered: boolean }[]
-  calls:{stage:string;actual:number|null;seconds:number|null}[]; stage: string; plan_brief?: string; gaps: number[]; paused_reason?: string; messages: string[]
-  consumed: number; reserved: number; token_limit: number
-}
-function ProductionPlans() {
-  const [desk, setDesk] = useState<{works:{slug:string;name:string;edition:string}[];plans:PlanInfo[]}>()
-  const [issue,setIssue] = useState('')
-  const [busy,setBusy] = useState(false)
-  useEffect(()=>{
-    let live=true
-    async function refresh() {
-      try { const data=await api<NonNullable<typeof desk>>('plans'); if(live)setDesk(data) }
-      catch(e){if(live)setIssue(String(e))}
-    }
-    void refresh()
-    const timer=setInterval(refresh,10000)
-    return ()=>{live=false;clearInterval(timer)}
-  },[])
-  async function submit(e:FormEvent<HTMLFormElement>,plan?:PlanInfo){
-    e.preventDefault()
-    if(busy)return
-    const form=e.currentTarget, data=new FormData(form), instruction=String(data.get('instruction')||'').trim()
-    if(!instruction)return
-    setBusy(true)
-    try {
-      await api(plan?'plans/'+plan.id+'/messages':'plans',plan?{revision:plan.revision,instruction}:{
-        id:crypto.randomUUID(),world:data.get('world'),first:Number(data.get('first')),last:Number(data.get('last')),budget:Number(data.get('budget')),instruction
-      })
-      form.reset()
-      setDesk(await api<NonNullable<typeof desk>>('plans'));setIssue('')
-    }catch(err){setIssue(String(err))}finally{setBusy(false)}
-  }
-  return <section className="ed-decision"><h2>分集制作计划</h2>
-    {issue&&<p role="alert">{issue}</p>}
-    {desk&&<><form onSubmit={e=>void submit(e)}>
-      <label>作品版本<select name="world" required>{desk.works.map(w=><option key={w.slug} value={w.slug}>{w.name} · {w.edition}</option>)}</select></label>
-      <label>起始集<input name="first" type="number" min="1" required/></label>
-      <label>截止集<input name="last" type="number" min="1" required/></label>
-      <label>总 token 预算<input name="budget" type="number" min="1" required/></label>
-      <label>制作要求<textarea name="instruction" required maxLength={1400} defaultValue="按缺口补集，五维验收通过后发布。"/></label>
-      <button disabled={busy}>登记范围</button></form>
-      {desk.plans.map(p=><article key={p.id}><h3>{desk.works.find(w=>w.slug===p.world)?.name} · 第 {p.first_episode}–{p.last_episode} 集</h3>
-      <p>{({inventory:'等待盘点',blocked:'需要处理',planning:'等待规划',drafting_plan:'Pi 制定计划中',plan_validated:'范围校验通过',executing:'分集制作',local_ready:'本地验收通过',published:'正式站已发布'} as Record<string,string>)[p.stage]||p.stage} · 第 {p.revision} 版</p>
-      <a href={`/workbench?view=chat&world=${encodeURIComponent(p.world)}&plan=${p.id}`}>在对话中打开计划</a>
-      <p>缺集 {p.gaps.join('、')||'—'} · 已用 {p.consumed} · 在途 {p.reserved} · 预算 {p.token_limit}</p>
-      {p.episodes.map(ep=><p key={ep.number}>{ep.title} · {ep.scene} · {ep.receipt?'已发布':ep.accepted?'五维通过':ep.research||'等待取证'} {ep.attempt&&' · 取证轮次 '+ep.attempt}  · 制作 {Math.round(ep.elapsed)} 秒 · 媒体失败记录 {ep.retries} 次 {ep.blocker||ep.error} {ep.receipt&&' · 发布回执 '+ep.receipt} {ep.href&&<a href={ep.href}>打开章节</a>}</p>)}
-      {p.configurations?.map(a => <p key={a.id}>第 {a.number} 集配置 · {a.registered ? '已校验登记' : a.error || '正在定位来源和生成配置'}</p>)}
-      {p.calls.map((call,i)=><p key={i}>{call.stage} · {call.actual??"等待回执"} token · {call.seconds?.toFixed(1)??"—"} 秒</p>)}
-      {p.plan_brief&&<p>{p.plan_brief}</p>}
-      {p.paused_reason&&<p>{p.paused_reason}</p>}
-      <ol>{p.messages.map((m,i)=><li key={i}>{m}</li>)}</ol>
-      {p.stage!=='published'&&<form onSubmit={e=>void submit(e,p)}><label>修订意见<input required name="instruction" maxLength={1400}/></label><button disabled={busy}>提交修订</button></form>}
-      </article>)}</>}
-  </section>
 }

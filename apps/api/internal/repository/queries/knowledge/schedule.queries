@@ -14,7 +14,7 @@ UPDATE research_topics t SET enabled=false FROM episode_plans p WHERE t.id=p.top
     AND NOT EXISTS(SELECT FROM research_runs WHERE topic=p.topic)
 
 -- name: AdmitEpisode
-WITH next AS (SELECT topic,reserve_tokens FROM episode_policy_queue WHERE status='待准入'
+WITH next AS (SELECT topic,reserve_tokens FROM episode_policy_queue WHERE status_code='awaiting_admission'
     ORDER BY priority DESC,number,world_slug LIMIT 1), admitted AS (
     INSERT INTO episode_admissions(topic,reserve_tokens) SELECT * FROM next ON CONFLICT DO NOTHING RETURNING topic)
     UPDATE research_topics SET enabled=true FROM admitted WHERE id=admitted.topic

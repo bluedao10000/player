@@ -1831,6 +1831,175 @@ CREATE TABLE ops_daily_snapshots (
  PRIMARY KEY(day,scope)
 );
 
+-- name: 060.sql
+-- Keep the existing display label while giving all policy-queue consumers a stable code.
+CREATE OR REPLACE VIEW episode_policy_queue AS
+ WITH inventory AS (SELECT checked_at,works FROM episode_inventory_snapshots ORDER BY checked_at DESC LIMIT 1),
+ budgets AS (SELECT world_slug,count(*) AS admissions,sum(greatest(reserve_tokens,measured_tokens)) AS committed
+ FROM episode_admission_usage GROUP BY world_slug)
+ SELECT pol.*,n AS number,p.topic,a.admitted_at,a.measured_tokens,coalesce(b.committed,0) AS committed,
+ h.published,cap.started_at AS capture_started,cap.finished_at AS capture_finished,cap.error AS capture_error,
+ CASE WHEN h.published IS NOT NULL THEN '五维通过'
+ WHEN a.topic IS NOT NULL THEN CASE WHEN cap.error IS NOT NULL THEN '采集失败' WHEN c.topic IS NULL THEN '待采集' ELSE '已采集' END
+ WHEN i.checked_at IS NULL OR i.checked_at<now()-interval '48 hours' THEN '等待有效盘点'
+ WHEN NOT EXISTS (SELECT FROM jsonb_array_elements(i.works) w WHERE w->>'slug'=pol.world_slug AND w->'missing' @> to_jsonb(ARRAY[n])) THEN '未确认缺集'
+ WHEN p.topic IS NULL THEN '缺分集配置'
+ WHEN coalesce(b.admissions,0)>=pol.max_episodes THEN '集数预算已满'
+ WHEN coalesce(b.committed,0)+pol.reserve_tokens>pol.token_budget THEN 'token 预算不足'
+ ELSE '待准入' END AS status,
+ CASE WHEN h.published IS NOT NULL THEN 'passed'
+ WHEN a.topic IS NOT NULL THEN CASE WHEN cap.error IS NOT NULL THEN 'capture_retry' WHEN c.topic IS NULL THEN 'awaiting_capture' ELSE 'captured' END
+ WHEN i.checked_at IS NULL OR i.checked_at<now()-interval '48 hours' THEN 'stale_inventory'
+ WHEN NOT EXISTS (SELECT FROM jsonb_array_elements(i.works) w WHERE w->>'slug'=pol.world_slug AND w->'missing' @> to_jsonb(ARRAY[n])) THEN 'unconfirmed_missing'
+ WHEN p.topic IS NULL THEN 'missing_configuration'
+ WHEN coalesce(b.admissions,0)>=pol.max_episodes THEN 'episode_budget'
+ WHEN coalesce(b.committed,0)+pol.reserve_tokens>pol.token_budget THEN 'token_budget'
+ ELSE 'awaiting_admission' END AS status_code
+ FROM episode_policies pol CROSS JOIN LATERAL generate_series(pol.first_episode,pol.last_episode)n
+ LEFT JOIN inventory i ON true LEFT JOIN budgets b USING(world_slug)
+ LEFT JOIN episode_plans p ON p.world_slug=pol.world_slug AND p.number=n
+ LEFT JOIN episode_admission_usage a ON a.topic=p.topic LEFT JOIN scope_heads h ON h.topic=p.topic
+ LEFT JOIN episode_source_captures c ON c.topic=p.topic
+ LEFT JOIN LATERAL (SELECT * FROM episode_capture_attempts e WHERE e.topic=p.topic ORDER BY started_at DESC LIMIT 1)cap ON true;
+
+CREATE OR REPLACE FUNCTION ops_policy_queue_work_item(queue_status text)
+RETURNS TABLE(state text,reason text)
+LANGUAGE plpgsql IMMUTABLE AS $$
+BEGIN
+ CASE queue_status
+  WHEN 'awaiting_admission' THEN RETURN QUERY SELECT 'pending'::text,'awaiting_admission'::text;
+  WHEN 'awaiting_capture' THEN RETURN QUERY SELECT 'pending'::text,'awaiting_capture'::text;
+  WHEN 'captured' THEN RETURN QUERY SELECT 'pending'::text,'awaiting_research'::text;
+  WHEN 'token_budget' THEN RETURN QUERY SELECT 'blocked'::text,'token_budget'::text;
+  WHEN 'episode_budget' THEN RETURN QUERY SELECT 'blocked'::text,'episode_budget'::text;
+  WHEN 'stale_inventory' THEN RETURN QUERY SELECT 'blocked'::text,'stale_inventory'::text;
+  WHEN 'missing_configuration' THEN RETURN QUERY SELECT 'blocked'::text,'missing_configuration'::text;
+  WHEN 'capture_retry' THEN RETURN QUERY SELECT 'pending'::text,'capture_retry'::text;
+  WHEN 'passed' THEN RETURN QUERY SELECT NULL::text,NULL::text;
+  WHEN 'unconfirmed_missing' THEN RETURN QUERY SELECT NULL::text,NULL::text;
+  ELSE RAISE EXCEPTION 'unmapped episode_policy_queue status_code: %',queue_status;
+ END CASE;
+END
+$$;
+
+CREATE OR REPLACE VIEW ops_work_items AS
+SELECT item_key,stage,world_slug,episode,subject,state,reason,since FROM (
+ SELECT 'policy:'||q.world_slug||':'||q.number AS item_key,'admission'::text AS stage,
+  q.world_slug,q.number AS episode,q.world_slug||' · 第 '||q.number||' 集' AS subject,
+  mapped.state,mapped.reason,
+  CASE WHEN q.status_code='capture_retry' THEN q.capture_finished
+       WHEN q.status_code='captured' THEN q.admitted_at END AS since
+ FROM episode_policy_queue q
+ CROSS JOIN LATERAL ops_policy_queue_work_item(q.status_code) mapped
+ WHERE mapped.state IS NOT NULL
+   AND (q.status_code<>'awaiting_capture' OR q.capture_started IS NULL OR q.capture_finished IS NOT NULL)
+   AND (q.status_code<>'captured' OR NOT EXISTS (
+    SELECT FROM research_runs r WHERE r.topic=q.topic AND r.stage IN ('collect','write')))
+ UNION ALL
+ SELECT 'plan:'||r.id::text,'plan',r.world,r.first_episode,r.world||' · 第 '||
+  r.first_episode||'–'||r.last_episode||' 集',
+  CASE WHEN r.paused_reason IS NOT NULL OR r.stage='blocked' THEN 'blocked' ELSE 'pending' END,
+  CASE WHEN r.paused_reason IS NOT NULL THEN r.paused_reason
+       WHEN r.stage='blocked' THEN 'plan_blocked' ELSE 'planning' END,
+  r.updated_at
+ FROM episode_production_requests r
+ WHERE r.paused_reason IS NOT NULL OR r.stage='blocked'
+    OR r.stage IN ('inventory','planning','drafting_plan')
+ UNION ALL
+ SELECT 'editor:'||t.id::text,'editorial',t.world,chapter.episode,t.chapter,
+  CASE WHEN t.status='review' THEN 'waiting_human'
+       WHEN t.status='conflict' THEN 'blocked' ELSE 'pending' END,
+  CASE WHEN t.status='review' THEN 'awaiting_review'
+       WHEN t.status='conflict' THEN 'draft_conflict' ELSE 'awaiting_worker' END,
+  coalesce(t.due,t.created_at)
+ FROM editor_tasks t
+ LEFT JOIN LATERAL (
+  SELECT episode FROM (
+   SELECT c.episode FROM work_worlds w JOIN work_chapters c ON c.v=w.version_id
+    WHERE w.slug=t.world AND c.slug=t.chapter
+   UNION ALL
+   SELECT p.number FROM episode_plans p WHERE p.world_slug=t.world AND p.spec->>'slug'=t.chapter
+  ) found LIMIT 1
+ ) chapter ON true
+ WHERE (t.status IN ('evidence','drafting','checking') AND t.lease IS NULL)
+    OR t.status IN ('review','conflict')
+ UNION ALL
+ SELECT 'media:'||c.slot::text,'media_'||CASE WHEN c.stage='held' THEN 'review' ELSE 'reference' END,
+  coalesce(j.world_slug,mw.world_slug),episode.number,
+  coalesce(c.batch,'media')||' · '||c.scene||' · 候选号 '||c.variant,
+  CASE WHEN c.stage='held' THEN 'waiting_human' ELSE 'pending' END,
+  CASE WHEN c.stage='held' THEN 'media_held' ELSE 'awaiting_media' END,
+  c.updated_at
+ FROM media_candidates c
+ LEFT JOIN episode_art_jobs j ON j.id=c.art_job
+ LEFT JOIN ops_media_batch_worlds mw ON mw.batch=c.batch
+ LEFT JOIN LATERAL (
+  SELECT p.number FROM episode_plans p
+  WHERE p.world_slug=j.world_slug AND p.spec->>'sceneSlug'=j.slug
+  ORDER BY p.number LIMIT 1
+ ) episode ON true
+ WHERE c.stage='held'
+    OR (c.stage IN ('queued','reference') AND NOT EXISTS (
+      SELECT FROM media_steps s WHERE s.slot=c.slot AND s.finished_at IS NULL))
+) items;
+
+CREATE OR REPLACE VIEW ops_attention_items AS
+WITH clock AS (
+ SELECT statement_timestamp() AS as_of
+), heartbeat_state AS (
+ SELECT h.*,
+  CASE WHEN h.last_ok_at IS NULL OR h.last_ok_at<c.as_of-GREATEST(h.expected_seconds*3,120)*interval '1 second'
+       THEN 'offline'
+       WHEN h.consecutive_errors>=3 THEN 'online_error' ELSE 'online' END AS state,
+  CASE WHEN h.last_ok_at IS NULL OR h.last_ok_at<c.as_of-GREATEST(h.expected_seconds*3,120)*interval '1 second'
+       THEN coalesce(h.last_ok_at+GREATEST(h.expected_seconds*3,120)*interval '1 second',h.last_tick_at)
+       ELSE h.last_error_at END AS state_since
+ FROM ops_worker_heartbeats h CROSS JOIN clock c
+)
+SELECT 'worker:'||h.worker_id||':'||h.loop AS id,
+ 'worker'::text AS kind,
+ CASE WHEN h.state='offline' THEN 'critical' ELSE 'high' END AS severity,
+ h.loop AS stage,NULL::text AS work,NULL::text AS world_slug,h.worker_id AS subject,
+ CASE WHEN h.state='offline' THEN 'worker_offline' ELSE 'worker_consecutive_errors' END AS reason_code,
+ h.state_since AS since,
+ jsonb_build_object('page','operations','params',jsonb_build_object('worker',h.worker_id,'loop',h.loop)) AS link,
+ CASE WHEN h.state='offline' THEN 1 ELSE 2 END AS severity_rank
+FROM heartbeat_state h WHERE h.state IN ('offline','online_error')
+UNION ALL
+SELECT i.item_key,'work_item',
+ CASE WHEN i.state='blocked' THEN 'high' ELSE 'info' END,
+ i.stage,i.world_slug,i.world_slug,i.subject,i.reason,i.since,
+ jsonb_build_object(
+  'page',CASE WHEN i.stage='editorial' THEN 'exceptions'
+             WHEN i.stage LIKE 'media_%' THEN 'knowledge'
+             WHEN i.stage IN ('plan','admission') THEN 'projects' ELSE 'exceptions' END,
+  'params',jsonb_strip_nulls(jsonb_build_object(
+   'item_key',i.item_key,'world',i.world_slug,'episode',i.episode,
+   'task',CASE WHEN i.stage='editorial' THEN split_part(i.item_key,':',2) END,
+   'plan',CASE WHEN i.stage='plan' THEN split_part(i.item_key,':',2) END,
+   'candidate',CASE WHEN i.stage LIKE 'media_%' THEN split_part(i.item_key,':',2) END
+  ))
+ ),
+ CASE WHEN i.state='blocked' THEN 3 ELSE 4 END
+FROM ops_work_items i WHERE i.state IN ('blocked','waiting_human')
+UNION ALL
+SELECT 'run:'||r.run_key,'failed_run','medium',r.stage,r.world_slug,r.world_slug,r.subject,
+ 'execution_failed',r.finished_at,
+ jsonb_build_object(
+  'page',CASE WHEN r.source_table='editor_tasks' THEN 'exceptions'
+             WHEN r.source_table='media_steps' THEN 'knowledge'
+             WHEN r.source_table IN ('episode_capture_attempts','episode_configuration_attempts','reader_release_attempts') THEN 'projects'
+             ELSE 'operations' END,
+  'params',jsonb_strip_nulls(jsonb_build_object(
+   'run_key',r.run_key,'source_table',r.source_table,'source_id',r.source_id,
+   'world',r.world_slug,'episode',r.episode_first,
+   'task',CASE WHEN r.source_table='editor_tasks' THEN r.source_id END,
+   'candidate',CASE WHEN r.source_table='media_steps' THEN split_part(r.source_id,':',1) END
+  ))
+ ),5
+FROM ops_task_runs r CROSS JOIN clock c
+WHERE r.status='failed' AND r.finished_at>=c.as_of-interval '24 hours';
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,59) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,60) i;
 COMMIT;

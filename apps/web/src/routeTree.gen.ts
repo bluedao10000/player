@@ -32,6 +32,14 @@ import { Route as ReaderAuthSplatRouteImport } from './routes/reader-auth.$'
 import { Route as StorySlugRouteImport } from './routes/story.$slug'
 import { Route as WorkbenchArtFileRouteImport } from './routes/workbench-art.$file'
 import { Route as WorkbenchHeroFileRouteImport } from './routes/workbench-hero.$file'
+import { Route as WorkbenchIndexRouteImport } from './routes/workbench.index'
+import { Route as WorkbenchAnalyticsRouteImport } from './routes/workbench.analytics'
+import { Route as WorkbenchAssistantRouteImport } from './routes/workbench.assistant'
+import { Route as WorkbenchExceptionsRouteImport } from './routes/workbench.exceptions'
+import { Route as WorkbenchKnowledgeRouteImport } from './routes/workbench.knowledge'
+import { Route as WorkbenchMeRouteImport } from './routes/workbench.me'
+import { Route as WorkbenchOperationsRouteImport } from './routes/workbench.operations'
+import { Route as WorkbenchProjectsRouteImport } from './routes/workbench.projects'
 import { Route as ArtEpisodeScenesFileRouteImport } from './routes/art.episode-scenes.$file'
 import { Route as ArtPortraitsFileRouteImport } from './routes/art.portraits.$file'
 import { Route as WorkWorkIndexRouteImport } from './routes/work.$work.index'
@@ -153,6 +161,46 @@ const WorkbenchHeroFileRoute = WorkbenchHeroFileRouteImport.update({
   path: '/workbench-hero/$file',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkbenchIndexRoute = WorkbenchIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkbenchRoute,
+} as any)
+const WorkbenchAnalyticsRoute = WorkbenchAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => WorkbenchRoute,
+} as any)
+const WorkbenchAssistantRoute = WorkbenchAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => WorkbenchRoute,
+} as any)
+const WorkbenchExceptionsRoute = WorkbenchExceptionsRouteImport.update({
+  id: '/exceptions',
+  path: '/exceptions',
+  getParentRoute: () => WorkbenchRoute,
+} as any)
+const WorkbenchKnowledgeRoute = WorkbenchKnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
+  getParentRoute: () => WorkbenchRoute,
+} as any)
+const WorkbenchMeRoute = WorkbenchMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => WorkbenchRoute,
+} as any)
+const WorkbenchOperationsRoute = WorkbenchOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => WorkbenchRoute,
+} as any)
+const WorkbenchProjectsRoute = WorkbenchProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => WorkbenchRoute,
+} as any)
 const ArtEpisodeScenesFileRoute = ArtEpisodeScenesFileRouteImport.update({
   id: '/art/episode-scenes/$file',
   path: '/art/episode-scenes/$file',
@@ -189,7 +237,7 @@ export interface FileRoutesByFullPath {
   '/shelf': typeof ShelfRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
-  '/workbench': typeof WorkbenchRoute
+  '/workbench': typeof WorkbenchRouteWithChildren
   '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
@@ -202,7 +250,15 @@ export interface FileRoutesByFullPath {
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
   '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
+  '/workbench/analytics': typeof WorkbenchAnalyticsRoute
+  '/workbench/assistant': typeof WorkbenchAssistantRoute
+  '/workbench/exceptions': typeof WorkbenchExceptionsRoute
+  '/workbench/knowledge': typeof WorkbenchKnowledgeRoute
+  '/workbench/me': typeof WorkbenchMeRoute
+  '/workbench/operations': typeof WorkbenchOperationsRoute
+  '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge/': typeof KnowledgeIndexRoute
+  '/workbench/': typeof WorkbenchIndexRoute
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/work/$work/': typeof WorkWorkIndexRoute
@@ -219,7 +275,6 @@ export interface FileRoutesByTo {
   '/shelf': typeof ShelfRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
-  '/workbench': typeof WorkbenchRoute
   '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
@@ -232,7 +287,15 @@ export interface FileRoutesByTo {
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
   '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
+  '/workbench/analytics': typeof WorkbenchAnalyticsRoute
+  '/workbench/assistant': typeof WorkbenchAssistantRoute
+  '/workbench/exceptions': typeof WorkbenchExceptionsRoute
+  '/workbench/knowledge': typeof WorkbenchKnowledgeRoute
+  '/workbench/me': typeof WorkbenchMeRoute
+  '/workbench/operations': typeof WorkbenchOperationsRoute
+  '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge': typeof KnowledgeIndexRoute
+  '/workbench': typeof WorkbenchIndexRoute
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/work/$work': typeof WorkWorkIndexRoute
@@ -250,7 +313,7 @@ export interface FileRoutesById {
   '/shelf': typeof ShelfRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
-  '/workbench': typeof WorkbenchRoute
+  '/workbench': typeof WorkbenchRouteWithChildren
   '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
   '/editor-api/$': typeof EditorApiSplatRoute
@@ -263,7 +326,15 @@ export interface FileRoutesById {
   '/story/$slug': typeof StorySlugRoute
   '/workbench-art/$file': typeof WorkbenchArtFileRoute
   '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
+  '/workbench/analytics': typeof WorkbenchAnalyticsRoute
+  '/workbench/assistant': typeof WorkbenchAssistantRoute
+  '/workbench/exceptions': typeof WorkbenchExceptionsRoute
+  '/workbench/knowledge': typeof WorkbenchKnowledgeRoute
+  '/workbench/me': typeof WorkbenchMeRoute
+  '/workbench/operations': typeof WorkbenchOperationsRoute
+  '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge/': typeof KnowledgeIndexRoute
+  '/workbench/': typeof WorkbenchIndexRoute
   '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
   '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/work/$work/': typeof WorkWorkIndexRoute
@@ -295,7 +366,15 @@ export interface FileRouteTypes {
     | '/story/$slug'
     | '/workbench-art/$file'
     | '/workbench-hero/$file'
+    | '/workbench/analytics'
+    | '/workbench/assistant'
+    | '/workbench/exceptions'
+    | '/workbench/knowledge'
+    | '/workbench/me'
+    | '/workbench/operations'
+    | '/workbench/projects'
     | '/knowledge/'
+    | '/workbench/'
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
     | '/work/$work/'
@@ -312,7 +391,6 @@ export interface FileRouteTypes {
     | '/shelf'
     | '/sitemap.xml'
     | '/stories'
-    | '/workbench'
     | '/works'
     | '/character/mio'
     | '/editor-api/$'
@@ -325,7 +403,15 @@ export interface FileRouteTypes {
     | '/story/$slug'
     | '/workbench-art/$file'
     | '/workbench-hero/$file'
+    | '/workbench/analytics'
+    | '/workbench/assistant'
+    | '/workbench/exceptions'
+    | '/workbench/knowledge'
+    | '/workbench/me'
+    | '/workbench/operations'
+    | '/workbench/projects'
     | '/knowledge'
+    | '/workbench'
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
     | '/work/$work'
@@ -355,7 +441,15 @@ export interface FileRouteTypes {
     | '/story/$slug'
     | '/workbench-art/$file'
     | '/workbench-hero/$file'
+    | '/workbench/analytics'
+    | '/workbench/assistant'
+    | '/workbench/exceptions'
+    | '/workbench/knowledge'
+    | '/workbench/me'
+    | '/workbench/operations'
+    | '/workbench/projects'
     | '/knowledge/'
+    | '/workbench/'
     | '/art/episode-scenes/$file'
     | '/art/portraits/$file'
     | '/work/$work/'
@@ -373,7 +467,7 @@ export interface RootRouteChildren {
   ShelfRoute: typeof ShelfRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoriesRoute: typeof StoriesRoute
-  WorkbenchRoute: typeof WorkbenchRoute
+  WorkbenchRoute: typeof WorkbenchRouteWithChildren
   WorksRoute: typeof WorksRoute
   CharacterMioRoute: typeof CharacterMioRoute
   EditorApiSplatRoute: typeof EditorApiSplatRoute
@@ -557,6 +651,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkbenchHeroFileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workbench/': {
+      id: '/workbench/'
+      path: '/'
+      fullPath: '/workbench/'
+      preLoaderRoute: typeof WorkbenchIndexRouteImport
+      parentRoute: typeof WorkbenchRoute
+    }
+    '/workbench/analytics': {
+      id: '/workbench/analytics'
+      path: '/analytics'
+      fullPath: '/workbench/analytics'
+      preLoaderRoute: typeof WorkbenchAnalyticsRouteImport
+      parentRoute: typeof WorkbenchRoute
+    }
+    '/workbench/assistant': {
+      id: '/workbench/assistant'
+      path: '/assistant'
+      fullPath: '/workbench/assistant'
+      preLoaderRoute: typeof WorkbenchAssistantRouteImport
+      parentRoute: typeof WorkbenchRoute
+    }
+    '/workbench/exceptions': {
+      id: '/workbench/exceptions'
+      path: '/exceptions'
+      fullPath: '/workbench/exceptions'
+      preLoaderRoute: typeof WorkbenchExceptionsRouteImport
+      parentRoute: typeof WorkbenchRoute
+    }
+    '/workbench/knowledge': {
+      id: '/workbench/knowledge'
+      path: '/knowledge'
+      fullPath: '/workbench/knowledge'
+      preLoaderRoute: typeof WorkbenchKnowledgeRouteImport
+      parentRoute: typeof WorkbenchRoute
+    }
+    '/workbench/me': {
+      id: '/workbench/me'
+      path: '/me'
+      fullPath: '/workbench/me'
+      preLoaderRoute: typeof WorkbenchMeRouteImport
+      parentRoute: typeof WorkbenchRoute
+    }
+    '/workbench/operations': {
+      id: '/workbench/operations'
+      path: '/operations'
+      fullPath: '/workbench/operations'
+      preLoaderRoute: typeof WorkbenchOperationsRouteImport
+      parentRoute: typeof WorkbenchRoute
+    }
+    '/workbench/projects': {
+      id: '/workbench/projects'
+      path: '/projects'
+      fullPath: '/workbench/projects'
+      preLoaderRoute: typeof WorkbenchProjectsRouteImport
+      parentRoute: typeof WorkbenchRoute
+    }
     '/art/episode-scenes/$file': {
       id: '/art/episode-scenes/$file'
       path: '/art/episode-scenes/$file'
@@ -595,6 +745,32 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface WorkbenchRouteChildren {
+  WorkbenchAnalyticsRoute: typeof WorkbenchAnalyticsRoute
+  WorkbenchAssistantRoute: typeof WorkbenchAssistantRoute
+  WorkbenchExceptionsRoute: typeof WorkbenchExceptionsRoute
+  WorkbenchKnowledgeRoute: typeof WorkbenchKnowledgeRoute
+  WorkbenchMeRoute: typeof WorkbenchMeRoute
+  WorkbenchOperationsRoute: typeof WorkbenchOperationsRoute
+  WorkbenchProjectsRoute: typeof WorkbenchProjectsRoute
+  WorkbenchIndexRoute: typeof WorkbenchIndexRoute
+}
+
+const WorkbenchRouteChildren: WorkbenchRouteChildren = {
+  WorkbenchAnalyticsRoute: WorkbenchAnalyticsRoute,
+  WorkbenchAssistantRoute: WorkbenchAssistantRoute,
+  WorkbenchExceptionsRoute: WorkbenchExceptionsRoute,
+  WorkbenchKnowledgeRoute: WorkbenchKnowledgeRoute,
+  WorkbenchMeRoute: WorkbenchMeRoute,
+  WorkbenchOperationsRoute: WorkbenchOperationsRoute,
+  WorkbenchProjectsRoute: WorkbenchProjectsRoute,
+  WorkbenchIndexRoute: WorkbenchIndexRoute,
+}
+
+const WorkbenchRouteWithChildren = WorkbenchRoute._addFileChildren(
+  WorkbenchRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CharactersRoute: CharactersRoute,
@@ -605,7 +781,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShelfRoute: ShelfRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoriesRoute: StoriesRoute,
-  WorkbenchRoute: WorkbenchRoute,
+  WorkbenchRoute: WorkbenchRouteWithChildren,
   WorksRoute: WorksRoute,
   CharacterMioRoute: CharacterMioRoute,
   EditorApiSplatRoute: EditorApiSplatRoute,

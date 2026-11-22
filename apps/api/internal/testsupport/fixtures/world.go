@@ -24,5 +24,6 @@ var (
 	ForceWorldReimport          = worldSourceQueries["ForceWorldReimport"]
 	RemoveSceneCast             = worldSourceQueries["RemoveSceneCast"]
 	RemoveHomeSlot              = worldSourceQueries["RemoveHomeSlot"]
+	RemoveOpsWorldMapping       = worldSourceQueries["RemoveOpsWorldMapping"]
 	RemoveWorld                 = worldSourceQueries["RemoveWorld"]
 )

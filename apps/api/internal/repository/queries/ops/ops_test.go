@@ -21,12 +21,12 @@ func TestOpsMigrationFreshExistingDataAndRepeat(t *testing.T) {
 	ctx := context.Background()
 	assertMigrationState := func(expectedBatches int64) {
 		t.Helper()
-		var applied, stages, batches int64
-		if err := db.QueryRow(ctx, sqltest.OpsMigrationState).Scan(&applied, &stages, &batches); err != nil {
+		var applied, stages, batches, statusCodeColumns int64
+		if err := db.QueryRow(ctx, sqltest.OpsMigrationState).Scan(&applied, &stages, &batches, &statusCodeColumns); err != nil {
 			t.Fatal(err)
 		}
-		if applied != 1 || stages != 17 || batches != expectedBatches {
-			t.Fatalf("migration state applied=%d stages=%d batches=%d", applied, stages, batches)
+		if applied != 2 || stages != 17 || batches != expectedBatches || statusCodeColumns != 1 {
+			t.Fatalf("migration state applied=%d stages=%d batches=%d status_code columns=%d", applied, stages, batches, statusCodeColumns)
 		}
 	}
 	assertMigrationState(0) // A fresh isolated schema has no world rows to satisfy the batch FK.
@@ -44,11 +44,11 @@ func TestOpsMigrationFreshExistingDataAndRepeat(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(ctx, sqltest.ResetOpsMigration059); err != nil {
-		t.Fatalf("reset migration 059 objects: %v", err)
+		t.Fatalf("reset migrations 059/060 objects: %v", err)
 	}
 	reopened, err := database.Open(ctx)
 	if err != nil {
-		t.Fatalf("apply migration 059 over existing data: %v", err)
+		t.Fatalf("apply migrations 059/060 over existing data: %v", err)
 	}
 	reopened.Close()
 	assertMigrationState(expectedBatches)
@@ -255,32 +255,32 @@ func TestOpsSourceAndWorkItemMappings(t *testing.T) {
 		}
 	}
 
-	for _, policy := range []struct{ label, state, reason string }{
-		{"待准入", "pending", "awaiting_admission"},
-		{"待采集", "pending", "awaiting_capture"},
-		{"已采集", "pending", "awaiting_research"},
-		{"token 预算不足", "blocked", "token_budget"},
-		{"集数预算已满", "blocked", "episode_budget"},
-		{"等待有效盘点", "blocked", "stale_inventory"},
-		{"缺分集配置", "blocked", "missing_configuration"},
-		{"采集失败", "pending", "capture_retry"},
+	for _, policy := range []struct{ label, code, state, reason string }{
+		{"待准入", "awaiting_admission", "pending", "awaiting_admission"},
+		{"待采集", "awaiting_capture", "pending", "awaiting_capture"},
+		{"已采集", "captured", "pending", "awaiting_research"},
+		{"token 预算不足", "token_budget", "blocked", "token_budget"},
+		{"集数预算已满", "episode_budget", "blocked", "episode_budget"},
+		{"等待有效盘点", "stale_inventory", "blocked", "stale_inventory"},
+		{"缺分集配置", "missing_configuration", "blocked", "missing_configuration"},
+		{"采集失败", "capture_retry", "pending", "capture_retry"},
 	} {
 		var state, reason sql.NullString
-		if err := db.QueryRow(ctx, sqltest.OpsQueueMapper, policy.label).Scan(&state, &reason); err != nil {
-			t.Fatalf("queue mapping %q: %v", policy.label, err)
+		if err := db.QueryRow(ctx, sqltest.OpsQueueMapper, policy.code).Scan(&state, &reason); err != nil {
+			t.Fatalf("queue mapping %q (%s): %v", policy.label, policy.code, err)
 		}
 		if !state.Valid || state.String != policy.state || !reason.Valid || reason.String != policy.reason {
-			t.Errorf("queue mapping %q = (%v,%v)", policy.label, state, reason)
+			t.Errorf("queue mapping %q (%s) = (%v,%v)", policy.label, policy.code, state, reason)
 		}
 	}
-	for _, terminal := range []string{"五维通过", "未确认缺集"} {
+	for _, terminal := range []string{"passed", "unconfirmed_missing"} {
 		var state, reason sql.NullString
 		if err := db.QueryRow(ctx, sqltest.OpsQueueMapper, terminal).Scan(&state, &reason); err != nil || state.Valid || reason.Valid {
 			t.Errorf("terminal queue mapping %q = (%v,%v), err=%v", terminal, state, reason, err)
 		}
 	}
-	if err := db.QueryRow(ctx, sqltest.OpsQueueMapper, "新状态").Scan(new(sql.NullString), new(sql.NullString)); err == nil {
-		t.Fatal("unmapped episode_policy_queue state did not fail")
+	if err := db.QueryRow(ctx, sqltest.OpsQueueMapper, "unknown_status_code").Scan(new(sql.NullString), new(sql.NullString)); err == nil {
+		t.Fatal("unmapped episode_policy_queue status_code did not fail")
 	}
 	var mediaStage string
 	if err := db.QueryRow(ctx, sqltest.OpsMediaStepMapper, "recrop").Scan(&mediaStage); err != nil || mediaStage != "media_rework" {
@@ -422,8 +422,8 @@ func TestOpsUnexpectedStatusErrorsAreNotSuppressed(t *testing.T) {
 	db := testsupport.Database(t)
 	ctx := context.Background()
 	var state, reason sql.NullString
-	if err := db.QueryRow(ctx, sqltest.OpsQueueMapper, "not-a-policy-state").Scan(&state, &reason); err == nil {
-		t.Fatal("expected an error for an unmapped queue status")
+	if err := db.QueryRow(ctx, sqltest.OpsQueueMapper, "not-a-policy-status-code").Scan(&state, &reason); err == nil {
+		t.Fatal("expected an error for an unmapped queue status_code")
 	} else if errors.Is(err, sql.ErrNoRows) {
 		t.Fatal("unknown queue state was silently omitted")
 	}

@@ -222,7 +222,7 @@ export function WorkflowCanvas({ feed, initialFlow = 'sync' }: { feed: Workbench
           ))}
           {activeState.media.map((item) => (
             <article key={item.slot}>
-              <div><a className="wb-candidate-link" href={`/workbench?view=data&section=media&candidate=${item.slot}#candidate-${item.slot}`}>
+              <div><a className="wb-candidate-link" href={`/workbench/knowledge?candidate=${item.slot}#candidate-${item.slot}`}>
                 <strong>{item.scene} · 候选 {item.variant}</strong>
                 <span>查看详情 →</span>
               </a><StatusBadge status={item.stage} label={mediaStageLabels[item.stage]} /></div>

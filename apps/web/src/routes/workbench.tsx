@@ -1,36 +1,44 @@
-import { requireLocalWorkbench } from '../features/workbench/local'
 import astryxCss from '@astryxdesign/core/astryx.css?url'
 import astryxReset from '@astryxdesign/core/reset.css?url'
 import neutralFonts from '@astryxdesign/theme-neutral/fonts.css?url'
 import neutralCss from '@astryxdesign/theme-neutral/theme.css?url'
-import { createFileRoute } from '@tanstack/react-router'
-import { siteTitle } from '../site'
-import { Board } from '../features/workbench/dashboard/board'
+import { Theme } from '@astryxdesign/core/theme'
+import { neutralTheme } from '@astryxdesign/theme-neutral/built'
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { EditorDesk } from '../features/workbench/editor-desk'
-import { readFeed } from '../features/workbench/feed'
 import editorCss from '../features/workbench/editor.css?url'
 import css from '../features/workbench/board.css?url'
+import { legacyWorkbenchHref, resolveLegacyWorkbench } from '../features/workbench/legacy-links'
+import { requireLocalWorkbench } from '../features/workbench/local'
+import { readWorkbenchSession } from '../features/workbench/feed'
+import { siteTitle } from '../site'
 
 export const Route = createFileRoute('/workbench')({
-  beforeLoad: () => requireLocalWorkbench(),
   validateSearch: (search: Record<string, unknown>) => ({
-    section:
-      search.section === 'media' ? 'media' as const
-      : search.section === 'knowledge' ? 'knowledge' as const
-      : search.section === 'history' ? 'history' as const
-      : 'data' as const,
-    view: search.view === 'data' ? 'data' as const : search.view === 'me' ? 'me' as const : search.view === 'chat' ? 'chat' as const : 'editor' as const,
+    view: typeof search.view === 'string' ? search.view : undefined,
+    section: typeof search.section === 'string' ? search.section : undefined,
     world: typeof search.world === 'string' ? search.world : undefined,
     task: typeof search.task === 'string' ? search.task : undefined,
     plan: typeof search.plan === 'string' ? search.plan : undefined,
-    candidate: Number.isSafeInteger(Number(search.candidate)) && Number(search.candidate)>0 ? Number(search.candidate) : undefined,
+    candidate: positiveInteger(search.candidate),
+    item_key: typeof search.item_key === 'string' ? search.item_key : undefined,
+    run_key: typeof search.run_key === 'string' ? search.run_key : undefined,
+    source_table: typeof search.source_table === 'string' ? search.source_table : undefined,
+    source_id: typeof search.source_id === 'string' ? search.source_id : undefined,
+    episode: positiveInteger(search.episode),
+    worker: typeof search.worker === 'string' ? search.worker : undefined,
+    loop: typeof search.loop === 'string' ? search.loop : undefined,
   }),
-  loaderDeps: ({ search }) => ({ view: search.view }),
-  loader: ({ deps }) => (deps.view === 'data' ? readFeed() : null),
+  beforeLoad: async ({ search }) => {
+    await requireLocalWorkbench()
+    const legacy = resolveLegacyWorkbench(search)
+    if (legacy) throw redirect({ href: legacyWorkbenchHref(legacy), replace: true })
+    return { hasWorkbenchSession: await readWorkbenchSession() }
+  },
   headers: () => ({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'private, no-store' }),
   head: () => ({
     meta: [
-      { title: siteTitle('编辑与数据工作台') },
+      { title: siteTitle('运营中心') },
       { name: 'robots', content: 'noindex,nofollow' },
     ],
     links: [
@@ -42,11 +50,15 @@ export const Route = createFileRoute('/workbench')({
       { rel: 'stylesheet', href: editorCss },
     ],
   }),
-  component: Workbench,
+  component: WorkbenchLayout,
 })
 
-function Workbench() {
-  const feed = Route.useLoaderData()
-  const { section, view, candidate, world, plan, task } = Route.useSearch()
-  return feed ? <Board feed={feed} section={section} candidate={candidate} /> : <EditorDesk accountView={view === 'me'} chatView={view === 'chat'} context={{world, plan, task}} />
+function positiveInteger(value: unknown) {
+  const number = Number(value)
+  return Number.isSafeInteger(number) && number > 0 ? number : undefined
+}
+
+function WorkbenchLayout() {
+  const { hasWorkbenchSession } = Route.useRouteContext()
+  return <Theme theme={neutralTheme} mode="dark">{hasWorkbenchSession ? <Outlet /> : <EditorDesk />}</Theme>
 }

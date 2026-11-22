@@ -46,5 +46,8 @@ DELETE FROM scene_appearances WHERE v=$1
 -- name: RemoveHomeSlot
 DELETE FROM home_world_slots WHERE work_id=$1
 
+-- name: RemoveOpsWorldMapping
+DELETE FROM ops_media_batch_worlds WHERE world_slug=(SELECT slug FROM work_worlds WHERE work_id=$1)
+
 -- name: RemoveWorld
 DELETE FROM work_worlds WHERE work_id=$1

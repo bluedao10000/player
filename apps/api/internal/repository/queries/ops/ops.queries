@@ -35,6 +35,61 @@ END
 FROM ops_worker_heartbeats
 WHERE worker_id=$1 AND loop=$2
 
+-- name: Overview
+WITH clock AS (
+ SELECT statement_timestamp() AS as_of,
+  date_trunc('day',statement_timestamp() AT TIME ZONE 'Asia/Shanghai') AT TIME ZONE 'Asia/Shanghai' AS day_start
+), snapshot AS (
+ SELECT definition,taken_at,metrics FROM ops_daily_snapshots
+ WHERE scope='all' ORDER BY day DESC,taken_at DESC LIMIT 1
+), heartbeat_state AS (
+ SELECT h.*,
+  CASE WHEN h.last_ok_at IS NULL OR h.last_ok_at<c.as_of-GREATEST(h.expected_seconds*3,120)*interval '1 second'
+       THEN 'offline'
+       WHEN h.consecutive_errors>=3 THEN 'online_error' ELSE 'online' END AS state,
+  CASE WHEN h.last_ok_at IS NULL OR h.last_ok_at<c.as_of-GREATEST(h.expected_seconds*3,120)*interval '1 second'
+       THEN coalesce(h.last_ok_at+GREATEST(h.expected_seconds*3,120)*interval '1 second',h.last_tick_at)
+       ELSE h.last_error_at END AS state_since
+ FROM ops_worker_heartbeats h CROSS JOIN clock c
+), metrics AS (
+ SELECT jsonb_build_object(
+  'active_works',jsonb_build_object('value',s.metrics->'activeWorks','definition',s.definition,'updated_at',s.taken_at),
+  'published_worlds',jsonb_build_object('value',s.metrics->'publishedWorlds','definition',s.definition,'updated_at',s.taken_at),
+  'work_types',jsonb_build_object('value',s.metrics->'workTypes','definition',s.definition,'updated_at',s.taken_at),
+  'characters',jsonb_build_object('value',s.metrics#>'{knowledge,characters}','definition',s.definition,'updated_at',s.taken_at),
+  'portraits',jsonb_build_object('value',s.metrics#>'{knowledge,portraits}','definition',s.definition,'updated_at',s.taken_at),
+  'chapters',jsonb_build_object('value',s.metrics#>'{knowledge,chapters}','definition',s.definition,'updated_at',s.taken_at),
+  'chapter_images',jsonb_build_object('value',s.metrics#>'{knowledge,chapterImages}','definition',s.definition,'updated_at',s.taken_at),
+  'storylines',jsonb_build_object('value',s.metrics#>'{knowledge,storylines}','definition',s.definition,'updated_at',s.taken_at),
+  'scenes',jsonb_build_object('value',s.metrics#>'{knowledge,scenes}','definition',s.definition,'updated_at',s.taken_at),
+  'locations',jsonb_build_object('value',s.metrics#>'{knowledge,locations}','definition',s.definition,'updated_at',s.taken_at),
+  'online_workers',jsonb_build_object('value',(SELECT count(DISTINCT worker_id)::int FROM heartbeat_state WHERE state IN ('online','online_error')),'definition',1,'updated_at',c.as_of),
+  'running_executions',jsonb_build_object('value',(SELECT coalesce(sum(coalesce((executions->>'media')::int,0)+coalesce((executions->>'research')::int,0)+coalesce((executions->>'editorial')::int,0)+coalesce((executions->>'configuration')::int,0)),0)::int FROM heartbeat_state WHERE role='agent'),'definition',1,'updated_at',c.as_of),
+  'running_tasks',jsonb_build_object('value',(SELECT count(*)::int FROM ops_task_runs WHERE status='running'),'definition',1,'updated_at',c.as_of),
+  'pending_work',jsonb_build_object('value',(SELECT count(*)::int FROM ops_work_items WHERE state='pending'),'definition',1,'updated_at',c.as_of),
+  'blocked_work',jsonb_build_object('value',(SELECT count(*)::int FROM ops_work_items WHERE state='blocked'),'definition',1,'updated_at',c.as_of),
+  'waiting_human',jsonb_build_object('value',(SELECT count(*)::int FROM ops_work_items WHERE state='waiting_human'),'definition',1,'updated_at',c.as_of),
+  'completed_today',jsonb_build_object('value',(SELECT count(*)::int FROM ops_task_runs WHERE status='success' AND finished_at>=c.day_start AND finished_at<c.day_start+interval '1 day'),'definition',1,'updated_at',c.as_of),
+  'failed_today',jsonb_build_object('value',(SELECT count(*)::int FROM ops_task_runs WHERE status='failed' AND finished_at>=c.day_start AND finished_at<c.day_start+interval '1 day'),'definition',1,'updated_at',c.as_of)
+ ) AS value
+ FROM clock c LEFT JOIN snapshot s ON true
+)
+SELECT jsonb_build_object(
+ 'as_of',c.as_of,'metrics',m.value,
+ 'attention',coalesce((
+  SELECT jsonb_agg(to_jsonb(items)-'severity_rank' ORDER BY severity_rank,since ASC NULLS FIRST,id)
+  FROM (SELECT * FROM ops_attention_items ORDER BY severity_rank,since ASC NULLS FIRST,id LIMIT 20) items
+ ),'[]'::jsonb)
+)
+FROM clock c CROSS JOIN metrics m
+
+-- name: Attention
+SELECT jsonb_build_object(
+ 'as_of',statement_timestamp(),
+ 'attention',coalesce((SELECT jsonb_agg(to_jsonb(items)-'severity_rank' ORDER BY severity_rank,since ASC NULLS FIRST,id)
+  FROM (SELECT * FROM ops_attention_items ORDER BY severity_rank,since ASC NULLS FIRST,id) items),'[]'::jsonb)
+)
+
 -- name: TakeDailySnapshot
 WITH inventory_totals AS (
  SELECT jsonb_build_object(

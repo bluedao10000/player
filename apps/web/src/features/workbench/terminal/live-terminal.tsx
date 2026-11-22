@@ -1,6 +1,6 @@
 import { Button } from '@astryxdesign/core/Button'
 import { CirclePause, CirclePlay, TerminalSquare } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { WorkbenchRun } from '../feed'
 import { formatClock, formatDate, formatDuration, runStatusLabels } from '../shared/format'
 import { EmptyState, Panel, SectionHeading, StatusBadge } from '../shared/ui'
@@ -11,16 +11,19 @@ export function LiveTerminal({
   qualityOnline,
   auto,
   onAutoChange,
+  initialRunKey,
 }: {
   runs: WorkbenchRun[]
   syncOnline: boolean
   qualityOnline: boolean
   auto: boolean
   onAutoChange: (value: boolean) => void
+  initialRunKey?: string
 }) {
   const [status, setStatus] = useState('all')
   const [task, setTask] = useState('all')
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(initialRunKey ?? null)
+  useEffect(() => setSelected(initialRunKey ?? null), [initialRunKey])
   const tasks = [...new Set(runs.map((run) => run.task))]
   const list = runs.filter((run) => (status === 'all' || run.status === status) && (task === 'all' || run.task === task))
   const active = list.find((run) => run.id === selected) ?? list[0]

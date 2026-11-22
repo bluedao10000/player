@@ -1,12 +1,14 @@
-import { Activity, BookOpen, Clock3, MessageSquare, NotebookPen, UserRound } from 'lucide-react'
+import { Activity, Bot, BookOpen, BriefcaseBusiness, ChartNoAxesCombined, Network, ShieldAlert, UserRound } from 'lucide-react'
 import { useId, useState } from 'react'
 
 const sections = [
-  { id: 'chat', href: '/workbench?view=chat', label: '工作台对话', icon: MessageSquare },
-  { id: 'data', href: '/workbench?view=data', label: '数据运行', icon: Activity },
-  { id: 'knowledge', href: '/workbench?view=data&section=knowledge', label: '知识库', icon: BookOpen },
-  { id: 'editor', href: '/workbench?view=editor', label: '编辑审稿', icon: NotebookPen },
-  { id: 'history', href: '/workbench?view=data&section=history', label: '运行历史', icon: Clock3 },
+  { id: 'overview', href: '/workbench', label: '运营总览', subtitle: 'OVERVIEW', icon: Activity },
+  { id: 'operations', href: '/workbench/operations', label: '运营拓扑', subtitle: 'OPERATIONS', icon: Network },
+  { id: 'knowledge', href: '/workbench/knowledge', label: '知识资产', subtitle: 'KNOWLEDGE', icon: BookOpen },
+  { id: 'projects', href: '/workbench/projects', label: '项目', subtitle: 'PROJECTS', icon: BriefcaseBusiness },
+  { id: 'analytics', href: '/workbench/analytics', label: '运营分析', subtitle: 'ANALYTICS', icon: ChartNoAxesCombined },
+  { id: 'exceptions', href: '/workbench/exceptions', label: '异常与决策', subtitle: 'EXCEPTIONS', icon: ShieldAlert },
+  { id: 'assistant', href: '/workbench/assistant', label: 'AI 助手', subtitle: 'ASSISTANT', icon: Bot },
 ] as const
 
 export type WorkbenchSection = (typeof sections)[number]['id'] | 'me'
@@ -25,21 +27,20 @@ export function WorkbenchSidebar({ current }: { current: WorkbenchSection }) {
           aria-expanded={expanded}
           aria-controls={menuId}
           onClick={() => setExpanded(!expanded)}
-        >
-          菜单
-        </button>
+        >菜单</button>
       </div>
       <div className="wb-sidebar-content" id={menuId}>
-        <nav className="wb-primary-nav" aria-label="工作台">
-          {sections.map(({ id, href, label, icon: Icon }) => (
+        <nav className="wb-primary-nav" aria-label="运营中心">
+          {sections.map(({ id, href, label, subtitle, icon: Icon }) => (
             <a key={id} href={href} aria-current={current === id ? 'page' : undefined}>
-              <Icon size={17} aria-hidden />{label}
+              <Icon size={17} aria-hidden />
+              <span className="wb-nav-copy"><strong>{label}</strong><small>{subtitle}</small></span>
             </a>
           ))}
         </nav>
         <footer className="wb-sidebar-footer">
-          <a href="/workbench?view=me" aria-current={current === 'me' ? 'page' : undefined}>
-            <UserRound size={17} aria-hidden />我的
+          <a href="/workbench/me" aria-current={current === 'me' ? 'page' : undefined}>
+            <UserRound size={17} aria-hidden /><span className="wb-nav-copy"><strong>我的</strong></span>
           </a>
         </footer>
       </div>

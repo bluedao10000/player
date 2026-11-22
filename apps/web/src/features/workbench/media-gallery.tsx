@@ -300,7 +300,7 @@ export function RecentMedia({ items }: { items: MediaCandidate[] | null }) {
     <Panel>
       <SectionHeading
         title="图片资产 · 最近候选"
-        actions={<a href="/workbench?view=data&section=media">查看全部 →</a>}
+        actions={<a href="/workbench/knowledge">查看全部 →</a>}
       />
       {recent.length ? (
         <div className="wb-recent-media">

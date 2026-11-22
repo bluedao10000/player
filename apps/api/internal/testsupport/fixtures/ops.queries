@@ -238,6 +238,83 @@ FROM ops_task_runs r JOIN ops_work_items w
 WHERE r.status='running' AND r.source_table='research_runs'
  AND r.source_id=(SELECT id::text FROM research_runs WHERE topic='ops-research-collect')
 
+-- name: SeedOpsOverviewSnapshot
+INSERT INTO ops_daily_snapshots(day,scope,definition,metrics,taken_at)
+SELECT (now() AT TIME ZONE 'Asia/Shanghai')::date,'all',1,
+ jsonb_build_object(
+  'activeWorks',23,
+  'publishedWorlds',18,
+  'workTypes',jsonb_build_array(
+   jsonb_build_object('type','TV','count',2),
+   jsonb_build_object('type',NULL,'count',1)),
+  'knowledge',jsonb_build_object(
+   'characters',10,'portraits',20,'chapters',30,'chapterImages',40,
+   'storylines',50,'scenes',60,'locations',70)),
+ now()-interval '1 minute'
+
+-- name: SeedOpsOverviewHeartbeats
+INSERT INTO ops_worker_heartbeats(
+ worker_id,loop,role,node,version,expected_seconds,last_tick_at,last_ok_at,
+ last_error,last_error_at,consecutive_errors,executions
+)
+VALUES
+ ('overview-agent','agent','agent','fixture','test',30,now(),now(),NULL,NULL,0,
+  '{"media":2,"research":1,"editorial":3,"configuration":4}'::jsonb),
+ ('overview-error','main','sync','fixture','test',30,now(),now(),'fixture error',now(),3,NULL),
+ ('overview-offline','main','sync','fixture','test',30,now()-interval '1 hour',now()-interval '1 hour',NULL,NULL,0,NULL)
+
+-- name: SeedOpsOverviewManyOffline
+INSERT INTO ops_worker_heartbeats(
+ worker_id,loop,role,node,version,expected_seconds,last_tick_at,last_ok_at,consecutive_errors
+)
+SELECT 'overview-offline-'||n,'main','sync','fixture','test',30,now()-interval '1 hour',now()-interval '1 hour',0
+FROM generate_series(1,25) n
+
+-- name: SeedOpsOverviewRuns
+WITH source AS (
+ SELECT id FROM knowledge_sources WHERE name='tidepost-original'
+), clock AS (
+ SELECT date_trunc('day',now() AT TIME ZONE 'Asia/Shanghai') AT TIME ZONE 'Asia/Shanghai' AS day_start
+), boundary(status,offset_seconds) AS (
+ VALUES ('success',-1),('failed',-1),('success',1),('failed',1)
+)
+INSERT INTO knowledge_sync_runs(source_id,status,skipped,started_at,finished_at,error_message)
+SELECT source.id,boundary.status,false,
+ clock.day_start+boundary.offset_seconds*interval '1 second'-interval '1 minute',
+ clock.day_start+boundary.offset_seconds*interval '1 second',
+ CASE WHEN boundary.status='failed' THEN 'overview fixture failure' END
+FROM source CROSS JOIN clock CROSS JOIN boundary;
+
+INSERT INTO knowledge_sync_runs(source_id,status,skipped,started_at,finished_at,error_message)
+SELECT id,'running',false,now(),NULL,NULL
+FROM knowledge_sources WHERE name='tidepost-original';
+
+INSERT INTO knowledge_quality_runs(status,started_at,finished_at,error_message)
+VALUES ('running',now(),NULL,NULL),
+       ('failed',now()-interval '2 minutes',now()-interval '1 minute','recent overview failure');
+
+-- name: OpsOverviewExpectedLiveMetrics
+WITH clock AS (
+ SELECT statement_timestamp() AS as_of,
+  date_trunc('day',statement_timestamp() AT TIME ZONE 'Asia/Shanghai') AT TIME ZONE 'Asia/Shanghai' AS day_start
+)
+SELECT jsonb_build_object(
+ 'metrics',jsonb_build_object(
+  'online_workers',(SELECT count(DISTINCT worker_id)::int FROM ops_worker_heartbeats h CROSS JOIN clock c
+   WHERE NOT (h.last_ok_at IS NULL OR h.last_ok_at<c.as_of-GREATEST(h.expected_seconds*3,120)*interval '1 second')),
+  'running_executions',(SELECT coalesce(sum(coalesce((executions->>'media')::int,0)+coalesce((executions->>'research')::int,0)+coalesce((executions->>'editorial')::int,0)+coalesce((executions->>'configuration')::int,0)),0)::int FROM ops_worker_heartbeats WHERE role='agent'),
+  'running_tasks',(SELECT count(*)::int FROM ops_task_runs WHERE status='running'),
+  'pending_work',(SELECT count(*)::int FROM ops_work_items WHERE state='pending'),
+  'blocked_work',(SELECT count(*)::int FROM ops_work_items WHERE state='blocked'),
+  'waiting_human',(SELECT count(*)::int FROM ops_work_items WHERE state='waiting_human'),
+  'completed_today',(SELECT count(*)::int FROM ops_task_runs r CROSS JOIN clock c WHERE r.status='success' AND r.finished_at>=c.day_start AND r.finished_at<c.day_start+interval '1 day'),
+  'failed_today',(SELECT count(*)::int FROM ops_task_runs r CROSS JOIN clock c WHERE r.status='failed' AND r.finished_at>=c.day_start AND r.finished_at<c.day_start+interval '1 day')),
+ 'boundary',jsonb_build_object(
+  'success_before',(SELECT count(*)::int FROM ops_task_runs r CROSS JOIN clock c WHERE r.source_table='knowledge_sync_runs' AND r.status='success' AND r.finished_at<c.day_start),
+  'success_today',(SELECT count(*)::int FROM ops_task_runs r CROSS JOIN clock c WHERE r.source_table='knowledge_sync_runs' AND r.status='success' AND r.finished_at>=c.day_start AND r.finished_at<c.day_start+interval '1 day'),
+  'failed_before',(SELECT count(*)::int FROM ops_task_runs r CROSS JOIN clock c WHERE r.source_table='knowledge_sync_runs' AND r.status='failed' AND r.finished_at<c.day_start),
+  'failed_today',(SELECT count(*)::int FROM ops_task_runs r CROSS JOIN clock c WHERE r.source_table='knowledge_sync_runs' AND r.status='failed' AND r.finished_at>=c.day_start AND r.finished_at<c.day_start+interval '1 day')))
+
 -- name: OpsMediaDuplicateCount
 SELECT count(*)::int
 FROM ops_task_runs r JOIN ops_work_items w ON w.item_key='media:1'
@@ -267,14 +344,17 @@ SELECT count(*)::int FROM ops_daily_snapshots WHERE day=$1::date AND definition=
 SELECT 1+(SELECT count(*) FROM reader_knowledge_inventory)
 
 -- name: OpsMigrationState
-SELECT (SELECT count(*) FROM knowledge_migrations WHERE version='059.sql'),
+SELECT (SELECT count(*) FROM knowledge_migrations WHERE version IN ('059.sql','060.sql')),
        (SELECT count(*) FROM ops_stages),
-       (SELECT count(*) FROM ops_media_batch_worlds)
+       (SELECT count(*) FROM ops_media_batch_worlds),
+       (SELECT count(*) FROM information_schema.columns WHERE table_schema=current_schema()
+        AND table_name='episode_policy_queue' AND column_name='status_code')
 
 -- name: OpsExistingMediaCandidateCount
 SELECT count(*)::int FROM media_candidates
 
 -- name: ResetOpsMigration059
+DROP VIEW ops_attention_items;
 DROP VIEW ops_work_items;
 DROP VIEW ops_task_runs;
 DROP FUNCTION ops_seed_media_batch_worlds();
@@ -284,4 +364,4 @@ DROP TABLE ops_worker_heartbeats;
 DROP TABLE ops_daily_snapshots;
 DROP TABLE ops_media_batch_worlds;
 DROP TABLE ops_stages;
-DELETE FROM knowledge_migrations WHERE version='059.sql'
+DELETE FROM knowledge_migrations WHERE version IN ('059.sql','060.sql')

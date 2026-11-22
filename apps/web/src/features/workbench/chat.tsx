@@ -121,9 +121,6 @@ export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask,
 
   return (
     <div className="wb-chat">
-      <header className="wb-heading">
-        <div><h1>工作台对话</h1><p>查询制作状态，或提出计划修改。</p></div>
-      </header>
       <div className="wb-panel wb-chat-context">
         <label>作品<select value={currentWorld} onChange={e => { setWorld(e.target.value); setPlan(undefined); setTask(''); setEpisode(0) }}>
           {works.map(w => <option value={w.slug} key={w.slug}>{w.name} · {w.edition}</option>)}
