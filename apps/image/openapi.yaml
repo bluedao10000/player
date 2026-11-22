@@ -1,0 +1,373 @@
+openapi: 3.1.0
+info:
+  title: Folio Image API
+  version: 1.0.0
+  description: Asset IDs identify immutable originals. Publishing pins an ID. Management and jobs require a bearer token.
+security: [{bearer: []}]
+paths:
+  /healthz:
+    get:
+      security: []
+      summary: Check process health
+      responses: {'200': {description: Alive}}
+  /readyz:
+    get:
+      security: []
+      summary: Check access to storage and SQLite
+      responses: {'200': {description: Ready}, '503': {description: Unavailable}}
+  /i/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - $ref: '#/components/parameters/width'
+      - $ref: '#/components/parameters/height'
+      - $ref: '#/components/parameters/fit'
+      - $ref: '#/components/parameters/format'
+      - $ref: '#/components/parameters/quality'
+      - $ref: '#/components/parameters/crop'
+      - $ref: '#/components/parameters/preset'
+      - $ref: '#/components/parameters/blur'
+      - $ref: '#/components/parameters/sharpen'
+      - $ref: '#/components/parameters/watermark'
+      - {name: exp, in: query, description: Unix expiration in seconds, schema: {type: integer}}
+      - {name: sig, in: query, description: 64-character HMAC-SHA256 hex string, schema: {type: string, pattern: '^[a-f0-9]{64}$'}}
+      - {name: Range, in: header, description: Single byte range, schema: {type: string}, example: 'bytes=0-1023'}
+      - {name: If-Range, in: header, schema: {type: string}}
+      - {name: If-None-Match, in: header, schema: {type: string}}
+    get:
+      security: []
+      summary: Stream an original or transformed representation
+      description: Private assets require exp and sig. Public transforms are cached for one day.
+      responses:
+        '200': {$ref: '#/components/responses/image'}
+        '206': {$ref: '#/components/responses/range'}
+        '304': {description: ETag matched}
+        '416': {description: Range outside the representation}
+        default: {$ref: '#/components/responses/error'}
+    head:
+      security: []
+      summary: Get representation headers
+      responses: {'200': {description: Representation exists}, '304': {description: ETag matched}, default: {$ref: '#/components/responses/error'}}
+  /v1/assets/upload:
+    post:
+      summary: Upload a private original as a raw binary body
+      parameters:
+        - {name: name, in: query, required: true, schema: {type: string, minLength: 1}}
+        - {name: directory_id, in: query, schema: {type: string, format: uuid}}
+        - {name: previous_id, in: query, description: Predecessor of this immutable version, schema: {type: string, format: uuid}}
+        - {name: source, in: query, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/octet-stream: {schema: {type: string, format: binary}}
+          image/jpeg: {schema: {type: string, format: binary}}
+          image/png: {schema: {type: string, format: binary}}
+          image/webp: {schema: {type: string, format: binary}}
+          image/avif: {schema: {type: string, format: binary}}
+      responses: {'201': {$ref: '#/components/responses/asset'}, default: {$ref: '#/components/responses/error'}}
+  /v1/assets:
+    get:
+      summary: List assets by cursor with optional name or metadata search
+      parameters:
+        - {name: after, in: query, schema: {type: integer, minimum: 0}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 50}}
+        - {name: q, in: query, schema: {type: string, maxLength: 128}}
+        - {name: directory_id, in: query, description: Directory UUID or root, schema: {type: string}}
+        - {name: previous_id, in: query, schema: {type: string, format: uuid}}
+        - {name: source_asset_id, in: query, schema: {type: string, format: uuid}}
+      responses:
+        '200':
+          description: Page of assets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: '#/components/schemas/asset'}}
+                  next: {type: [integer, 'null']}
+        default: {$ref: '#/components/responses/error'}
+  /v1/assets/{id}:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    get:
+      summary: Get asset metadata
+      responses: {'200': {$ref: '#/components/responses/asset'}, default: {$ref: '#/components/responses/error'}}
+    patch:
+      summary: Rename an asset or replace its metadata object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {name: {type: string}, metadata: {type: object}}
+      responses: {'200': {$ref: '#/components/responses/asset'}, default: {$ref: '#/components/responses/error'}}
+    delete:
+      summary: Delete a private unreferenced asset from the catalog
+      responses: {'204': {description: Deleted}, '409': {description: Public or referenced}, default: {$ref: '#/components/responses/error'}}
+  /v1/assets/{id}/download:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    get:
+      summary: Download the original by bearer token
+      responses: {'200': {$ref: '#/components/responses/image'}, '206': {$ref: '#/components/responses/range'}, '304': {description: ETag matched}, default: {$ref: '#/components/responses/error'}}
+    head:
+      summary: Read the download headers
+      responses: {'200': {description: Original exists}, default: {$ref: '#/components/responses/error'}}
+  /v1/assets/{id}/move:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post:
+      summary: Move an asset to a logical directory or root
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [directory_id]
+              properties: {directory_id: {type: [string, 'null'], format: uuid}}
+      responses: {'200': {$ref: '#/components/responses/asset'}, default: {$ref: '#/components/responses/error'}}
+  /v1/assets/{id}/publish:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    post:
+      summary: Pin a publication reference and mark the original public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reference]
+              properties: {reference: {type: string, minLength: 1, maxLength: 512}}
+      responses:
+        '200':
+          description: Stable URL
+          content: {application/json: {schema: {type: object, properties: {url: {type: string}}}}}
+        default: {$ref: '#/components/responses/error'}
+  /v1/assets/{id}/sign:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - $ref: '#/components/parameters/width'
+      - $ref: '#/components/parameters/height'
+      - $ref: '#/components/parameters/fit'
+      - $ref: '#/components/parameters/format'
+      - $ref: '#/components/parameters/quality'
+      - $ref: '#/components/parameters/crop'
+      - $ref: '#/components/parameters/preset'
+      - $ref: '#/components/parameters/blur'
+      - $ref: '#/components/parameters/sharpen'
+      - $ref: '#/components/parameters/watermark'
+    get:
+      summary: Issue a signed URL valid for 600 seconds
+      responses:
+        '200':
+          description: Signed origin-relative URL
+          content:
+            application/json:
+              schema: {type: object, properties: {url: {type: string}, expires_at: {type: integer}}}
+        default: {$ref: '#/components/responses/error'}
+  /v1/assets/{id}/prewarm:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - $ref: '#/components/parameters/width'
+      - $ref: '#/components/parameters/height'
+      - $ref: '#/components/parameters/fit'
+      - $ref: '#/components/parameters/format'
+      - $ref: '#/components/parameters/quality'
+      - $ref: '#/components/parameters/crop'
+      - $ref: '#/components/parameters/preset'
+      - $ref: '#/components/parameters/blur'
+      - $ref: '#/components/parameters/sharpen'
+      - $ref: '#/components/parameters/watermark'
+    post:
+      summary: Prepare a cacheable variant before publication
+      responses: {'204': {description: Rendered}, default: {$ref: '#/components/responses/error'}}
+  /v1/directories:
+    get:
+      summary: List logical directories
+      parameters:
+        - {name: after, in: query, schema: {type: string, format: uuid}}
+        - {name: parent_id, in: query, description: Parent UUID or root, schema: {type: string}}
+      responses:
+        '200':
+          description: Directory page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: '#/components/schemas/directory'}}
+                  next: {type: [string, 'null']}
+        default: {$ref: '#/components/responses/error'}
+    post:
+      summary: Create a logical directory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties: {name: {type: string}, parent_id: {type: [string, 'null'], format: uuid}}
+      responses:
+        '201':
+          description: Directory created
+          content: {application/json: {schema: {$ref: '#/components/schemas/directory'}}}
+        default: {$ref: '#/components/responses/error'}
+  /v1/directories/{id}:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    delete:
+      summary: Delete an empty logical directory
+      responses: {'204': {description: Deleted}, '409': {description: Directory contains assets or children}, default: {$ref: '#/components/responses/error'}}
+  /v1/ai/analyze:
+    post:
+      summary: Queue structured image analysis
+      requestBody:
+        required: true
+        content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/job_input'}, {required: [asset_id]}]}}}
+      responses: {'202': {$ref: '#/components/responses/job'}, default: {$ref: '#/components/responses/error'}}
+  /v1/ai/generate:
+    post:
+      summary: Queue text-to-image generation
+      requestBody:
+        required: true
+        content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/job_input'}, {required: [prompt]}]}}}
+      responses: {'202': {$ref: '#/components/responses/job'}, default: {$ref: '#/components/responses/error'}}
+  /v1/ai/edit:
+    post:
+      summary: Queue image editing and optionally provide an OpenAI mask
+      requestBody:
+        required: true
+        content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/job_input'}, {required: [asset_id]}]}}}
+      responses: {'202': {$ref: '#/components/responses/job'}, default: {$ref: '#/components/responses/error'}}
+  /v1/jobs/{id}:
+    parameters: [{$ref: '#/components/parameters/id'}]
+    get:
+      summary: Read an AI job and its result
+      responses: {'200': {$ref: '#/components/responses/job'}, default: {$ref: '#/components/responses/error'}}
+  /v1/stats:
+    get:
+      summary: Read in-process transform cache counters
+      responses:
+        '200':
+          description: Transform counters since process start
+          content:
+            application/json:
+              schema: {type: object, properties: {cache_hits: {type: integer}, cache_misses: {type: integer}}}
+        default: {$ref: '#/components/responses/error'}
+  /openapi.yaml:
+    get:
+      security: []
+      summary: Read the OpenAPI description
+      responses:
+        '200':
+          description: YAML document
+          content: {application/yaml: {schema: {type: string}}}
+components:
+  securitySchemes:
+    bearer: {type: http, scheme: bearer}
+  parameters:
+    id: {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    width: {name: w, in: query, schema: {type: integer, minimum: 1, maximum: 4096}}
+    height: {name: h, in: query, schema: {type: integer, minimum: 1, maximum: 4096}}
+    fit: {name: fit, in: query, schema: {type: string, enum: [contain, cover, fill, smart], default: contain}}
+    format: {name: format, in: query, schema: {type: string, enum: [jpeg, png, webp, avif]}}
+    quality: {name: q, in: query, description: JPEG and WebP default to 82. AVIF accepts at most 75 and defaults to 55. PNG uses fixed compression., schema: {type: integer, minimum: 1, maximum: 95}}
+    crop: {name: crop, in: query, description: Rectangle in oriented source pixels, schema: {type: string}, example: '1,2,300,200'}
+    preset: {name: preset, in: query, schema: {type: string, enum: [thumb, reader]}}
+    blur: {name: blur, in: query, schema: {type: integer, minimum: 0, maximum: 20}}
+    sharpen: {name: sharpen, in: query, schema: {type: integer, minimum: 0, maximum: 5}}
+    watermark: {name: wm, in: query, description: UUID of a public watermark image, schema: {type: string, format: uuid}}
+  responses:
+    image:
+      description: Image representation
+      headers:
+        ETag: {schema: {type: string}}
+        Last-Modified: {schema: {type: string}}
+        Cache-Control: {schema: {type: string}}
+        Content-Length: {schema: {type: integer}}
+        Accept-Ranges: {schema: {type: string, const: bytes}}
+      content:
+        image/jpeg: {schema: {type: string, format: binary}}
+        image/png: {schema: {type: string, format: binary}}
+        image/webp: {schema: {type: string, format: binary}}
+        image/avif: {schema: {type: string, format: binary}}
+    range:
+      description: Single byte range
+      headers: {Content-Range: {schema: {type: string}}}
+      content: {'image/*': {schema: {type: string, format: binary}}}
+    asset:
+      description: Asset metadata
+      content: {application/json: {schema: {$ref: '#/components/schemas/asset'}}}
+    job:
+      description: Stored job state
+      content: {application/json: {schema: {$ref: '#/components/schemas/job'}}}
+    error:
+      description: Request invalid, unauthorized, conflicting or capacity unavailable
+      content: {application/json: {schema: {type: object, properties: {error: {type: string}}}}}
+  schemas:
+    asset:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        storage_key: {type: string}
+        name: {type: string}
+        directory_id: {type: [string, 'null'], format: uuid}
+        mime: {type: string}
+        size: {type: integer}
+        width: {type: integer}
+        height: {type: integer}
+        orientation: {type: integer, minimum: 1, maximum: 8}
+        sha256: {type: string}
+        created_at: {type: integer}
+        source: {type: string}
+        metadata: {type: object}
+        visibility: {type: string, enum: [public, private]}
+        previous_id: {type: [string, 'null'], format: uuid}
+        source_asset_id: {type: [string, 'null'], format: uuid}
+    directory:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        parent_id: {type: [string, 'null'], format: uuid}
+        name: {type: string}
+    job_input:
+      type: object
+      properties:
+        provider: {type: [string, 'null'], enum: [openai, gemini, null], default: openai}
+        asset_id: {type: [string, 'null'], format: uuid}
+        mask_id: {type: [string, 'null'], format: uuid}
+        prompt: {type: [string, 'null'], maxLength: 4096}
+        size: {type: [string, 'null'], enum: [1024x1024, 1024x1536, 1536x1024, null]}
+        task: {type: [string, 'null'], enum: [remove_background, restore, null]}
+    job:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        operation: {type: string, enum: [analyze, generate, edit]}
+        provider: {type: string}
+        model: {type: string}
+        input: {$ref: '#/components/schemas/job_input'}
+        state: {type: string, enum: [queued, running, succeeded, failed]}
+        attempts: {type: integer}
+        created_at: {type: integer}
+        updated_at: {type: integer}
+        request_id: {type: [string, 'null']}
+        error: {type: [string, 'null']}
+        result:
+          oneOf:
+            - {type: 'null'}
+            - {type: object, required: [asset_id], properties: {asset_id: {type: string, format: uuid}}}
+            - type: object
+              required: [analysis, provider, model, created_at]
+              properties:
+                provider: {type: string}
+                model: {type: string}
+                created_at: {type: integer}
+                analysis:
+                  type: object
+                  properties:
+                    description: {type: string}
+                    tags: {type: array, items: {type: string}}
+                    classification: {type: string}
+                    ocr_text: {type: string}
+                    objects: {type: array, items: {type: string}}
+                    style: {type: string}
+                    quality_assessment: {type: string}

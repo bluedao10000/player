@@ -1,0 +1,23 @@
+name: folio-image
+services:
+  image:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      IMAGE_BIND: 0.0.0.0:14580
+      IMAGE_DATA_DIR: /data
+    ports:
+      - "127.0.0.1:${IMAGE_PORT:-14680}:14580"
+    volumes:
+      - image-data:/data
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 4
+    mem_limit: 8g
+    stop_grace_period: 20s
+volumes:
+  image-data:
