@@ -78,7 +78,7 @@ export type KnowledgeSummary = {
   sources: { records_by_source: { name: string; type: string; records: number; works: number }[]; external_ids_by_provider: { provider: string; external_ids: number; works: number }[] }
   governance?: {
     pending_verification_works: number; open_match_candidates: number; open_quality_issues: number
-    online_verified_topics: number; release_failed_topics: number
+    online_verified_topics: number; release_failed_topics: number; source_review_works?: number
   }
   trend: { range_days: number; points: { day: string; definition: number; completeness: JsonValue; [key: string]: JsonValue }[] }
 }
@@ -87,7 +87,7 @@ export type KnowledgeWorkRow = {
   edition: string | null; episodes_total: number | null; episodes_covered: number | null; characters: number | null
   scenes: number | null; images: number | null; completeness: { dimensions: CompletenessDimension[] } | null
   acceptance_pass_rate: number | null; production_status: string; last_updated_at: string | null; has_knowledge_version: boolean
-  online_verified_episodes?: number | null; open_conflicts?: number
+  online_verified_episodes?: number | null; open_conflicts?: number; open_source_reviews?: number
 }
 export type KnowledgeWorksPage = { as_of: string; definition: number; items: KnowledgeWorkRow[]; next_cursor: string | null }
 export type KnowledgeEpisodeMatrixRow = {
@@ -95,9 +95,21 @@ export type KnowledgeEpisodeMatrixRow = {
   state: 'unregistered' | 'registered' | 'planned' | 'in_production' | 'accepted' | 'published'
   local_published: boolean; online_verified: boolean
   topic: string | null; title: string | null; acceptance_passed: boolean | null; acceptance_gaps: string[]
+  source_review_pending?: boolean
   research_stage: string | null; research_error: string | null
   release_receipt: number | null; release_href: string | null; release_error: string | null
   media: { total: number; passed: number; failed: number; held: number; active: number }
+}
+type SourceValueChange<T> = { before: T; after: T }
+export type SourceReviewMark = {
+  id: string; source: string; record_key: string; number: number | null; last_run_id: string; updated_at: string
+  previous_version_id: number | null; source_version_id: number
+  changes: {
+    kind: 'added' | 'restored' | 'updated' | 'withdrawn'
+    raw: SourceValueChange<string | null>; norm: SourceValueChange<string | null>
+    fields: Record<string, SourceValueChange<JsonValue>>
+    catalog: Record<string, SourceValueChange<JsonValue>>
+  }
 }
 export type KnowledgeWorkDetail = {
   overview: {
@@ -106,6 +118,7 @@ export type KnowledgeWorkDetail = {
     world_name: string | null; world_intro: string | null; origin: string | null; published_at: string | null
     has_knowledge_version: boolean; completeness: { dimensions: CompletenessDimension[] } | null
     sources: { external_ids: { provider: string; external_id: string; url: string }[]; records: { source: string; type: string; record_key: string; version_id: number }[] }
+    source_reviews?: SourceReviewMark[]
     world_evidence?: { key: string; uri: string; locator: string; digest: string }[]
     conflicts?: { source_record_id: number; source: string; record_key: string; candidate_work_id: string; candidate_title: string; reason: string; first_seen_at: string }[]
     working_vs_public?: {
@@ -295,7 +308,7 @@ export const readKnowledgeCenterFeed = createServerFn({ method: 'GET' }).handler
 
 export type KnowledgeWorkFilters = {
   q: string; has_knowledge_version: 'true' | 'false' | 'all'; type: string; completeness_status: string
-  production_status: string; sort: string; after: string
+  production_status: string; sort: string; after: string; source_review: boolean
 }
 
 export const readKnowledgeWorksPage = createServerFn({ method: 'GET' })
@@ -311,6 +324,7 @@ export const readKnowledgeWorksPage = createServerFn({ method: 'GET' })
     if (data.completeness_status) params.set('completeness_status', data.completeness_status)
     if (data.production_status) params.set('production_status', data.production_status)
     if (data.after) params.set('after', data.after)
+    if (data.source_review) params.set('source_review', 'true')
     return getJSON<KnowledgeWorksPage>('ops/knowledge/works?' + params.toString(), admin, false)
   })
 

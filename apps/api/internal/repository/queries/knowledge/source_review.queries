@@ -1,0 +1,25 @@
+-- name: SaveSourceReviews
+WITH proposed AS (
+ SELECT d.*,r.id AS record_id,c.batch,c.version,w.active,w.type,
+  EXISTS(SELECT FROM contributions x WHERE x.work_id=w.id) AS proposed_active,
+  CASE WHEN p.work_id IS NOT NULL THEN p.n->>'type' ELSE w.type END AS proposed_type
+ FROM catalog_world_changes d CROSS JOIN merge_context c
+ JOIN knowledge_source_records r ON r.source_id=c.source AND r.record_key=d.record_key
+ JOIN works w ON w.id=d.work_id LEFT JOIN projected_works p ON p.work_id=w.id
+)
+INSERT INTO knowledge_source_review_marks(world_slug,source_record_id,last_run_id,previous_version_id,source_version_id,changes)
+SELECT slug,record_id,batch,previous_version_id,version,
+ jsonb_build_object('kind',kind,'raw',jsonb_build_object('before',raw_before,'after',raw_after),
+  'norm',jsonb_build_object('before',norm_before,'after',norm_after),'fields',fields,
+  'catalog',
+   CASE WHEN active IS DISTINCT FROM proposed_active THEN jsonb_build_object('active',jsonb_build_object('before',active,'after',proposed_active)) ELSE '{}'::jsonb END ||
+   CASE WHEN type IS DISTINCT FROM proposed_type THEN jsonb_build_object('type',jsonb_build_object('before',type,'after',proposed_type)) ELSE '{}'::jsonb END)
+FROM proposed
+ON CONFLICT(world_slug,source_record_id,topic) WHERE resolved_at IS NULL
+DO UPDATE SET last_run_id=excluded.last_run_id,previous_version_id=excluded.previous_version_id,
+ source_version_id=excluded.source_version_id,changes=excluded.changes,updated_at=excluded.updated_at
+WHERE knowledge_source_review_marks.last_run_id<>excluded.last_run_id
+
+-- name: ResolveSourceReview
+UPDATE knowledge_source_review_marks SET resolved_at=now(),resolved_by=$3
+WHERE id=$1 AND last_run_id=$2 AND resolved_at IS NULL

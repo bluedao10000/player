@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import type { KnowledgeCompleteness, KnowledgeEpisodeMatrixRow, KnowledgeWorkFeed } from './feed'
+import { useRouter } from '@tanstack/react-router'
+import type { JsonValue, KnowledgeCompleteness, KnowledgeEpisodeMatrixRow, KnowledgeWorkFeed, SourceReviewMark } from './feed'
+import { api } from './editor-api'
 import { CompletenessSummary } from './knowledge-center'
 import { MediaGallery } from './media-gallery'
 import { ScopeReport } from './scope-report'
@@ -34,6 +36,7 @@ export function KnowledgeWorkDetail({ feed, candidate }: { feed: KnowledgeWorkFe
   const progress = detail.episodes.progress
   const evidence = overview.world_evidence ?? []
   const conflicts = overview.conflicts ?? []
+  const sourceReviews = overview.source_reviews ?? []
   const mediaList = feed.media ?? []
   const mediaPool = {
     active: mediaList.filter((m) => ['reference', 'queued', 'generate', 'review', 'recrop', 'recheck'].includes(m.stage)).length,
@@ -91,6 +94,11 @@ export function KnowledgeWorkDetail({ feed, candidate }: { feed: KnowledgeWorkFe
         </li>)}</ul> : <p>当前完整度结果没有缺项。</p>}
         {!completenessDimensions.length && <p>完整度等待质量扫描。</p>}
       </>}
+
+      {sourceReviews.length > 0 && <section className="wb-evidence-box wb-source-reviews" id="source-review" aria-labelledby="source-review-title">
+        <h3 id="source-review-title">来源待复核 · {sourceReviews.length} 条</h3>
+        {sourceReviews.map((mark) => <SourceReviewItem key={mark.id} mark={mark} />)}
+      </section>}
 
       <details className="wb-evidence-box" open={conflicts.length > 0}>
         <summary>身份来源、证据与待裁决冲突（外部 ID {overview.sources.external_ids.length} · 来源记录 {overview.sources.records.length} · 世界依据 {evidence.length} · 冲突 {conflicts.length}）</summary>
@@ -163,7 +171,7 @@ export function KnowledgeWorkDetail({ feed, candidate }: { feed: KnowledgeWorkFe
           </thead>
           <tbody>
             {filteredMatrix.map((row) => <tr key={row.number}>
-              <td><strong>第 {row.number} 集</strong>{row.title ? <small>{row.title}</small> : null}</td>
+              <td><strong>第 {row.number} 集</strong>{row.title ? <small>{row.title}</small> : null}{row.source_review_pending && <small><a href="#source-review">来源待复核</a></small>}</td>
               <td>{row.in_policy ? '策略内' : '策略外'}</td>
               <td>{progressLabels[row.state]}</td>
               <td>{row.research_stage ? `${row.research_stage}${row.research_error ? ` · ${row.research_error}` : ''}` : '—'}</td>
@@ -242,6 +250,64 @@ export function KnowledgeWorkDetail({ feed, candidate }: { feed: KnowledgeWorkFe
       </div>
     </section>
   </div>
+}
+
+const sourceChangeLabels = { added: '新增来源', restored: '来源已恢复', updated: '来源有更新', withdrawn: '来源已撤回' }
+const sourceFieldLabels: Record<string, string> = {
+  active: '条目状态', type: '作品类型', title: '标题', original: '原名', episodes: '总集数',
+  status: '播出状态', year: '年份', synopsis: '简介', refs: '来源标识', titles: '别名',
+}
+
+function SourceReviewItem({ mark }: { mark: SourceReviewMark }) {
+  const router = useRouter()
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const proposed = Object.entries(mark.changes.catalog)
+  const fields = Object.entries(mark.changes.fields)
+
+  async function resolve() {
+    setSaving(true)
+    setError('')
+    try {
+      await api(`source-reviews/${mark.id}/resolve`, { last_run_id: mark.last_run_id })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '暂时无法保存核对结果。请重试。')
+      setSaving(false)
+      return
+    }
+    try {
+      await router.invalidate()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return <article className="wb-source-review">
+    <div className="wb-knowledge-actions">
+      <strong>{sourceChangeLabels[mark.changes.kind]} · {mark.number == null ? '整部作品' : `第 ${mark.number} 集`}</strong>
+      <button type="button" className="wb-link-pill" disabled={saving} onClick={() => void resolve()}>{saving ? '正在保存…' : '确认已核对'}</button>
+    </div>
+    <p>{mark.source} · {mark.record_key} · {formatDateTime(mark.updated_at)}</p>
+    {proposed.length > 0 && <p>待确认的目录变更 · {proposed.map(([field, change]) =>
+      `${sourceFieldLabels[field] ?? field} ${sourceValue(change.before)} → ${sourceValue(change.after)}`).join('，')}</p>}
+    <details>
+      <summary>查看来源差异</summary>
+      <p>来源版本 {mark.previous_version_id ?? '—'} → {mark.source_version_id}</p>
+      <ul>
+        {fields.map(([field, change]) => <li key={field}>{sourceFieldLabels[field] ?? field} · {sourceValue(change.before)} → {sourceValue(change.after)}</li>)}
+        <li>原始记录摘要 · {mark.changes.raw.before ?? '—'} → {mark.changes.raw.after ?? '—'}</li>
+        <li>规范记录摘要 · {mark.changes.norm.before ?? '—'} → {mark.changes.norm.after ?? '—'}</li>
+      </ul>
+    </details>
+    {error && <p role="alert">{error}</p>}
+  </article>
+}
+
+function sourceValue(value: JsonValue) {
+  if (value == null) return '—'
+  if (typeof value === 'boolean') return value ? '活跃' : '停用'
+  const text = typeof value === 'string' ? value : JSON.stringify(value)
+  return text.length > 180 ? text.slice(0, 180) + '…' : text
 }
 
 function stringValue(value: unknown): string | null {

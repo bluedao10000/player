@@ -74,7 +74,7 @@ func usageRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 		}
 		ctx, cancel := readContext(c)
 		defer cancel()
-		body, err := knowledgeread.OpsKnowledgeWorks(ctx, db, q, hasVersion, workType, completenessStatus, productionStatus, sort, after, n)
+		body, err := knowledgeread.OpsKnowledgeWorks(ctx, db, q, hasVersion, workType, completenessStatus, productionStatus, sort, after, n, c.Query("source_review") == "true")
 		writeJSON(c, body, err)
 	})
 	g.GET("/ops/knowledge/works/:work", func(c *gin.Context) {

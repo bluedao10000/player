@@ -57,7 +57,7 @@ INSERT INTO knowledge_source_records(source_id,record_key,work_id,version_id,raw
  SELECT $1,$2,$3,$4,metadata->'manifest',$5 FROM knowledge_source_versions WHERE id=$4 ON CONFLICT(source_id,record_key) DO UPDATE SET version_id=excluded.version_id,raw=excluded.raw,norm=excluded.norm,active=true
 
 -- name: CreateAffectedWorks
-CREATE TEMP TABLE affected(work_id uuid PRIMARY KEY) ON COMMIT DROP
+CREATE TEMP TABLE affected(work_id uuid PRIMARY KEY, preserve_public boolean NOT NULL DEFAULT false) ON COMMIT DROP
 
 -- name: InsertEvidence
 INSERT INTO world_evidence VALUES($1,$2,$3,$4,$5)

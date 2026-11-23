@@ -682,6 +682,10 @@ body:has(.wb) {
 .wb-evidence-box { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--wb-line); border-radius: 8px; background: #0b1423; }
 .wb-knowledge-evidence-ref { overflow-wrap: anywhere; }
 .wb-evidence-box summary { cursor: pointer; font-size: 11px; color: var(--wb-text); }
+.wb-source-review { padding: 12px 0; border-top: 1px solid var(--wb-line); overflow-wrap: anywhere; }
+.wb-source-review p { margin: 6px 0; }
+.wb-source-review button { margin-left: auto; }
+.wb-source-review ul { padding-inline-start: 20px; }
 .wb-matrix-wrap { overflow-x: auto; margin-top: 10px; }
 .wb-matrix-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .wb-matrix-table th, .wb-matrix-table td { padding: 8px 10px; border-bottom: 1px solid var(--wb-line); text-align: left; vertical-align: top; }

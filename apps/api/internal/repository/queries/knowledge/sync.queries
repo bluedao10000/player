@@ -67,7 +67,7 @@ CREATE TEMP TABLE merge_context(batch uuid,source int, version bigint) ON COMMIT
 INSERT INTO merge_context VALUES($1,$2,$3)
 
 -- name: MarkReplayWorks
-INSERT INTO affected SELECT work_id FROM knowledge_source_records WHERE source_id=(SELECT source FROM merge_context) ON CONFLICT DO NOTHING;
+INSERT INTO affected SELECT work_id,true FROM knowledge_source_records WHERE source_id=(SELECT source FROM merge_context) ON CONFLICT DO NOTHING;
 
 -- name: FinishSync
 UPDATE knowledge_sync_runs SET finished_at=now(),status='success',remote_version=$2,download_url=$3,http_status=$4,content_length=$5,checksum=$6,

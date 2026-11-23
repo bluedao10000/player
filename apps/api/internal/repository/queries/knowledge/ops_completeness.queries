@@ -38,6 +38,7 @@ WITH clock AS (
   (SELECT count(DISTINCT work_id)::int FROM current_results WHERE status='pending_verification') AS pending_verification_works,
   (SELECT count(*)::int FROM knowledge_match_candidates) AS open_match_candidates,
   (SELECT count(*)::int FROM knowledge_quality_issues WHERE status='open') AS open_quality_issues,
+  (SELECT count(DISTINCT world_slug)::int FROM knowledge_source_review_marks WHERE resolved_at IS NULL) AS source_review_works,
   (SELECT count(DISTINCT topic)::int FROM reader_release_attempts WHERE target_id IS NOT NULL AND href IS NOT NULL AND error IS NULL) AS online_verified_topics,
   (SELECT count(*)::int FROM (
     SELECT DISTINCT ON (topic) topic,error FROM reader_release_attempts ORDER BY topic,started_at DESC
@@ -75,6 +76,7 @@ SELECT jsonb_build_object(
    'pending_verification_works',g.pending_verification_works,
    'open_match_candidates',g.open_match_candidates,
    'open_quality_issues',g.open_quality_issues,
+   'source_review_works',g.source_review_works,
    'online_verified_topics',g.online_verified_topics,
    'release_failed_topics',g.release_failed_topics),
  'trend',jsonb_build_object('range_days',$1,'points',(SELECT points FROM trend))
@@ -114,14 +116,20 @@ FROM selected s
 
 -- name: OpsKnowledgeWorks
 WITH clock AS (SELECT statement_timestamp() AS as_of),
+review_worlds AS (
+ SELECT world_slug,count(*)::int AS open_reviews FROM knowledge_source_review_marks WHERE resolved_at IS NULL GROUP BY world_slug
+),
 worlds AS (
- SELECT k.id AS work_id,w.slug,w.version_id,w.edition,w.published_at,k.canonical_title,k.original_title,k.type,k.episodes,k.updated_at,
+ SELECT k.id AS work_id,coalesce(w.slug,review.world_slug) AS slug,w.version_id,w.edition,w.published_at,k.canonical_title,k.original_title,k.type,k.episodes,k.updated_at,
+        coalesce(review.open_reviews,0) AS open_source_reviews,
         i.card,coalesce(rv.release_versions,0)::int release_versions
  FROM works k
  LEFT JOIN published_worlds w ON w.work_id=k.id
+ LEFT JOIN work_worlds ww ON ww.work_id=k.id
+ LEFT JOIN review_worlds review ON review.world_slug=ww.slug
  LEFT JOIN reader_knowledge_inventory i ON (i.work_id,i.slug)=(w.work_id,w.slug)
  LEFT JOIN (SELECT work_id,count(*) release_versions FROM world_releases GROUP BY work_id) rv ON rv.work_id=k.id
- WHERE k.active
+ WHERE k.active OR ($9::bool AND review.open_reviews>0)
 ), operation_status AS (
  SELECT world_slug,count(*) FILTER(WHERE state='pending')::int pending_items,
         count(*) FILTER(WHERE state='blocked')::int blocked_items,
@@ -191,6 +199,7 @@ worlds AS (
  AND ($3='' OR ($3='__null__' AND p.type IS NULL) OR p.type=$3)
  AND ($4='' OR EXISTS(SELECT FROM current_results r WHERE r.work_id=p.work_id AND r.version_id=p.version_id AND r.status=$4))
  AND ($5='' OR p.production_status=$5)
+ AND (NOT $9::bool OR p.open_source_reviews>0)
 ), ordered AS (
  SELECT f.*,row_number() OVER(ORDER BY
    CASE WHEN $6='title' THEN f.title END ASC,
@@ -214,6 +223,7 @@ SELECT jsonb_build_object('as_of',c.as_of,'definition',2,
   'characters',p.characters,'scenes',p.scenes,'images',p.images_count,'completeness',p.completeness,
   'acceptance_pass_rate',p.acceptance_pass_rate,'production_status',p.production_status,'last_updated_at',p.last_updated_at,
   'online_verified_episodes',p.online_verified_episodes,'open_conflicts',p.open_conflicts,
+  'open_source_reviews',p.open_source_reviews,
   'has_knowledge_version',p.version_id IS NOT NULL) ORDER BY p.ord) FROM page p WHERE p.ord<=$7::int+$8::int),'[]'::jsonb),
  'next_cursor',CASE WHEN (SELECT count(*) FROM page)>$8::int THEN ($7::int+$8::int)::text ELSE NULL END)
 FROM clock c
@@ -221,11 +231,21 @@ FROM clock c
 -- name: OpsKnowledgeWork
 WITH selected AS (
  SELECT k.*,w.slug,w.version_id,w.edition,w.name world_name,w.intro world_intro,w.origin,w.published_at,
+        ww.slug AS review_slug,
         i.card,nullif(btrim(w.card->>'hero_asset_key'),'') AS main_visual
  FROM works k LEFT JOIN published_worlds w ON w.work_id=k.id
+ LEFT JOIN work_worlds ww ON ww.work_id=k.id
  LEFT JOIN reader_knowledge_inventory i ON (i.work_id,i.slug)=(w.work_id,w.slug)
- WHERE k.active AND ($1=w.slug OR $1=k.id::text)
+ WHERE (k.active AND ($1=w.slug OR $1=k.id::text))
+    OR (($1=ww.slug OR $1=k.id::text) AND EXISTS(
+      SELECT FROM knowledge_source_review_marks m WHERE m.world_slug=ww.slug AND m.resolved_at IS NULL))
  LIMIT 1
+), source_reviews AS (
+ SELECT m.id,m.topic,p.number,m.last_run_id,m.previous_version_id,m.source_version_id,m.updated_at,m.changes,
+        k.name AS source,r.record_key
+ FROM selected s JOIN knowledge_source_review_marks m ON m.world_slug=s.review_slug AND m.resolved_at IS NULL
+ JOIN knowledge_source_records r ON r.id=m.source_record_id JOIN knowledge_sources k ON k.id=r.source_id
+ LEFT JOIN episode_plans p ON (p.world_slug,p.topic)=(m.world_slug,m.topic)
 ), current_results AS (
  SELECT DISTINCT ON (r.work_id,r.version_id,r.rule_code) r.* FROM knowledge_completeness_results r JOIN selected s ON (s.id,s.version_id)=(r.work_id,r.version_id)
  WHERE r.rule_version=(SELECT max(x.rule_version) FROM knowledge_completeness_rules x WHERE x.rule_code=r.rule_code AND x.active)
@@ -329,6 +349,8 @@ SELECT jsonb_build_object(
    'type',s.type,'episodes_total',s.episodes,'release_versions',(SELECT count(*)::int FROM world_releases r WHERE r.work_id=s.id),
    'version_id',s.version_id,'edition',s.edition,'world_name',s.world_name,'world_intro',s.world_intro,'origin',s.origin,
    'published_at',s.published_at,'has_knowledge_version',s.version_id IS NOT NULL,
+   'source_reviews',coalesce((SELECT jsonb_agg(to_jsonb(r)||jsonb_build_object('id',r.id::text) ORDER BY r.updated_at DESC,r.id DESC)
+      FROM source_reviews r),'[]'::jsonb),
    'sources',jsonb_build_object(
      'external_ids',coalesce((SELECT jsonb_agg(jsonb_build_object('provider',ws.provider,'external_id',ws.external_id,'url',ws.url) ORDER BY ws.provider,ws.external_id)
        FROM work_sources ws WHERE ws.work_id=s.id),'[]'::jsonb),
@@ -374,6 +396,7 @@ SELECT jsonb_build_object(
    'matrix',coalesce((SELECT jsonb_agg(jsonb_build_object(
      'number',number,'in_policy',in_policy,'state',state,'local_published',local_published,'online_verified',online_verified,
      'topic',topic,'title',title,'acceptance_passed',acceptance_passed,'acceptance_gaps',acceptance_gaps,
+     'source_review_pending',EXISTS(SELECT FROM source_reviews r WHERE r.topic=episode_matrix.topic),
      'research_stage',research_stage,'research_error',research_error,
      'release_receipt',release_receipt,'release_href',release_href,'release_error',release_error,'media',media
    ) ORDER BY number) FROM episode_matrix),'[]'::jsonb),

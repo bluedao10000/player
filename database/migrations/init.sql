@@ -2110,6 +2110,27 @@ INSERT INTO ops_stage_worker_loops(stage_id,role,loop) VALUES
  ('acceptance','sync','acceptance'),
  ('acceptance','media-lane','maintenance');
 
+-- name: 063.sql
+CREATE TABLE knowledge_source_review_marks (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ world_slug text NOT NULL REFERENCES work_worlds(slug),
+ source_record_id bigint NOT NULL REFERENCES knowledge_source_records(id),
+ topic text,
+ last_run_id uuid NOT NULL REFERENCES knowledge_sync_runs(id),
+ previous_version_id bigint REFERENCES knowledge_source_versions(id),
+ source_version_id bigint NOT NULL REFERENCES knowledge_source_versions(id),
+ changes jsonb NOT NULL CHECK(jsonb_typeof(changes)='object'),
+ updated_at timestamptz NOT NULL DEFAULT now(),
+ resolved_at timestamptz,
+ resolved_by text,
+ FOREIGN KEY(world_slug,topic) REFERENCES episode_plans(world_slug,topic),
+ CHECK((resolved_at IS NULL)=(resolved_by IS NULL))
+);
+CREATE UNIQUE INDEX knowledge_source_review_marks_open_identity
+ ON knowledge_source_review_marks(world_slug,source_record_id,topic) NULLS NOT DISTINCT WHERE resolved_at IS NULL;
+CREATE INDEX knowledge_source_review_marks_open
+ ON knowledge_source_review_marks(world_slug,updated_at DESC) WHERE resolved_at IS NULL;
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,62) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,63) i;
 COMMIT;

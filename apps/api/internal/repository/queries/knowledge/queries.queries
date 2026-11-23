@@ -34,10 +34,11 @@ CREATE TEMP TABLE rejected ON COMMIT DROP AS SELECT DISTINCT m.record_key,m.work
  UNION SELECT m.record_key,m.work_id FROM matches m JOIN incoming i USING(record_key) JOIN knowledge_match_rejections j ON j.record_id=i.record_id AND j.work_id=m.work_id;
 CREATE UNIQUE INDEX ON rejected(record_key,work_id);
 CREATE TEMP TABLE assignment ON COMMIT DROP AS
- SELECT i.record_key,coalesce(pin.work_id,CASE WHEN rejected.work_id IS NULL OR s.type='github-jsonl' THEN i.old_work END,
+ SELECT i.record_key,coalesce(w.work_id,pin.work_id,CASE WHEN rejected.work_id IS NULL OR s.type='github-jsonl' THEN i.old_work END,
    m.only_work,gen_random_uuid()) AS work_id
  FROM incoming i CROSS JOIN merge_context c JOIN knowledge_sources s ON s.id=c.source
  LEFT JOIN knowledge_identity_pins pin ON pin.record_id=i.record_id
+ LEFT JOIN work_worlds w ON w.work_id=i.old_work
  LEFT JOIN rejected ON rejected.record_key=i.record_key AND rejected.work_id=i.old_work
  LEFT JOIN (
   SELECT m.record_key,min(m.work_id::text)::uuid AS only_work FROM matches m
@@ -48,14 +49,39 @@ UPDATE incoming i SET action='updated' FROM assignment a WHERE a.record_key=i.re
 CREATE TEMP TABLE removed ON COMMIT DROP AS SELECT r.id,r.work_id FROM knowledge_source_records r,merge_context c
  WHERE r.source_id=c.source AND r.active AND NOT EXISTS(SELECT FROM incoming i WHERE i.record_key=r.record_key);
 CREATE TEMP TABLE affected ON COMMIT DROP AS
- SELECT a.work_id FROM assignment a JOIN incoming i USING(record_key) WHERE i.action<>'unchanged'
- UNION SELECT old_work FROM incoming WHERE action='updated'
- UNION SELECT work_id FROM removed;
+ SELECT a.work_id,true AS preserve_public FROM assignment a JOIN incoming i USING(record_key) WHERE i.action<>'unchanged'
+ UNION SELECT old_work,true FROM incoming WHERE action='updated' AND old_work IS NOT NULL
+ UNION SELECT work_id,true FROM removed;
 CREATE UNIQUE INDEX ON affected(work_id);
 ANALYZE affected;
 INSERT INTO works(id,canonical_title)
  SELECT DISTINCT ON (a.work_id) a.work_id,i.norm->>'title' FROM assignment a JOIN incoming i USING(record_key)
  ON CONFLICT(id) DO NOTHING;
+
+-- Keep the previous evidence before replacing the source rows. Only worlds
+-- receive review marks, so the snapshot stays bounded by the affected worlds.
+CREATE TEMP TABLE catalog_world_changes ON COMMIT DROP AS
+ WITH delta AS (
+  SELECT w.slug,w.work_id,i.record_key,r.version_id AS previous_version_id,
+   CASE WHEN r.id IS NULL THEN 'added' WHEN NOT r.active THEN 'restored' ELSE 'updated' END AS kind,
+   r.raw AS old_raw,r.norm AS old_norm,i.raw AS new_raw,i.norm AS new_norm
+  FROM incoming i JOIN assignment a USING(record_key)
+  JOIN work_worlds w ON w.work_id IN (a.work_id,i.old_work)
+  LEFT JOIN knowledge_source_records r ON r.id=i.record_id
+  WHERE i.action<>'unchanged'
+  UNION ALL
+  SELECT w.slug,w.work_id,r.record_key,r.version_id,'withdrawn',r.raw,r.norm,NULL,NULL
+  FROM removed d JOIN knowledge_source_records r ON r.id=d.id JOIN work_worlds w ON w.work_id=d.work_id
+ )
+ SELECT d.slug,d.work_id,d.record_key,d.previous_version_id,d.kind,
+  encode(sha256(convert_to(old_raw::text,'UTF8')),'hex') AS raw_before,
+  encode(sha256(convert_to(new_raw::text,'UTF8')),'hex') AS raw_after,
+  encode(sha256(convert_to(old_norm::text,'UTF8')),'hex') AS norm_before,
+  encode(sha256(convert_to(new_norm::text,'UTF8')),'hex') AS norm_after,
+  coalesce((SELECT jsonb_object_agg(key,jsonb_build_object('before',b.value,'after',n.value))
+   FROM jsonb_each(old_norm) b FULL JOIN jsonb_each(new_norm) n USING(key)
+   WHERE b.value IS DISTINCT FROM n.value),'{}') AS fields
+ FROM delta d;
 UPDATE knowledge_source_records SET active=false WHERE id IN (SELECT id FROM removed);
 INSERT INTO knowledge_source_records(source_id,record_key,version_id,work_id,raw,norm)
  SELECT c.source,i.record_key,c.version,a.work_id,i.raw,i.norm FROM incoming i JOIN assignment a USING(record_key) CROSS JOIN merge_context c WHERE i.action<>'unchanged'
@@ -70,6 +96,7 @@ CREATE TEMP TABLE contributions ON COMMIT DROP AS
 CREATE INDEX ON contributions(work_id);
 ANALYZE contributions;
 -- Choose each non-empty scalar independently, then overlay the human decision.
+CREATE TEMP TABLE projected_works ON COMMIT DROP AS
 WITH scalars AS (
  SELECT c.work_id,k.key,k.value,coalesce(p.priority,c.priority) priority,c.record_key,c.source_id
  FROM contributions c CROSS JOIN LATERAL jsonb_each(c.norm) k
@@ -77,13 +104,17 @@ WITH scalars AS (
  WHERE k.key IN ('title','original','type','episodes','status','start','end','season','year','synopsis') AND k.value NOT IN ('null','""')
 ), base AS (
  SELECT work_id,jsonb_object_agg(key,value ORDER BY priority,source_id DESC,record_key DESC) v FROM scalars GROUP BY work_id
-), picked AS (
- SELECT work_id,v || coalesce((SELECT jsonb_object_agg(field,value) FROM work_field_overrides o WHERE o.work_id=b.work_id),'{}') n FROM base b
 )
-UPDATE works w SET active=true,canonical_title=n->>'title',original_title=n->>'original',type=n->>'type',
+SELECT work_id,v || coalesce((SELECT jsonb_object_agg(field,value) FROM work_field_overrides o WHERE o.work_id=b.work_id),'{}') n FROM base b;
+UPDATE works w SET active=CASE WHEN a.preserve_public AND ww.work_id IS NOT NULL THEN w.active ELSE true END,
+ canonical_title=n->>'title',original_title=n->>'original',
+ type=CASE WHEN a.preserve_public AND ww.work_id IS NOT NULL THEN w.type ELSE n->>'type' END,
  episodes=(n->>'episodes')::int,status=n->>'status',start_date=(n->>'start')::date,end_date=(n->>'end')::date,
- season=n->>'season',season_year=coalesce((n->>'year')::int,extract(year from (n->>'start')::date)::int),synopsis=n->>'synopsis',updated_at=now() FROM picked WHERE w.id=picked.work_id;
-UPDATE works SET active=false,updated_at=now() WHERE id IN(SELECT work_id FROM affected EXCEPT SELECT work_id FROM contributions);
+ season=n->>'season',season_year=coalesce((n->>'year')::int,extract(year from (n->>'start')::date)::int),synopsis=n->>'synopsis',updated_at=now()
+ FROM projected_works p JOIN affected a USING(work_id) LEFT JOIN work_worlds ww USING(work_id) WHERE w.id=p.work_id;
+UPDATE works w SET active=false,updated_at=now() FROM affected a
+ WHERE w.id=a.work_id AND NOT EXISTS(SELECT FROM contributions c WHERE c.work_id=a.work_id)
+ AND NOT (a.preserve_public AND EXISTS(SELECT FROM work_worlds ww WHERE ww.work_id=a.work_id));
 
 DELETE FROM work_titles USING affected a WHERE a.work_id=work_titles.work_id;
 INSERT INTO work_titles SELECT DISTINCT c.work_id,t.lang,t.title FROM contributions c CROSS JOIN LATERAL jsonb_to_recordset(norm->'titles') t(lang text,title text);

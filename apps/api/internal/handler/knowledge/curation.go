@@ -75,6 +75,8 @@ func AdminRoutes(r *gin.Engine, g *gin.RouterGroup, db *pgxpool.Pool) {
 		if e := domain.Decide(c.Request.Context(), db, d, c.GetString("operator"), "admin-api"); e != nil {
 			if errors.Is(e, pgx.ErrNoRows) {
 				c.Status(404)
+			} else if errors.Is(e, domain.ErrWorkIdentityProtected) {
+				c.JSON(http.StatusConflict, gin.H{"code": "work_identity_protected", "error": e.Error()})
 			} else {
 				log.Print(e)
 				c.JSON(409, gin.H{"error": "invalid or conflicting decision"})

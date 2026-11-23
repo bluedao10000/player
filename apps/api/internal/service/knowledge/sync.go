@@ -248,6 +248,11 @@ func importBatch(ctx context.Context, c *pgx.Conn, s source, batch string, st *s
 		if _, err := tx.Exec(ctx, queries.Projection); err != nil {
 			return fmt.Errorf("merge: %w", err)
 		}
+		if replay == "" {
+			if _, err := tx.Exec(ctx, queries.SaveSourceReviews); err != nil {
+				return fmt.Errorf("source review: %w", err)
+			}
+		}
 		if _, err := tx.Exec(ctx, queries.FinishSync, batch, a.Version, a.URL, st.HTTP, st.Length, st.Checksum, st.Read); err != nil {
 			return err
 		}

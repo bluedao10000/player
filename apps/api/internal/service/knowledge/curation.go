@@ -3,6 +3,7 @@ package knowledge
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,6 +15,8 @@ import (
 )
 
 var fields = map[string]string{"canonical_title": "title", "original_title": "original", "type": "type", "episodes": "episodes", "status": "status", "start_date": "start", "end_date": "end", "season": "season", "season_year": "year", "synopsis": "synopsis"}
+
+var ErrWorkIdentityProtected = errors.New("此操作涉及已建立作品世界或已有知识版本的作品。请联系运营负责人核对作品身份。")
 
 func Decide(ctx context.Context, db *pgxpool.Pool, d catalog.Decision, operator, source string) error {
 	if strings.TrimSpace(d.Reason) == "" || strings.TrimSpace(operator) == "" {
@@ -70,11 +73,12 @@ func Decide(ctx context.Context, db *pgxpool.Pool, d catalog.Decision, operator,
 			}
 		case "approve", "reject", "merge", "split", "rematch":
 			var from, to string
+			var eligible bool
 			if d.Action == "split" || d.Action == "rematch" {
-				err = tx.QueryRow(ctx, queries.ActiveRecordWork, d.Record).Scan(&from)
+				err = tx.QueryRow(ctx, queries.CurationRecordWork, d.Record).Scan(&from, &eligible)
 				to = from
 			} else {
-				err = tx.QueryRow(ctx, queries.MatchPair, d.Candidate).Scan(&d.Record, &from, &to)
+				err = tx.QueryRow(ctx, queries.MatchPair, d.Candidate).Scan(&d.Record, &from, &to, &eligible)
 			}
 			if err != nil {
 				return err
@@ -87,7 +91,25 @@ func Decide(ctx context.Context, db *pgxpool.Pool, d catalog.Decision, operator,
 				if err != nil {
 					return err
 				}
-			} else if d.Action == "split" {
+			}
+			switch d.Action {
+			case "approve", "merge", "split", "rematch":
+				participants := []string{from, to}
+				if _, err = tx.Exec(ctx, queries.LockCurationWorks, participants); err != nil {
+					return err
+				}
+				var protected bool
+				if err = tx.QueryRow(ctx, queries.HasProtectedWork, participants).Scan(&protected); err != nil {
+					return err
+				}
+				if protected {
+					return ErrWorkIdentityProtected
+				}
+			}
+			if !eligible {
+				return pgx.ErrNoRows
+			}
+			if d.Action == "split" && restore == "" {
 				err = tx.QueryRow(ctx, queries.CloneWork, from).Scan(&to)
 				if err != nil {
 					return err

@@ -1,0 +1,92 @@
+-- name: Seed
+WITH version AS (
+ SELECT v.id,v.source_id,w.work_id FROM work_worlds w
+ JOIN knowledge_source_versions v ON v.id=w.version_id WHERE w.slug='cowboy-bebop-tv'
+)
+INSERT INTO knowledge_source_records(source_id,record_key,version_id,work_id,raw,norm)
+SELECT v.source_id,x.record_key,v.id,coalesce(x.work_id::uuid,v.work_id),'{}',
+ jsonb_build_object('title',x.record_key,'year',1998,'type',x.kind,'episodes',x.episodes)
+FROM version v CROSS JOIN (VALUES
+ ('p1-world',NULL,'TV',26),
+ ('p1-catalog-a','00000000-0000-4000-8000-000000000701','MOVIE',1),
+ ('p1-catalog-b','00000000-0000-4000-8000-000000000702','TV',13)
+) x(record_key,work_id,kind,episodes);
+
+-- name: SelectWorld
+SELECT work_id::text FROM work_worlds WHERE slug='cowboy-bebop-tv'
+
+-- name: SelectRecord
+SELECT id,work_id::text FROM knowledge_source_records WHERE record_key=$1
+
+-- name: Candidate
+INSERT INTO knowledge_match_candidates(source_record_id,candidate_work_id,reason)
+VALUES ($1,$2,'P1 identity fixture') RETURNING id
+
+-- name: RestoreHistory
+INSERT INTO knowledge_curation_actions(work_id,operator,action,field,before_value,after_value,reason,source)
+VALUES ($1,'fixture','merge','identity',jsonb_build_object('records',jsonb_build_array($3::bigint)),
+ jsonb_build_object('work_id',$2::text),'P1 identity fixture','test')
+
+-- name: AddRetainedRecord
+INSERT INTO knowledge_source_records(source_id,record_key,version_id,work_id,raw,norm)
+SELECT source_id,'p1-world-retained',version_id,work_id,raw,norm FROM knowledge_source_records WHERE record_key='p1-world'
+
+-- name: SetPublishedImage
+UPDATE scope_acceptances SET picks=jsonb_set(picks,'{0,image}',to_jsonb($1::text))
+WHERE topic='phase2-cowboy-3'
+
+-- name: State
+SELECT jsonb_build_array(
+ (SELECT jsonb_agg(t ORDER BY id) FROM works t),
+ (SELECT jsonb_agg(t ORDER BY id) FROM knowledge_source_records t),
+ (SELECT jsonb_agg(t ORDER BY id) FROM knowledge_match_candidates t),
+ (SELECT jsonb_agg(t ORDER BY record_id) FROM knowledge_identity_pins t),
+ (SELECT jsonb_agg(t ORDER BY record_id,work_id) FROM knowledge_match_rejections t),
+ (SELECT jsonb_agg(t ORDER BY id) FROM knowledge_curation_actions t),
+ (SELECT jsonb_agg(t ORDER BY slug) FROM work_worlds t),
+ (SELECT jsonb_agg(t ORDER BY version_id) FROM world_releases t),
+ (SELECT jsonb_agg(t ORDER BY work_id) FROM published_worlds t),
+ (SELECT jsonb_agg(t ORDER BY work_id,lang,title) FROM work_titles t),
+ (SELECT jsonb_agg(t ORDER BY work_id,provider,external_id,url) FROM work_sources t),
+ (SELECT jsonb_agg(t ORDER BY topic) FROM scope_heads t),
+ (SELECT jsonb_agg(t ORDER BY id) FROM scope_acceptances t),
+ (SELECT jsonb_agg(t ORDER BY id) FROM episode_plans t),
+ (SELECT jsonb_agg(t ORDER BY id) FROM episode_production_requests t),
+ (SELECT jsonb_agg(t ORDER BY id) FROM reader_release_attempts t)
+)::text
+
+-- name: ArchiveCatalogWork
+WITH release AS (
+ INSERT INTO knowledge_source_versions(source_id,version,checksum,metadata,run_id)
+ SELECT source_id,'p1-archive-only','p1-archive-only','{}',run_id
+ FROM knowledge_source_versions WHERE id=(SELECT version_id FROM work_worlds WHERE slug='cowboy-bebop-tv')
+ RETURNING id
+)
+INSERT INTO world_releases(version_id,work_id) SELECT id,$1 FROM release
+
+-- name: BindCatalogProviderToWorld
+INSERT INTO work_sources(work_id,provider,external_id,url)
+SELECT work_id,'mal','987651','https://myanimelist.net/anime/987651' FROM work_worlds WHERE slug='cowboy-bebop-tv'
+
+-- name: OpenReviews
+SELECT count(*) FROM knowledge_source_review_marks WHERE resolved_at IS NULL
+
+-- name: ClosedReviews
+SELECT count(*) FROM knowledge_source_review_marks WHERE resolved_by=$1 AND resolved_at IS NOT NULL
+
+-- name: CatalogWork
+SELECT w.active,w.type,w.episodes FROM works w JOIN knowledge_source_records r ON r.work_id=w.id WHERE r.record_key=$1
+
+-- name: AllowSourceWithdrawal
+UPDATE knowledge_sources SET min_retained_ratio=0.4 WHERE name='anime-offline-database'
+
+-- name: FixtureEpisodeReview
+INSERT INTO knowledge_source_review_marks(world_slug,source_record_id,topic,last_run_id,previous_version_id,source_version_id,changes)
+SELECT world_slug,source_record_id,'phase2-cowboy-3',last_run_id,previous_version_id,source_version_id,changes
+FROM knowledge_source_review_marks WHERE id=$1
+
+-- name: SuccessfulQualityRuns
+SELECT count(*) FROM knowledge_quality_runs WHERE status='success'
+
+-- name: DeactivateCatalogWork
+UPDATE works SET active=false WHERE id=$1

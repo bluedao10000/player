@@ -5,6 +5,7 @@ const headers = {
   'X-Content-Type-Options': 'nosniff',
 }
 const id = '[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}'
+const resolveSourceReview = /^source-reviews\/[1-9][0-9]{0,18}\/resolve$/
 const read = new RegExp('^tasks/' + id + '(?:/preview)?$'),
   write = new RegExp('^tasks/' + id + '/(approve|return)$')
 export async function editorRequest(req: Request, path: string) {
@@ -15,7 +16,7 @@ export async function editorRequest(req: Request, path: string) {
     post = req.method === 'POST'
   if (
     !(post
-      ? ['chat','code','verify','password-login','password', 'logout', 'tasks','plans'].includes(path) || new RegExp("^chat/"+id+"/resolve$").test(path) || write.test(path) || new RegExp("^plans/"+id+"/messages$").test(path)
+      ? ['chat','code','verify','password-login','password', 'logout', 'tasks','plans'].includes(path) || new RegExp("^chat/"+id+"/resolve$").test(path) || write.test(path) || resolveSourceReview.test(path) || new RegExp("^plans/"+id+"/messages$").test(path)
       : path === 'chat' || path === 'account' || path === 'plans' || path === 'tasks' || read.test(path))
   )
     return reply(404)

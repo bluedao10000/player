@@ -23,7 +23,7 @@ const productionStatusNames: Record<string, string> = {
 }
 
 const defaultFilters: KnowledgeWorkFilters = {
-  q: '', has_knowledge_version: 'true', type: '', completeness_status: '', production_status: '', sort: 'last_updated_at', after: '',
+  q: '', has_knowledge_version: 'true', type: '', completeness_status: '', production_status: '', sort: 'last_updated_at', after: '', source_review: false,
 }
 
 export function KnowledgeCenter({ summary, works }: { summary: KnowledgeSummary | null; works: KnowledgeWorksPage | null }) {
@@ -130,6 +130,12 @@ function SummaryPanel({ summary, onDrillDown }: { summary: KnowledgeSummary | nu
           <p>上游弱匹配或身份候选，需确认归属</p>
           <small>knowledge_match_candidates</small>
         </Panel>
+        <Panel className="wb-metric wb-tone-amber">
+          <div className="wb-metric-top"><span className="wb-eyebrow">来源待复核</span></div>
+          <strong>{(gov.source_review_works ?? 0).toLocaleString('zh-CN')}</strong>
+          <p>有上游来源变化待核对的作品</p>
+          <button type="button" className="wb-drill-btn" onClick={() => onDrillDown({ has_knowledge_version: 'all', source_review: true })}>查看待复核作品 →</button>
+        </Panel>
         <Panel className="wb-metric wb-tone-cyan">
           <div className="wb-metric-top"><span className="wb-eyebrow">目录质量未处理项</span></div>
           <strong>{gov.open_quality_issues.toLocaleString('zh-CN')}</strong>
@@ -234,6 +240,9 @@ function WorkList({
       <label>生产状态<select value={filters.production_status} onChange={(event) => onFilterChange('production_status', event.target.value)}>
         <option value="">全部状态</option>{(['idle', 'pending', 'blocked', 'waiting_human'] as const).map((status) => <option key={status} value={status}>{productionStatusNames[status]}</option>)}
       </select></label>
+      <label>来源复核<select value={filters.source_review ? 'pending' : 'all'} onChange={(event) => onFilterChange('source_review', event.target.value === 'pending')}>
+        <option value="all">全部作品</option><option value="pending">来源待复核</option>
+      </select></label>
       <label>排序<select value={filters.sort} onChange={(event) => onFilterChange('sort', event.target.value)}>
         {['last_updated_at', 'title', 'type', 'release_versions', 'episodes_covered', 'characters', 'scenes', 'images', 'completeness', 'acceptance_pass_rate'].map((sort) => <option key={sort} value={sort}>{sortLabel(sort)}</option>)}
       </select></label>
@@ -247,6 +256,7 @@ function WorkList({
       {page?.items.map((work) => <article key={work.work_id}>
         <h3><a href={`/workbench/knowledge/${encodeURIComponent(work.world_slug ?? work.work_id)}`}>{work.title}</a></h3>
         <p>{work.type ?? '未登记'} · {work.has_knowledge_version ? `${work.release_versions} 个发行版本` : '尚无知识版本'}{(work.open_conflicts ?? 0) > 0 ? ` · ${work.open_conflicts} 条待裁决冲突` : ''}</p>
+        {(work.open_source_reviews ?? 0) > 0 && <p>来源待复核 · {work.open_source_reviews} 条</p>}
         <dl>
           <div><dt>本地分集覆盖</dt><dd>{work.episodes_total == null ? '—' : `${work.episodes_covered ?? 0} / ${work.episodes_total}`}</dd></div>
           <div><dt>线上已验证</dt><dd>{work.has_knowledge_version ? `${work.online_verified_episodes ?? 0} 集` : '—'}</dd></div>
