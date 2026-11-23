@@ -100,6 +100,7 @@ func usageRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 		body, err := opsread.Attention(ctx, db)
 		writeJSON(c, body, err)
 	})
+	topologyRoutes(g, db)
 	g.GET("/backup-status", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()

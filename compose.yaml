@@ -1,3 +1,5 @@
 name: tidepost-knowledge
 include:
-  - deploy/docker-compose.yml
+  - path:
+      - deploy/compose.services.yml
+      - deploy/compose.local.yml

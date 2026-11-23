@@ -23,12 +23,13 @@ func TestOpsMigrationFreshExistingDataAndRepeat(t *testing.T) {
 	ctx := context.Background()
 	assertMigrationState := func(expectedBatches int64) {
 		t.Helper()
-		var applied, stages, batches, statusCodeColumns int64
-		if err := db.QueryRow(ctx, sqltest.OpsMigrationState).Scan(&applied, &stages, &batches, &statusCodeColumns); err != nil {
+		var applied, stages, batches, statusCodeColumns, groupedStages, workerMappings int64
+		var backupUngrouped bool
+		if err := db.QueryRow(ctx, sqltest.OpsMigrationState).Scan(&applied, &stages, &batches, &statusCodeColumns, &groupedStages, &workerMappings, &backupUngrouped); err != nil {
 			t.Fatal(err)
 		}
-		if applied != 2 || stages != 17 || batches != expectedBatches || statusCodeColumns != 1 {
-			t.Fatalf("migration state applied=%d stages=%d batches=%d status_code columns=%d", applied, stages, batches, statusCodeColumns)
+		if applied != 3 || stages != 17 || batches != expectedBatches || statusCodeColumns != 1 || groupedStages != 16 || workerMappings != 29 || !backupUngrouped {
+			t.Fatalf("migration state applied=%d stages=%d batches=%d status_code columns=%d grouped=%d worker mappings=%d backup ungrouped=%t", applied, stages, batches, statusCodeColumns, groupedStages, workerMappings, backupUngrouped)
 		}
 	}
 	assertMigrationState(0) // A fresh isolated schema has no world rows to satisfy the batch FK.

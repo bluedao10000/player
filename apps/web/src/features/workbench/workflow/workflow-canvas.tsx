@@ -1,251 +1,350 @@
-import type { MediaCandidate, MediaStage } from '@anime/shared/knowledge'
+import type { MediaStage } from '@anime/shared/knowledge'
 import {
-  ArrowDown,
-  Bot,
-  CalendarClock,
-  Crop,
-  Database,
-  FileSearch,
-  GitBranch,
-  Image,
-  ListChecks,
-  RefreshCcw,
-  ScanSearch,
-  Shapes,
-  TimerReset,
-  type LucideIcon,
+  Activity, Archive, BookOpenCheck, Boxes, BrainCircuit, CheckCircle2, Clock3, FileImage,
+  FileSearch, GitBranch, Images, ListChecks, Network, PenLine, ScanSearch, Settings2,
+  ShieldCheck, Sparkles, Timer, type LucideIcon,
 } from 'lucide-react'
-import { useState } from 'react'
-import type { WorkbenchFeed, WorkbenchRun } from '../feed'
-import { formatClock, formatDateTime, runStatusLabels } from '../shared/format'
+import { useEffect, useState } from 'react'
+import {
+  readOpsTopologyDetail,
+  type OpsTopology, type OpsTopologyAgents, type OpsTopologyDetail,
+  type OpsTopologyStage, type OpsTopologyWindow,
+} from '../feed'
+import { useNavigate } from '@tanstack/react-router'
+import type { WorkKnowledgeStatus } from '@anime/shared/knowledge'
+import { formatDateTime } from '../shared/format'
 import { EmptyState, Panel, SectionHeading, StatusBadge } from '../shared/ui'
 
-const mediaStageLabels: Record<MediaStage, string> = {
-  reference: '参考图准备',
-  queued: '等待生成',
-  generate: '原图生成',
-  review: '自动验图',
-  recrop: '重新裁切',
-  recheck: '裁切复验',
-  passed: '验图通过',
-  held: '等待返工',
-  failed: '任务失败',
+const stageIcons: Record<string, LucideIcon> = {
+  source_sync: Network,
+  normalize: Boxes,
+  quality_scan: ScanSearch,
+  inventory: BookOpenCheck,
+  plan: ListChecks,
+  configuration: Settings2,
+  admission: CheckCircle2,
+  capture: FileSearch,
+  research: BrainCircuit,
+  editorial: PenLine,
+  media_reference: FileImage,
+  media_generate: Sparkles,
+  media_review: ShieldCheck,
+  media_rework: Images,
+  acceptance: CheckCircle2,
+  release: Archive,
+  backup: Archive,
 }
 
-type Flow = 'sync' | 'media'
-type NodeStatus = WorkbenchRun['status']
-type NodeDefinition = {
-  id: string
-  kicker: string
-  title: string
-  subtitle: string
-  description: string
-  tone: string
-  icon: LucideIcon
-  task?: string
+const responsibilities: Record<string, string> = {
+  source_sync: '按来源读取作品知识，并记录同步回执。',
+  normalize: '规范并归并来源数据；此阶段没有独立执行记录。',
+  quality_scan: '运行知识质量规则并保存扫描结果。',
+  inventory: '盘点可制作分集与当前覆盖情况；此阶段没有独立执行记录。',
+  plan: '生成或装载分集制作计划。',
+  configuration: '为作品和分集生成制作配置。',
+  admission: '根据补集策略检查预算并登记准入。',
+  capture: '采集补集原文并保留每次尝试。',
+  research: '为作品和分集整理取证资料。',
+  editorial: '执行编辑任务并保存版本与审稿状态。',
+  media_reference: '准备图片生成所需的参考凭证。',
+  media_generate: '生成图片候选原图。',
+  media_review: '自动检查图片质量并记录业务结果。',
+  media_rework: '处理重绘、重裁和裁切复验。',
+  acceptance: '按验收范围检查知识版本。',
+  release: '把通过保护检查的内容发布到阅读器。',
+  backup: '执行制作库备份和校验。',
 }
 
-const syncNodes: NodeDefinition[] = [
-  { id: 'scheduler', kicker: '01 · SCHEDULER', title: '数据服务调度', subtitle: '定时触发与到期任务', description: '数据服务按调度策略启动来源同步和全库质量扫描；此处状态来自最近运行回执。', tone: 'orange', icon: CalendarClock },
-  { id: 'due', kicker: '02 · DUE CHECK', title: '到期检查', subtitle: '来源版本与质检周期', description: '检查各来源同步间隔与质检到期时间；版本未变化时保留跳过原因。', tone: 'cyan', icon: TimerReset },
-  { id: 'aod', kicker: '03A · SOURCE', title: 'AOD 数据同步', subtitle: 'Anime Offline Database', description: '流式读取作品条目，验证数据结构并在事务内归并作品知识。', tone: 'blue', icon: GitBranch, task: 'anime-offline-database' },
-  { id: 'bangumi', kicker: '03B · SOURCE', title: 'Bangumi 数据同步', subtitle: '作品、人物与播出映射', description: '读取 Bangumi 数据包及播出映射，保留来源版本与同步审计。', tone: 'violet', icon: GitBranch, task: 'bangumi-data' },
-  { id: 'quality', kicker: '03C · QUALITY', title: '质量扫描', subtitle: '规则检查与质量评分', description: '执行知识质量规则，保存逐规则命中数、作品数和平均质量分。', tone: 'cyan', icon: ScanSearch, task: '质量扫描' },
-  { id: 'postgres', kicker: '04 · STORAGE', title: 'PostgreSQL 持久化', subtitle: '事务写入与运行审计', description: '同步结果在事务中提交；失败时保留上一次可用版本与本次错误回执。', tone: 'orange', icon: Database },
-]
-
-const mediaNodes: NodeDefinition[] = [
-  { id: 'planning', kicker: '01 · PLANNING', title: '场景选题', subtitle: '作品、分集与场景需求', description: '按作品、分集和场景登记候选；此处只统计数据库中实际存在的候选记录。', tone: 'orange', icon: Shapes },
-  { id: 'agent', kicker: '02 · PI DURABLE', title: '任务执行', subtitle: '持久任务、重试与恢复', description: 'Pi Durable 执行候选任务并持久化每个步骤，重复轮询复用同一次执行。', tone: 'cyan', icon: Bot },
-  { id: 'reference', kicker: '03A · REFERENCE', title: '参考图生成', subtitle: '参考凭证与原图指纹', description: '基于角色参考生成原图，保存参考图、模型和内容指纹。', tone: 'blue', icon: Image },
-  { id: 'crop', kicker: '03B · MOBILE', title: '手机裁切', subtitle: '手机构图与验图样张', description: '生成手机比例裁切，保留原图与验图样张的对应关系。', tone: 'violet', icon: Crop },
-  { id: 'review', kicker: '03C · VISION', title: '自动验图', subtitle: '五项视觉质量检查', description: '检查人物一致、场景动作、五官手部、画面干净和手机构图。', tone: 'cyan', icon: ListChecks },
-  { id: 'rework', kicker: '04 · REWORK', title: '返工与复验', subtitle: '重裁、重绘与版本保留', description: '裁切问题进入重裁，原图问题进入重绘；保留每轮结果和未通过原因。', tone: 'orange', icon: RefreshCcw },
-]
-
-function latestRun(runs: WorkbenchRun[]): NodeStatus {
-  return runs[0]?.status ?? 'pending'
+const statusLabels: Record<string, string> = {
+  running: '运行中', pending: '等待', blocked: '阻塞', success: '成功', failed: '失败',
+  idle: '暂无执行',
 }
+const windowLabels: Record<OpsTopologyWindow, string> = { '24h': '24 小时', '7d': '7 天', '30d': '30 天' }
 
-function mediaStatus(id: string, items: MediaCandidate[]): NodeStatus {
-  if (!items.length) return 'pending'
-  if (id === 'planning') return 'success'
-  if (id === 'agent') {
-    if (items.some((item) => !['passed', 'held', 'failed'].includes(item.stage))) return 'running'
-    if (items.some((item) => item.stage === 'failed')) return 'failed'
-    return 'success'
-  }
-  if (id === 'reference') {
-    const steps = items.flatMap((item) => item.steps.filter((step) => step.step === 'reference'))
-    if (steps.some((step) => step.finished_at === null && !step.error)) return 'running'
-    if (steps.some((step) => step.error)) return 'failed'
-    return steps.some((step) => step.finished_at) || items.some((item) => item.reference_sha) ? 'success' : 'pending'
-  }
-  if (id === 'crop') {
-    if (items.some((item) => item.stage === 'recrop' || item.stage === 'recheck')) return 'running'
-    if (items.some((item) => item.steps.some((step) => step.result?.phone))) return 'success'
-    return items.some((item) => item.stage === 'failed') ? 'failed' : 'pending'
-  }
-  if (id === 'review') {
-    if (items.some((item) => item.stage === 'review' || item.stage === 'recheck')) return 'running'
-    if (items.some((item) => item.steps.some((step) => step.result?.decision === 'pass'))) return 'success'
-    return items.some((item) => item.stage === 'held' || item.stage === 'failed') ? 'failed' : 'pending'
-  }
-  const rework = items.filter((item) => item.round > 1 || item.stage === 'held' || item.steps.some((step) => step.step === 'recrop' || step.step === 'recheck'))
-  if (!rework.length) return 'pending'
-  if (rework.some((item) => item.stage === 'recrop' || item.stage === 'recheck')) return 'running'
-  if (rework.some((item) => item.stage === 'held' || item.stage === 'failed')) return 'failed'
-  return 'success'
-}
+export function WorkflowCanvas({
+  initialData,
+  worlds,
+  initialWorld = '',
+  initialWindow = '24h',
+  initialStage = '',
+}: {
+  initialData: OpsTopology | null
+  worlds: WorkKnowledgeStatus[]
+  initialWorld?: string
+  initialWindow?: OpsTopologyWindow
+  initialStage?: string
+}) {
+  const navigate = useNavigate({ from: '/workbench/operations' })
+  const [topology, setTopology] = useState(initialData)
+  const [world, setWorld] = useState(initialWorld)
+  const [window, setWindow] = useState<OpsTopologyWindow>(initialWindow)
+  const [selectedStage, setSelectedStage] = useState(initialStage)
+  const [detail, setDetail] = useState<OpsTopologyDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(false)
+  const [paging, setPaging] = useState(false)
 
-function nodeState(definition: NodeDefinition, flow: Flow, feed: WorkbenchFeed) {
-  if (flow === 'media') {
-    const items = feed.media ?? []
-    return {
-      status: feed.media === null ? 'failed' : mediaStatus(definition.id, items),
-      meta: '媒体记录不可用',
-      counts: feed.media === null ? null : { candidates: items.length, passed: items.filter((item) => item.stage === 'passed').length },
-      runs: [] as WorkbenchRun[],
-      media: items.slice(-5).reverse(),
-      latest: items.at(-1)?.steps.at(-1)?.started_at ?? null,
+  useEffect(() => setTopology(initialData), [initialData])
+  useEffect(() => setWorld(initialWorld), [initialWorld])
+  useEffect(() => setWindow(initialWindow), [initialWindow])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!selectedStage) {
+      setDetail(null)
+      setDetailError(false)
+      return
     }
-  }
-  let runs = feed.runs
-  if (definition.task) runs = runs.filter((run) => run.task === definition.task)
-  if (definition.id === 'postgres') runs = runs.filter((run) => run.task !== '质量扫描')
-  const unavailable = definition.task === '质量扫描' ? !feed.qualityOnline : !feed.syncOnline && definition.id !== 'scheduler'
-  return {
-    status: unavailable ? 'failed' : definition.id === 'scheduler' && !feed.syncOnline && !feed.qualityOnline ? 'failed' : latestRun(runs),
-    meta: runs[0] ? `${runStatusLabels[runs[0].status]} · ${formatClock(runs[0].start)}` : '当前窗口暂无记录',
-    counts: null,
-    runs: runs.slice(0, 5),
-    media: [] as MediaCandidate[],
-    latest: runs[0]?.start ?? null,
-  }
-}
+    setDetailLoading(true)
+    setDetailError(false)
+    setDetail(null)
+    void readOpsTopologyDetail({ data: { stage: selectedStage, window, world, limit: 20 } })
+      .then((result) => {
+        if (!cancelled) {
+          setDetail(result)
+          setDetailError(result === null)
+        }
+      })
+      .catch(() => { if (!cancelled) setDetailError(true) })
+      .finally(() => { if (!cancelled) setDetailLoading(false) })
+    return () => { cancelled = true }
+  }, [selectedStage, window, world])
 
-export function WorkflowCanvas({ feed, initialFlow = 'sync' }: { feed: WorkbenchFeed; initialFlow?: Flow }) {
-  const [flow, setFlow] = useState<Flow>(initialFlow)
-  const [selected, setSelected] = useState(syncNodes[0].id)
-  const definitions = flow === 'sync' ? syncNodes : mediaNodes
-  const activeDefinition = definitions.find((item) => item.id === selected) ?? definitions[0]
-  const activeState = nodeState(activeDefinition, flow, feed)
+  const stages = [...(topology?.groups.flatMap((group) => group.stages) ?? []), ...(topology?.infrastructure.stages ?? [])]
+  const activeStage = stages.find((stage) => stage.id === selectedStage) ?? null
+  const downstream = activeStage ? stages.filter((stage) => stage.upstream.includes(activeStage.id)).map((stage) => stage.title) : []
 
-  function changeFlow(next: Flow) {
-    setFlow(next)
-    setSelected(next === 'sync' ? syncNodes[0].id : mediaNodes[0].id)
+  async function changeFilter(nextWindow: OpsTopologyWindow, nextWorld: string) {
+    setWindow(nextWindow)
+    setWorld(nextWorld)
+    setDetail(null)
+    await navigate({ search: (previous) => ({ ...previous, window: nextWindow, world: nextWorld || undefined }) })
   }
 
-  function renderNode(definition: NodeDefinition) {
-    const state = nodeState(definition, flow, feed)
-    const Icon = definition.icon
-    return (
-      <button
-        className={`wb-flow-node wb-tone-${definition.tone}`}
-        data-status={state.status}
-        aria-pressed={activeDefinition.id === definition.id}
-        onClick={() => setSelected(definition.id)}
-        key={definition.id}
-      >
-        <span className="wb-node-icon"><Icon size={18} /></span>
-        <span className="wb-node-copy">
-          <span className="wb-eyebrow">{definition.kicker}</span>
-          <strong>{definition.title}</strong>
-          <small>{definition.subtitle}</small>
-        </span>
-        <span className="wb-node-state">
-          <i className="wb-status-dot" data-status={state.status} />
-          {state.status === 'running' ? '执行中' : runStatusLabels[state.status]}
-          {state.counts ? (
-            <small className="wb-node-counts">
-              <b>{state.counts.candidates.toLocaleString('zh-CN')}</b> 个候选 · <b>{state.counts.passed.toLocaleString('zh-CN')}</b> 个通过
-            </small>
-          ) : <small>{state.meta}</small>}
-        </span>
-      </button>
-    )
+  async function loadMore() {
+    if (!detail || paging) return
+    setPaging(true)
+    try {
+      const next = await readOpsTopologyDetail({ data: {
+        stage: selectedStage, window, world, limit: detail.pagination.limit,
+        ...(detail.pagination.queue_after ? { queue_after: detail.pagination.queue_after } : {}),
+        ...(detail.pagination.runs_after ? { runs_after: detail.pagination.runs_after } : {}),
+      } })
+      if (next) setDetail({
+        ...detail,
+        current_queue: [...detail.current_queue, ...next.current_queue],
+        recent_runs: [...detail.recent_runs, ...next.recent_runs],
+        pagination: next.pagination,
+      })
+    } finally { setPaging(false) }
   }
 
   return (
-    <section className="wb-workflow" aria-labelledby="workflow-title">
+    <section className="wb-topology" aria-labelledby="workflow-title">
       <Panel className="wb-workflow-canvas">
         <SectionHeading
           id="workflow-title"
-          eyebrow="WORKFLOW CANVAS"
-          title="工作流执行拓扑"
-          detail="选择节点查看职责、真实状态与最近执行记录"
-          actions={
-            <div className="wb-segmented" aria-label="工作流类型">
-              <button aria-pressed={flow === 'sync'} onClick={() => changeFlow('sync')}>知识同步</button>
-              <button aria-pressed={flow === 'media'} onClick={() => changeFlow('media')}>图片处理</button>
-            </div>
-          }
+          eyebrow="OPERATIONS TOPOLOGY"
+          title="全局运营拓扑"
+          detail="工作流定义、实际任务和 Agent 执行实例分别展示；窗口按北京时间统计。"
+          actions={<div className="wb-topology-filters">
+            <label>统计窗口<select value={window} onChange={(event) => void changeFilter(event.target.value as OpsTopologyWindow, world)}>
+              {Object.entries(windowLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select></label>
+            <label>作品<select value={world} onChange={(event) => void changeFilter(window, event.target.value)}>
+              <option value="">全部作品</option>
+              {worlds.filter((item) => item.slug).map((item) => <option key={item.slug!} value={item.slug!}>{item.title} · {item.slug}</option>)}
+            </select></label>
+          </div>}
         />
-        <div className="wb-flow-chart">
-          <div className="wb-flow-main">{renderNode(definitions[0])}</div>
-          <Connector />
-          <div className="wb-flow-main">{renderNode(definitions[1])}</div>
-          <div className="wb-branch-connector"><GitBranch size={17} /></div>
-          <div className="wb-flow-branches">{definitions.slice(2, 5).map(renderNode)}</div>
-          <div className="wb-branch-connector wb-branch-join"><ArrowDown size={17} /></div>
-          <div className="wb-flow-main">{renderNode(definitions[5])}</div>
-        </div>
-        <div className="wb-flow-legend">
-          {(['success', 'running', 'pending', 'failed'] as const).map((status) => (
-            <span key={status}><i className="wb-status-dot" data-status={status} />{runStatusLabels[status]}</span>
-          ))}
-          <span className="wb-flow-source">数据源 · PostgreSQL 运行回执</span>
-        </div>
+        {topology ? <>
+          <div className="wb-topology-meta">
+            <span>窗口：{formatDateTime(topology.window_start)} 至 {formatDateTime(topology.window_end)}（左闭右开）</span>
+            <span>更新于 {formatDateTime(topology.as_of)}</span>
+          </div>
+          {topology.selected_world && <WorldProgress world={topology.selected_world} />}
+          <DependencyEdges stages={stages} onSelect={setSelectedStage} />
+          <div className="wb-topology-groups">
+            {topology.groups.map((group) => <details className="wb-topology-group" key={group.id} open>
+              <summary><span>{group.eyebrow}</span><h3>{group.label}</h3></summary>
+              <div className="wb-topology-stages">
+                {group.stages.map((stage) => <StageCard key={stage.id} stage={stage} selected={selectedStage === stage.id}
+                  faded={Boolean(world) && stage.has_records === false} onSelect={() => setSelectedStage(stage.id)} />)}
+              </div>
+            </details>)}
+          </div>
+          {topology.infrastructure.stages.length > 0 && <section className="wb-topology-infrastructure" aria-label="基础设施">
+            <header><span>{topology.infrastructure.eyebrow}</span><h3>{topology.infrastructure.label}</h3><small>拓扑之外的全库任务</small></header>
+            <div className="wb-topology-stages">{topology.infrastructure.stages.map((stage) => <StageCard key={stage.id} stage={stage}
+              selected={selectedStage === stage.id} faded={false} onSelect={() => setSelectedStage(stage.id)} />)}</div>
+          </section>}
+          <div className="wb-flow-legend">
+            <span><i className="wb-status-dot" data-status="running" />运行中</span>
+            <span><i className="wb-status-dot" data-status="pending" />等待</span>
+            <span><i className="wb-status-dot" data-status="blocked" />阻塞位置</span>
+            <span className="wb-flow-source">节点定义来自 ops_stages · 任务来自 Phase 0 视图</span>
+          </div>
+        </> : <EmptyState icon={Network} title="拓扑暂不可用" detail="请检查管理员接口后刷新页面。" />}
       </Panel>
-      <Panel className="wb-inspector">
-        <span className="wb-eyebrow">NODE INSPECTOR</span>
-        <div className="wb-inspector-title">
-          <activeDefinition.icon size={20} />
-          <h3>{activeDefinition.title}</h3>
-        </div>
-        <StatusBadge status={activeState.status} />
-        <p className="wb-inspector-description">{activeDefinition.description}</p>
-        <dl className="wb-inspector-facts">
-          <div><dt>流程</dt><dd>{flow === 'sync' ? '知识同步' : '图片处理'}</dd></div>
-          <div><dt>最近记录</dt><dd>{formatDateTime(activeState.latest)}</dd></div>
-          <div><dt>记录范围</dt><dd>{flow === 'sync' ? `${activeState.runs.length} 条执行回执` : `${activeState.media.length} 个最近候选`}</dd></div>
-        </dl>
-        <div className="wb-inspector-history">
-          <span className="wb-eyebrow">RECENT EXECUTIONS</span>
-          {activeState.runs.map((run) => (
-            <article key={run.id}>
-              <div><strong>{run.task}</strong><StatusBadge status={run.status} /></div>
-              <time>{formatDateTime(run.start)}</time>
-              <code>{run.id}</code>
-              {run.error && <p>{run.error}</p>}
-            </article>
-          ))}
-          {activeState.media.map((item) => (
-            <article key={item.slot}>
-              <div><a className="wb-candidate-link" href={`/workbench/knowledge?candidate=${item.slot}#candidate-${item.slot}`}>
-                <strong>{item.scene} · 候选 {item.variant}</strong>
-                <span>查看详情 →</span>
-              </a><StatusBadge status={item.stage} label={mediaStageLabels[item.stage]} /></div>
-              <time>{formatDateTime(item.steps.at(-1)?.started_at)}</time>
-              <code>候选槽位 #{item.slot} · v{item.round}</code>
-              {item.reason && <p className={item.stage === 'passed' ? 'wb-candidate-reason' : undefined}>{item.reason}</p>}
-            </article>
-          ))}
-          {!activeState.runs.length && !activeState.media.length && (
-            <EmptyState icon={FileSearch} title="暂无执行记录" detail="当前数据窗口内没有可展示的节点回执。" />
-          )}
-        </div>
-      </Panel>
+      <StageInspector stage={activeStage} detail={detail} loading={detailLoading} failed={detailError}
+        downstream={downstream} onLoadMore={() => void loadMore()} paging={paging} />
     </section>
   )
 }
 
-function Connector() {
-  return <div className="wb-connector" aria-hidden="true"><span /><ArrowDown size={17} /><span /></div>
+function DependencyEdges({ stages, onSelect }: { stages: OpsTopologyStage[]; onSelect: (stage: string) => void }) {
+  const titles = new Map(stages.map((stage) => [stage.id, stage.title]))
+  const edges = stages.flatMap((stage) => stage.upstream.map((source) => ({ source, target: stage.id })))
+  return <details className="wb-topology-edges">
+    <summary>阶段依赖 · {edges.length} 条连接</summary>
+    <div>{edges.map(({ source, target }) => <span key={`${source}:${target}`}>
+      <button type="button" onClick={() => onSelect(source)}>{titles.get(source) ?? source}</button>
+      <i aria-hidden="true">→</i>
+      <button type="button" onClick={() => onSelect(target)}>{titles.get(target) ?? target}</button>
+    </span>)}</div>
+  </details>
+}
+
+function StageCard({ stage, selected, faded, onSelect }: { stage: OpsTopologyStage; selected: boolean; faded: boolean; onSelect: () => void }) {
+  const Icon = stageIcons[stage.id] ?? Activity
+  const current = stage.current
+  const stats = stage.window_stats
+  const status = !stage.tracked ? 'pending' : current?.blocked || current?.waiting_human ? 'blocked'
+    : current?.running ? 'running' : stats?.failed ? 'failed' : current?.pending ? 'pending' : 'success'
+  return <button type="button" className="wb-topology-node" data-status={status} data-selected={selected} data-faded={faded}
+    onClick={onSelect} aria-pressed={selected}>
+    <span className="wb-topology-node-head"><span className="wb-node-icon"><Icon size={16} /></span>
+      <span><small>{stage.grp.toUpperCase()}</small><strong>{stage.title}</strong></span>
+      {stage.bottleneck && <span className="wb-topology-blocked">阻塞</span>}
+    </span>
+    {stage.tracked ? <>
+      <span className="wb-topology-current">
+        <b>当前 {current?.total ?? 0}</b><span>运行 {current?.running ?? 0}</span><span>等待 {current?.pending ?? 0}</span>
+        <span>阻塞 {current?.blocked ?? 0}</span><span>待人工 {current?.waiting_human ?? 0}</span>
+      </span>
+      <span className="wb-topology-window">
+        <span>成功 {stats?.success ?? 0} · 失败 {stats?.failed ?? 0}</span>
+        <span>成功率 {percent(stats?.success_rate)} · {stats?.throughput_per_hour.toFixed(2) ?? '0.00'} 次 / 小时{stats?.sample_quality === 'low' ? ' · 样本较少' : ''}</span>
+        <span>中位数 {seconds(stats?.duration.median_seconds)} · 平均 {seconds(stats?.duration.average_seconds)} · P90 {seconds(stats?.duration.p90_seconds)}</span>
+        <span>最近执行 {formatDateTime(stats?.recent_execution_at)}</span>
+      </span>
+      <span className="wb-topology-agents">{stage.agents?.mapped
+        ? <>在线工作进程 {stage.agents.online_workers ?? 0} · 运行中执行实例 {stage.agents.running_executions ?? (stage.agents.execution_coverage === 'legacy_aggregate' ? '未细分' : '—')}</>
+        : '无对应工作进程'}
+      </span>
+    </> : <span className="wb-topology-untracked">无独立执行记录</span>}
+    {worldLabel(stage, Boolean(faded)) && <span className="wb-topology-scope">{worldLabel(stage, Boolean(faded))}</span>}
+  </button>
+}
+
+function worldLabel(stage: OpsTopologyStage, faded: boolean) {
+  if (stage.global_scope) return '全库任务'
+  return faded ? '该作品暂无记录' : ''
+}
+
+function StageInspector({ stage, detail, loading, failed, downstream, onLoadMore, paging }: {
+  stage: OpsTopologyStage | null; detail: OpsTopologyDetail | null; loading: boolean; failed: boolean
+  downstream: string[]; onLoadMore: () => void; paging: boolean
+}) {
+  if (!stage) return <Panel className="wb-inspector"><EmptyState icon={GitBranch} title="选择一个阶段" detail="查看职责、工作进程、队列和执行记录。" /></Panel>
+  const Icon = stageIcons[stage.id] ?? Activity
+  const hasMore = Boolean(detail?.pagination.queue_after || detail?.pagination.runs_after)
+  return <Panel className="wb-inspector wb-topology-inspector">
+    <span className="wb-eyebrow">STAGE DETAIL</span>
+    <div className="wb-inspector-title"><Icon size={20} /><h3>{stage.title}</h3></div>
+    <p className="wb-inspector-description">{responsibilities[stage.id] ?? stage.description}</p>
+    <dl className="wb-inspector-facts">
+      <div><dt>上游阶段</dt><dd>{stage.upstream.length ? stage.upstream.join('、') : '无'}</dd></div>
+      <div><dt>下游阶段</dt><dd>{downstream.length ? downstream.join('、') : '无'}</dd></div>
+      <div><dt>最近执行</dt><dd>{formatDateTime(stage.window_stats?.recent_execution_at)}</dd></div>
+      {stage.window_stats && <div><dt>成功率</dt><dd>{percent(stage.window_stats.success_rate)}</dd></div>}
+      {(stage.agents?.legacy_unclassified ?? 0) > 0 && <div><dt>旧版未细分执行</dt><dd>{stage.agents?.legacy_unclassified ?? 0}</dd></div>}
+    </dl>
+    {loading && <p role="status">正在读取阶段详情…</p>}
+    {failed && <p role="alert">阶段详情暂不可用。</p>}
+    {detail && <>
+      <section className="wb-topology-detail-section"><h4>关联工作进程</h4>
+        {!detail.workers.length && <p>无对应工作进程</p>}
+        {detail.workers.map((worker) => <article key={`${worker.role}/${worker.loop}/${worker.worker_id ?? 'none'}`}>
+          <strong>{worker.worker_id ?? `${worker.role} / ${worker.loop}`}</strong><StatusBadge status={worker.state ?? 'offline'} label={workerState(worker.state)} />
+          <small>{worker.node ?? '节点未知'} · {worker.version ?? '版本未知'} · 最近心跳 {formatDateTime(worker.last_seen)}</small>
+          {worker.last_error && <p>{worker.last_error}</p>}
+        </article>)}
+      </section>
+      <section className="wb-topology-detail-section"><h4>当前队列 <small>{detail.current_queue.length}</small></h4>
+        {!detail.current_queue.length && <p>当前没有待处理项。</p>}
+        {detail.current_queue.map((item) => <article key={item.item_key}>
+          <strong>{item.subject || item.item_key}</strong><StatusBadge status={item.state} label={item.state} />
+          <small>{item.world_slug ?? '全库任务'}{item.episode ? ` · 第 ${item.episode} 集` : ''} · {formatDateTime(item.since)}</small>
+          <p>{item.reason}</p>
+          <a href={detailHref(item.link)}>查看队列项 →</a>
+        </article>)}
+      </section>
+      <section className="wb-topology-detail-section"><h4>失败原因</h4>
+        {!detail.failure_reasons.length && <p>所选窗口内没有失败记录。</p>}
+        {detail.failure_reasons.map((failure) => <article key={failure.reason}><strong>{failure.count} 次</strong><p>{failure.reason}</p></article>)}
+      </section>
+      <section className="wb-topology-detail-section"><h4>业务结果分布</h4>
+        {Object.entries(stage.window_stats?.outcome_distribution ?? {}).length === 0 && <p>所选窗口内没有业务结果。</p>}
+        {Object.entries(stage.window_stats?.outcome_distribution ?? {}).map(([outcome, count]) => <article key={outcome}><strong>{outcome}</strong><small>{count} 次</small></article>)}
+      </section>
+      <section className="wb-topology-detail-section"><h4>最近执行记录</h4>
+        {!detail.recent_runs.length && <p>当前窗口内没有执行记录。</p>}
+        {detail.recent_runs.map((run) => <article key={run.run_key}>
+          <div><strong>{run.world_slug ?? '全库任务'}{run.episode_first ? ` · 第 ${run.episode_first}${run.episode_last && run.episode_last !== run.episode_first ? `–${run.episode_last}` : ''} 集` : ''}</strong>
+            <StatusBadge status={run.status} label={run.status} /></div>
+          <small>{formatDateTime(run.started_at)}{run.finished_at ? ` · 完成于 ${formatDateTime(run.finished_at)}` : ''} · {run.outcome ?? '无业务结果'}</small>
+          {run.duration_seconds !== null && <small>执行耗时 {seconds(run.duration_seconds)}</small>}
+          <code>{run.source_table} · {run.source_id}</code>
+          {run.error && <p>{run.error}</p>}
+          <a href={detailHref(run.link)}>查看执行记录 →</a>
+        </article>)}
+      </section>
+      {hasMore && <button type="button" className="wb-button wb-topology-more" disabled={paging} onClick={onLoadMore}>{paging ? '正在加载…' : '加载更多'}</button>}
+    </>}
+  </Panel>
+}
+
+function WorldProgress({ world }: { world: NonNullable<OpsTopology['selected_world']> }) {
+  const states = [
+    ['未登记', world.progress.unregistered], ['已登记', world.progress.registered], ['已规划', world.progress.planned],
+    ['生产中', world.progress.in_production], ['已验收', world.progress.accepted], ['已发布', world.progress.published],
+  ] as const
+  return <section className="wb-topology-progress" aria-label="作品生产进度">
+    <div><strong>{world.title}</strong><span>{world.has_records ? '已存在阶段记录' : '尚无阶段记录'}</span>
+      <b>{world.progress.scope_total} 集制作范围</b></div>
+    <div className="wb-topology-progress-states">{states.map(([label, count]) => <span key={label}><small>{label}</small><strong>{count}</strong></span>)}</div>
+  </section>
+}
+
+function percent(value: number | null | undefined) {
+  return value == null ? '—' : `${(value * 100).toFixed(1)}%`
+}
+
+function seconds(value: number | null | undefined) {
+  if (value == null) return '—'
+  if (value < 60) return `${value.toFixed(1)} 秒`
+  return `${(value / 60).toFixed(1)} 分`
+}
+
+function workerState(value: string | null) {
+  if (value === 'online') return '在线'
+  if (value === 'online_error') return '在线但有错误'
+  if (value === 'offline') return '离线'
+  return '未知'
+}
+
+function detailHref(link: { page: string; params: Record<string, string | number | null> }) {
+  const params = new URLSearchParams()
+  Object.entries(link.params).forEach(([key, value]) => { if (value !== null) params.set(key, String(value)) })
+  return `/workbench/${link.page}${params.size ? `?${params.toString()}` : ''}`
 }
 
 export function MediaStageBadge({ stage }: { stage: MediaStage }) {
-  return <StatusBadge status={stage} label={mediaStageLabels[stage]} />
+  return <StatusBadge status={stage} label={mediaStageNames[stage]} />
 }
 
-export const mediaStageNames = mediaStageLabels
+export const mediaStageNames: Record<MediaStage, string> = {
+  reference: '参考图准备', queued: '等待生成', generate: '原图生成', review: '自动验图',
+  recrop: '重新裁切', recheck: '裁切复验', passed: '验图通过', held: '等待返工', failed: '任务失败',
+}

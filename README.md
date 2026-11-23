@@ -8,6 +8,8 @@
 
 ## 本地启动
 
+根目录 compose.yaml 仅用于本地开发，OPS_NODE_NAME 缺失或留空时默认为 local，无需 compose.local-env；新环境部署请按[部署入口](deploy/README.md)显式配置唯一节点名。
+
 需要 Node 24.13+（24.x）、npm、Go 1.25+ 和 Docker Compose。首次创建 `.env` 后设置数据库密码。已有环境沿用原文件。新库会在后台导入上游，样板的公开范围取决于本地数据和模型任务进度。
 
 ```sh

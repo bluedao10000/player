@@ -78,7 +78,11 @@ func TestOpsOverviewAggregatesSnapshotHeartbeatAndBeijingDay(t *testing.T) {
 		"running_tasks", "pending_work", "blocked_work", "waiting_human", "completed_today", "failed_today",
 	} {
 		metric, ok := result.Metrics[name]
-		if !ok || metric.Definition != 1 || metric.UpdatedAt == "" || len(metric.Value) == 0 {
+		wantDefinition := 1
+		if name == "running_executions" {
+			wantDefinition = 2
+		}
+		if !ok || metric.Definition != wantDefinition || metric.UpdatedAt == "" || len(metric.Value) == 0 {
 			t.Errorf("metric %s missing value/definition/update time: %+v", name, metric)
 		}
 	}

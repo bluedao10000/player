@@ -49,7 +49,7 @@
 }
 ```
 
-每项 metric 都有 `value`、`definition`、`updated_at`。无快照时快照类 `value` 与 `updated_at` 为 `null`，界面显示「—」。`as_of` 是本次查询时间，不代替每项的来源更新时间。定义版本当前为 1。
+每项 metric 都有 `value`、`definition`、`updated_at`。无快照时快照类 `value` 与 `updated_at` 为 `null`，界面显示「—」。`as_of` 是本次查询时间，不代替每项的来源更新时间。快照指标按对应快照 definition 返回；在线工作进程等实时指标按 definition 1，running_executions 在线过滤口径按 definition 2。
 
 | 指标 key | 值与口径 | 来源 / 更新时间 |
 | --- | --- | --- |
@@ -58,7 +58,7 @@
 | `work_types` | 活跃作品按 `works.type` 原值分组；NULL 单列为「未登记」 | 同一全库快照；`taken_at` |
 | `characters`、`portraits`、`chapters`、`chapter_images`、`storylines`、`scenes`、`locations` | 已发布作品世界的知识资产分项计数，分别列出，不相加 | `reader_knowledge_inventory` 的全库日快照；`taken_at` |
 | `online_workers` | `last_ok_at` 在 `max(3 × expected_seconds, 120 秒)` 内的不同 `worker_id` 数；`consecutive_errors ≥ 3` 仍算在线，另在关注列表标为持续出错 | `ops_worker_heartbeats`；本次 `as_of` |
-| `running_executions` | Agent 心跳 `executions` 中 media、research、editorial、configuration 的非终态数量之和 | `ops_worker_heartbeats` 的 Agent 行；本次 `as_of` |
+| `running_executions` | 仅统计符合 Phase 0 在线判定的 Agent 心跳 executions：media、research、editorial、configuration 的非终态数量之和；离线心跳不计入 | `ops_worker_heartbeats` 的在线 Agent 行；definition 2；本次 `as_of` |
 | `running_tasks` | `ops_task_runs.status = 'running'` 的行数 | `ops_task_runs`；本次 `as_of` |
 | `pending_work` | `ops_work_items.state = 'pending'` 的行数 | `ops_work_items`；本次 `as_of` |
 | `blocked_work` | `ops_work_items.state = 'blocked'` 的行数 | `ops_work_items`；本次 `as_of` |
@@ -66,7 +66,7 @@
 | `completed_today` | `finished_at` 位于北京时间当天 `[00:00, 次日 00:00)` 且 `status = 'success'` 的执行数 | `ops_task_runs`；本次 `as_of` |
 | `failed_today` | 同一北京时间区间内 `status = 'failed'` 的执行数 | `ops_task_runs`；本次 `as_of` |
 
-快照指标来自最新全库行，不使用当前页面数据窗口，也不回填快照前历史。在线错误行按 Phase 0 的心跳规则计入在线进程，失败执行和待处理项则分别来自两个 Phase 0 视图。
+快照指标来自最新全库行，不使用当前页面数据窗口，也不回填快照前历史。在线错误行按 Phase 0 的心跳规则计入在线进程；running_executions 只累加在线及在线错误 Agent 心跳，离线 Agent 的旧 executions 不计入。该指标 definition 为 2。失败执行和待处理项则分别来自两个 Phase 0 视图。
 
 ### 需要关注
 

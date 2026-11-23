@@ -1,0 +1,4 @@
+services:
+  sync:
+    environment:
+      OPS_NODE_NAME: ${OPS_NODE_NAME:-local}

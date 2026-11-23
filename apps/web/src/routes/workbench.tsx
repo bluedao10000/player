@@ -12,6 +12,7 @@ import { legacyWorkbenchHref, resolveLegacyWorkbench } from '../features/workben
 import { requireLocalWorkbench } from '../features/workbench/local'
 import { readWorkbenchSession } from '../features/workbench/feed'
 import { siteTitle } from '../site'
+import type { OpsTopologyWindow } from '../features/workbench/feed'
 
 export const Route = createFileRoute('/workbench')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -28,6 +29,8 @@ export const Route = createFileRoute('/workbench')({
     episode: positiveInteger(search.episode),
     worker: typeof search.worker === 'string' ? search.worker : undefined,
     loop: typeof search.loop === 'string' ? search.loop : undefined,
+    stage: typeof search.stage === 'string' ? search.stage : undefined,
+    window: topologyWindow(search.window),
   }),
   beforeLoad: async ({ search }) => {
     await requireLocalWorkbench()
@@ -56,6 +59,10 @@ export const Route = createFileRoute('/workbench')({
 function positiveInteger(value: unknown) {
   const number = Number(value)
   return Number.isSafeInteger(number) && number > 0 ? number : undefined
+}
+
+function topologyWindow(value: unknown): OpsTopologyWindow {
+  return value === '7d' || value === '30d' ? value : '24h'
 }
 
 function WorkbenchLayout() {

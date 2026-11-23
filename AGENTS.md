@@ -13,7 +13,7 @@
 | 改取证、自动验图或发布 | [知识库构建流程](docs/知识库构建流程.md) | [数据服务](apps/sync/cmd/sync/main.go)、[Agent 入口](apps/agent/src/server.ts) |
 | 改一句话编辑、手机审稿或任务发布 | [构建流程](docs/知识库构建流程.md)、[运维手册](docs/运维手册.md) | [编辑调度](apps/api/internal/service/knowledge/editor_worker.go)、[批准事务](apps/api/internal/service/knowledge/editor.go)、[回归测试](apps/api/internal/handler/knowledge/editor_test.go) |
 | 改模型接入、查 token、扣费或对账 | [模型用量与计费](docs/模型用量与计费.md) | [调用回执](apps/api/internal/service/modelusage)、[会员与供应商对账](apps/api/internal/service/billing)、[账务集成测试](apps/api/internal/handler/knowledge/billing_test.go) |
-| 启动、定位故障、备份或规划双云 | [运维手册](docs/运维手册.md)、[网络与部署](docs/部署架构.md) | [Compose](deploy/docker-compose.yml)、[配置模板](deploy/.env-example) |
+| 启动、定位故障、备份或规划双云 | [运维手册](docs/运维手册.md)、[网络与部署](docs/部署架构.md) | 本地根 Compose；部署用 [Compose](deploy/docker-compose.yml) 与[配置模板](deploy/.env-example) |
 | 准备提交或更新文档 | [开发规范](docs/开发规范.md)、[实现核验](docs/架构实现核验.md) | [检查命令](package.json)、[文档目录](docs/README.md) |
 
 ## 工作约定

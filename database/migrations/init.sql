@@ -2055,6 +2055,61 @@ CREATE TABLE knowledge_completeness_results (
 );
 CREATE INDEX knowledge_completeness_current ON knowledge_completeness_results(world_slug,version_id,dimension,item_code,rule_version DESC);
 
+-- name: 062.sql
+ALTER TABLE ops_stages
+ ADD COLUMN topology_group text
+ CHECK (topology_group IS NULL OR topology_group IN
+  ('data_acquisition','knowledge_processing','research_planning','content_production','quality_release'));
+
+UPDATE ops_stages
+SET topology_group=CASE
+ WHEN id='source_sync' THEN 'data_acquisition'
+ WHEN id IN ('normalize','quality_scan') THEN 'knowledge_processing'
+ WHEN id IN ('inventory','plan','configuration','admission','capture','research') THEN 'research_planning'
+ WHEN id IN ('editorial','media_reference','media_generate','media_review','media_rework') THEN 'content_production'
+ WHEN id IN ('acceptance','release') THEN 'quality_release'
+ ELSE NULL
+END
+WHERE id<>'backup';
+
+CREATE TABLE ops_stage_worker_loops (
+ stage_id text NOT NULL REFERENCES ops_stages(id),
+ role text NOT NULL CHECK (role IN ('sync','research-lane','media-lane','agent')),
+ loop text NOT NULL,
+ PRIMARY KEY(stage_id,role,loop)
+);
+
+INSERT INTO ops_stage_worker_loops(stage_id,role,loop) VALUES
+ ('source_sync','sync','source-sync'),
+ ('quality_scan','sync','quality-scan'),
+ ('plan','sync','episode-planner'),
+ ('plan','sync','episode-plans'),
+ ('plan','research-lane','research'),
+ ('plan','agent','agent'),
+ ('configuration','sync','episode-planner'),
+ ('configuration','research-lane','research'),
+ ('configuration','agent','agent'),
+ ('admission','research-lane','maintenance'),
+ ('research','sync','research'),
+ ('research','research-lane','research'),
+ ('research','agent','agent'),
+ ('editorial','sync','editorial'),
+ ('editorial','agent','agent'),
+ ('media_reference','sync','media'),
+ ('media_reference','media-lane','media'),
+ ('media_reference','agent','agent'),
+ ('media_generate','sync','media'),
+ ('media_generate','media-lane','media'),
+ ('media_generate','agent','agent'),
+ ('media_review','sync','media'),
+ ('media_review','media-lane','media'),
+ ('media_review','agent','agent'),
+ ('media_rework','sync','media'),
+ ('media_rework','media-lane','media'),
+ ('media_rework','agent','agent'),
+ ('acceptance','sync','acceptance'),
+ ('acceptance','media-lane','maintenance');
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,61) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,62) i;
 COMMIT;

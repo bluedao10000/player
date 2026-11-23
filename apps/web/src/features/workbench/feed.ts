@@ -104,6 +104,42 @@ export type KnowledgeWorkDetail = {
   acceptance_pass_rate: number | null
   completeness_calculated_at: string | null
 }
+export type OpsTopologyWindow = '24h' | '7d' | '30d'
+export type OpsTopologyCurrent = { total: number; running: number; pending: number; blocked: number; waiting_human: number }
+export type OpsTopologyWindowStats = {
+  success: number; failed: number; skipped: number; completed: number; success_rate: number | null
+  outcome_distribution: Record<string, number>
+  duration: { sample_count: number; average_seconds: number | null; median_seconds: number | null; p90_seconds: number | null }
+  duration_primary: 'median'; throughput_per_hour: number; sample_quality: 'low' | 'sufficient'; recent_execution_at: string | null
+}
+export type OpsTopologyAgents = {
+  mapped: boolean; online_workers: number | null; workers_with_error: number | null; worker_label?: string
+  freshness?: 'online' | 'offline' | null; last_heartbeat_at?: string | null
+  running_executions: number | null; execution_coverage: 'not_applicable' | 'legacy_aggregate' | 'stage_specific'; legacy_unclassified: number
+}
+export type OpsTopologyStage = {
+  id: string; title: string; description: string; grp: string; topology_group: string | null
+  position: number; upstream: string[]; tracked: boolean; global_scope: boolean; has_records: boolean | null
+  bottleneck: boolean; current: OpsTopologyCurrent | null; window_stats: OpsTopologyWindowStats | null; agents: OpsTopologyAgents | null
+}
+export type OpsTopologyGroup = { id: string; label: string; eyebrow: string; position: number; stages: OpsTopologyStage[] }
+export type OpsTopology = {
+  as_of: string; timezone: 'Asia/Shanghai'; window: OpsTopologyWindow; window_start: string; window_end: string; definition: number
+  selected_world: null | {
+    slug: string; title: string; edition: string; work_id: string; has_records: boolean
+    progress: { scope_total: number; unregistered: number; registered: number; planned: number; in_production: number; accepted: number; published: number }
+  }
+  groups: OpsTopologyGroup[]
+  infrastructure: { id: string; label: string; eyebrow: string; stages: OpsTopologyStage[] }
+}
+export type OpsTopologyDetail = {
+  as_of: string; stage: OpsTopologyStage
+  workers: { role: string; loop: string; worker_id: string | null; node: string | null; version: string | null; state: string | null; last_error: string | null; last_seen: string | null }[]
+  current_queue: { item_key: string; stage: string; world_slug: string | null; episode: number | null; subject: string; state: string; reason: string; since: string | null; link: { page: string; params: Record<string, string | number | null> } }[]
+  recent_runs: { run_key: string; status: string; outcome: string | null; started_at: string; finished_at: string | null; duration_seconds: number | null; error: string | null; world_slug: string | null; episode_first: number | null; episode_last: number | null; source_table: string; source_id: string; link: { page: string; params: Record<string, string | number | null> } }[]
+  failure_reasons: { reason: string; count: number }[]
+  pagination: { limit: number; queue_after: string | null; runs_after: string | null }
+}
 export type KnowledgeCenterFeed = { summary: KnowledgeSummary | null; works: KnowledgeWorksPage | null; checked: string }
 export type KnowledgeWorkFeed = { detail: KnowledgeWorkDetail | null; scopes: ScopeAcceptance[] | null; media: MediaCandidate[] | null; checked: string }
 
@@ -177,13 +213,40 @@ export const readOpsAttention = createServerFn({ method: 'GET' }).handler(async 
   return admin ? getJSON<OpsAttentionFeed>('ops/attention', admin, false) : null
 })
 
+export type OpsTopologyQuery = { window: OpsTopologyWindow; world: string }
+export const readOpsTopology = createServerFn({ method: 'GET' })
+  .validator((query: OpsTopologyQuery) => query)
+  .handler(async ({ data }): Promise<OpsTopology | null> => {
+    if (!(await validEditorSession())) return null
+    const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
+    if (!admin) return null
+    const params = new URLSearchParams({ window: data.window })
+    if (data.world) params.set('world', data.world)
+    return getJSON<OpsTopology>('ops/topology?' + params.toString(), admin, false)
+  })
+
+export type OpsTopologyDetailQuery = {
+  stage: string; window: OpsTopologyWindow; world: string; limit: number; queue_after?: string; runs_after?: string
+}
+export const readOpsTopologyDetail = createServerFn({ method: 'GET' })
+  .validator((query: OpsTopologyDetailQuery) => query)
+  .handler(async ({ data }): Promise<OpsTopologyDetail | null> => {
+    if (!(await validEditorSession())) return null
+    const admin = process.env.KNOWLEDGE_ADMIN_TOKEN
+    if (!admin) return null
+    const params = new URLSearchParams({ window: data.window, limit: String(data.limit) })
+    if (data.world) params.set('world', data.world)
+    if (data.queue_after) params.set('queue_after', data.queue_after)
+    if (data.runs_after) params.set('runs_after', data.runs_after)
+    return getJSON<OpsTopologyDetail>('ops/topology/stages/' + encodeURIComponent(data.stage) + '?' + params.toString(), admin, false)
+  })
+
 export const readOperationsFeed = createServerFn({ method: 'GET' }).handler(async () => {
   if (!(await validEditorSession())) return null
-  const [sync, quality, research, media] = await Promise.all([
-    getJSON<Sync[]>('sync-runs'), getJSON<Quality[]>('quality-runs'),
-    getJSON<ResearchRun[]>('research-runs'), getJSON<MediaCandidate[]>('media-candidates'),
+  const [sync, quality, worlds] = await Promise.all([
+    getJSON<Sync[]>('sync-runs'), getJSON<Quality[]>('quality-runs'), getJSON<WorkKnowledgeStatus[]>('world-statuses'),
   ])
-  return emptyFeed({ runs: normalizeRuns(sync, quality), research, media, syncOnline: sync !== null, qualityOnline: quality !== null })
+  return emptyFeed({ runs: normalizeRuns(sync, quality), worlds, syncOnline: sync !== null, qualityOnline: quality !== null })
 })
 
 export const readKnowledgeFeed = createServerFn({ method: 'GET' }).handler(async () => {

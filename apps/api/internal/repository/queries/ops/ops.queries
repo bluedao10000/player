@@ -64,7 +64,7 @@ WITH clock AS (
   'scenes',jsonb_build_object('value',s.metrics#>'{knowledge,scenes}','definition',s.definition,'updated_at',s.taken_at),
   'locations',jsonb_build_object('value',s.metrics#>'{knowledge,locations}','definition',s.definition,'updated_at',s.taken_at),
   'online_workers',jsonb_build_object('value',(SELECT count(DISTINCT worker_id)::int FROM heartbeat_state WHERE state IN ('online','online_error')),'definition',1,'updated_at',c.as_of),
-  'running_executions',jsonb_build_object('value',(SELECT coalesce(sum(coalesce((executions->>'media')::int,0)+coalesce((executions->>'research')::int,0)+coalesce((executions->>'editorial')::int,0)+coalesce((executions->>'configuration')::int,0)),0)::int FROM heartbeat_state WHERE role='agent'),'definition',1,'updated_at',c.as_of),
+  'running_executions',jsonb_build_object('value',(SELECT coalesce(sum(coalesce((executions->>'media')::int,0)+coalesce((executions->>'research')::int,0)+coalesce((executions->>'editorial')::int,0)+coalesce((executions->>'configuration')::int,0)),0)::int FROM heartbeat_state WHERE role='agent' AND state IN ('online','online_error')),'definition',2,'updated_at',c.as_of),
   'running_tasks',jsonb_build_object('value',(SELECT count(*)::int FROM ops_task_runs WHERE status='running'),'definition',1,'updated_at',c.as_of),
   'pending_work',jsonb_build_object('value',(SELECT count(*)::int FROM ops_work_items WHERE state='pending'),'definition',1,'updated_at',c.as_of),
   'blocked_work',jsonb_build_object('value',(SELECT count(*)::int FROM ops_work_items WHERE state='blocked'),'definition',1,'updated_at',c.as_of),

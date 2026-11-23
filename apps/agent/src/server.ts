@@ -167,9 +167,11 @@ const server = createServer(async (req, res) => {
     )
   if (req.method === 'POST' && edit) {
     const stopExecution = executionCounters.start(
-      edit[4] === 'planning' || edit[4] === 'configuration'
-        ? 'configuration'
-        : 'editorial',
+      edit[4] === 'planning'
+        ? 'planning'
+        : edit[4] === 'configuration'
+          ? 'configuration'
+          : 'editorial',
     )
     try {
       const parts: Buffer[] = []
