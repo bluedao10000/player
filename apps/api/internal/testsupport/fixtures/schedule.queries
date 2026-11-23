@@ -11,7 +11,7 @@ INSERT INTO episode_inventory_snapshots VALUES(now(),'[{"slug":"schedule-fixture
 SELECT status FROM episode_policy_queue WHERE number=6
 
 -- name: SetChatEditionLength
-UPDATE works SET episodes=20 WHERE id=(SELECT work_id FROM work_worlds WHERE slug='tidepost')
+UPDATE works SET episodes=$1 WHERE id=(SELECT work_id FROM work_worlds WHERE slug='tidepost')
 
 -- name: SeedChatRetry
 WITH topic AS (
@@ -30,3 +30,11 @@ SELECT policy FROM research_topics WHERE id='chat-fixture-009'
 
 -- name: ChatOperationCount
 SELECT count(*) FROM workbench_plan_operations WHERE plan_id=$1
+
+-- name: ChatTurnOperationCount
+SELECT count(*) FROM workbench_plan_operations WHERE request_id=$1
+
+-- name: ChangeChatProposalWorld
+UPDATE workbench_chat_turns SET proposal=jsonb_set(proposal,'{world}',to_jsonb($2::text)),
+ diff=jsonb_set(diff,'{world,1}',to_jsonb($2::text))
+WHERE id=$1

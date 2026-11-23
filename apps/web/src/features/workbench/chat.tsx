@@ -33,7 +33,7 @@ type Chat = {
 type Request = <T>(path: string, body?: unknown) => Promise<T>
 const labels: Record<string, string> = {
   world: '作品版本', first_episode: '起始集', last_episode: '截止集', token_limit: '总预算',
-  production_policy: '制作策略', operator_paused: '运营暂停', episode: '单集执行',
+  production_policy: '制作策略', operator_paused: '运营暂停', episode: '单集执行', instruction: '计划说明',
 }
 const states: Record<Turn['state'], string> = {
   running: 'Pi 处理中', answered: '已查询', failed: '失败',
@@ -44,18 +44,20 @@ function TextMessage() {
   return <MessagePrimitive.Root className="wb-chat-message"><MessagePrimitive.Parts /></MessagePrimitive.Root>
 }
 
-export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask, initialEpisode }: {
+export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask, initialEpisode, initialPrompt }: {
   request: Request
   initialWorld?: string
   initialPlan?: string
   initialTask?: string
   initialEpisode?: number
+  initialPrompt?: string
 }) {
   const [chat, setChat] = useState<Chat>()
   const [world, setWorld] = useState(initialWorld)
   const [task, setTask] = useState(initialTask)
   const [plan, setPlan] = useState(initialPlan)
   const [episode, setEpisode] = useState<number>(initialEpisode ?? 0)
+  const [suggestedPrompt, setSuggestedPrompt] = useState(initialPrompt ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const refresh = useCallback(async () => setChat(await request<Chat>('chat')), [request])
@@ -75,21 +77,27 @@ export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask,
   const currentTask = task ?? (last?.world === currentWorld ? last.task_id : undefined) ?? ''
   const currentPlan = plan ?? (last?.world === currentWorld ? last.plan_id : undefined) ?? plans[0]?.id ?? ''
 
-  const send = async (message: AppendMessage) => {
-    const text = message.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('').trim()
-    if (!text || busy || !currentWorld) return
+  const sendText = async (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed || busy || !currentWorld) return
     setBusy(true)
     setError('')
     try {
-      const completion = request('chat', { request_id: crypto.randomUUID(), world: currentWorld, plan_id: currentPlan || null, task_id: currentTask || null, episode, text })
+      const completion = request('chat', { request_id: crypto.randomUUID(), world: currentWorld, plan_id: currentPlan || null, task_id: currentTask || null, episode, text: trimmed })
       const timer = setInterval(() => { void refresh().catch(() => {}) }, 2500)
       try { await completion } finally { clearInterval(timer) }
+      setSuggestedPrompt('')
     } catch (err) {
       setError(String(err))
     } finally {
       await refresh().catch((err: Error) => setError(err.message))
       setBusy(false)
     }
+  }
+
+  const send = async (message: AppendMessage) => {
+    const text = message.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('').trim()
+    await sendText(text)
   }
 
   async function resolve(id: string, confirm: boolean) {
@@ -136,16 +144,23 @@ export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask,
         <label>分集<input type="number" value={episode || ''} min={1} max={100000} placeholder="全部" onChange={e => setEpisode(e.target.valueAsNumber || 0)} /></label>
       </div>
       {error && <p role="alert" className="ed-error">{error}</p>}
+      {suggestedPrompt && currentWorld && <section className="wb-panel wb-chat-prefill" aria-label="带入的知识缺口评估问题">
+        <div><strong>已从知识资产页带入评估上下文</strong><p>{suggestedPrompt}</p></div>
+        <div className="wb-chat-actions">
+          <Button label="发送评估请求" size="sm" isDisabled={busy} onClick={() => void sendText(suggestedPrompt)} />
+          <button type="button" disabled={busy} onClick={() => setSuggestedPrompt('')}>忽略</button>
+        </div>
+      </section>}
       <div className="wb-chat-layout">
         <AssistantRuntimeProvider runtime={runtime}>
           <ThreadPrimitive.Root className="wb-panel wb-chat-thread">
             <ThreadPrimitive.Viewport className="wb-chat-scroll">
-              <ThreadPrimitive.Empty><p>可以问「这个作品的分集制作到哪了？」</p></ThreadPrimitive.Empty>
+              <ThreadPrimitive.Empty><p>可以问「评估这部作品前 10 话的知识覆盖，解释主要缺口并给出补全顺序与预算依据」</p></ThreadPrimitive.Empty>
               <ThreadPrimitive.Messages components={{ UserMessage: TextMessage, AssistantMessage: TextMessage }} />
             </ThreadPrimitive.Viewport>
             {busy && <p role="status">正在读取工作台数据或处理操作…</p>}
             <ComposerPrimitive.Root className="wb-chat-compose">
-              <ComposerPrimitive.Input aria-label="给工作台发消息" placeholder="询问状态或描述修改…" maxLength={1800} />
+              <ComposerPrimitive.Input aria-label="给工作台发消息" placeholder="询问覆盖缺口、预算依据或描述计划修改…" maxLength={1800} />
               <ComposerPrimitive.Send asChild><button type="submit">发送</button></ComposerPrimitive.Send>
             </ComposerPrimitive.Root>
           </ThreadPrimitive.Root>
@@ -157,12 +172,17 @@ export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask,
               <strong>{states[turn.state]} · {turn.prompt}</strong>
               {!!turn.tools.length && <details><summary>工具记录</summary><ul>{turn.tools.map(tool => <li key={tool}>{tool}</li>)}</ul></details>}
               {turn.diff && <dl>{Object.entries(turn.diff).map(([key, [before, after]]) => (
-                <div key={key}><dt>{labels[key] ?? key}</dt><dd><del>{JSON.stringify(before)}</del><ins>{JSON.stringify(after)}</ins></dd></div>
+                <div key={key}><dt>{labels[key] ?? key}</dt><dd>{before !== null && before !== undefined && <del>{JSON.stringify(before)}</del>}<ins>{JSON.stringify(after)}</ins></dd></div>
               ))}</dl>}
               {turn.state === 'pending' && <div className="wb-chat-actions">
                 <Button label="确认变更" size="sm" isDisabled={busy} onClick={() => void resolve(turn.id, true)} />
                 <button type="button" disabled={busy} onClick={() => void resolve(turn.id, false)}>取消</button>
               </div>}
+              {turn.state === 'applied' && turn.plan_id && <p className="wb-chat-receipt">
+                <a href={`/workbench/projects?plan=${encodeURIComponent(turn.plan_id)}`}>查看计划与执行回执 →</a>
+                {' · '}
+                <a href={`/workbench/knowledge/${encodeURIComponent(turn.world)}`}>返回作品知识详情 →</a>
+              </p>}
             </article>
           ))}
         </section>

@@ -52,7 +52,7 @@ const status: Record<string, string> = {
   created: '已登记',
   returned: '已退回',
 }
-export function EditorDesk({ accountView = false, chatView = false, embedded = false, context }: { accountView?: boolean; chatView?: boolean; embedded?: boolean; context?: { world?: string; plan?: string; task?: string; episode?: number } }) {
+export function EditorDesk({ accountView = false, chatView = false, embedded = false, context }: { accountView?: boolean; chatView?: boolean; embedded?: boolean; context?: { world?: string; plan?: string; task?: string; episode?: number; prompt?: string } }) {
   const [list, setList] = useState<List | null>(null),
     [login, setLogin] = useState(false),
     [selected, select] = useState(context?.task ?? ''),
@@ -242,7 +242,7 @@ export function EditorDesk({ accountView = false, chatView = false, embedded = f
             </form>
           </div>
         </section>
-      ) : accountView ? <WorkbenchAccount showHeading={!embedded} /> : chatView ? <WorkbenchChat request={api} initialWorld={context?.world} initialPlan={context?.plan} initialTask={context?.task} initialEpisode={context?.episode} /> : (
+      ) : accountView ? <WorkbenchAccount showHeading={!embedded} /> : chatView ? <WorkbenchChat request={api} initialWorld={context?.world} initialPlan={context?.plan} initialTask={context?.task} initialEpisode={context?.episode} initialPrompt={context?.prompt} /> : (
         <>
           <div className="ed-composer-dock">
           <form id="editor-composer" className="ed-compose" onSubmit={submit} aria-label="AI 编辑助手">

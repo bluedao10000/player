@@ -32,7 +32,9 @@ export function ScopeReport({ scopes }: { scopes: ScopeAcceptance[] | null }) {
               · 知识版本 {run.version} · 规则 v{run.rule} · 记录 #{run.id}
             </p>
             <h4>缺项</h4>
-            {gaps.length ? (
+            {run.checks.length === 0 ? (
+              <p>暂无验收明细。</p>
+            ) : gaps.length ? (
               <ul>
                 {gaps.map((g) => (
                   <li key={g}>{g}</li>

@@ -131,6 +131,23 @@ INSERT INTO works(id,canonical_title,type,updated_at) VALUES
  ('00000000-0000-4000-8000-000000000702','phase2-catalog-null',NULL,now())
 ON CONFLICT(id) DO NOTHING
 
+-- name: SeedCompletenessP0Contracts
+WITH release AS (
+ INSERT INTO reader_release_attempts(topic,acceptance,finished_at,target_id,href)
+ SELECT topic,id,now(),19011,'/work/cowboy-bebop-tv/chapter/phase2-extension-3'
+ FROM scope_acceptances WHERE topic='phase2-cowboy-3'
+), policy AS (
+ INSERT INTO episode_policies(world_slug,first_episode,last_episode,priority,max_episodes,token_budget,reserve_tokens)
+ VALUES ('cowboy-bebop-tv',3,12,10,20,1000000,100)
+), plans AS (
+ INSERT INTO episode_production_requests(id,world,first_episode,last_episode,token_limit,stage)
+ SELECT gen_random_uuid(),'cowboy-bebop-tv',3,3,100000,stage
+ FROM (VALUES ('inventory'),('local_ready'),('published')) p(stage)
+)
+INSERT INTO knowledge_match_candidates(source_record_id,candidate_work_id,reason)
+SELECT id,'00000000-0000-4000-8000-000000000702','fixture catalog conflict'
+FROM knowledge_source_records WHERE record_key='phase2-tidepost'
+
 -- name: SetCowboyType
 UPDATE works SET type=$1,updated_at=now()
 WHERE id=(SELECT work_id FROM work_worlds WHERE slug='cowboy-bebop-tv')

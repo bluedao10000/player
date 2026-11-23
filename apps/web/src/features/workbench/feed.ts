@@ -76,6 +76,10 @@ export type KnowledgeSummary = {
   timeline: { availability: string; events: number | null; chapter_links: number | null; order_checks: number | null }
   images: { main_visuals: number; portraits: number; chapter_images: number }
   sources: { records_by_source: { name: string; type: string; records: number; works: number }[]; external_ids_by_provider: { provider: string; external_ids: number; works: number }[] }
+  governance?: {
+    pending_verification_works: number; open_match_candidates: number; open_quality_issues: number
+    online_verified_topics: number; release_failed_topics: number
+  }
   trend: { range_days: number; points: { day: string; definition: number; completeness: JsonValue; [key: string]: JsonValue }[] }
 }
 export type KnowledgeWorkRow = {
@@ -83,8 +87,18 @@ export type KnowledgeWorkRow = {
   edition: string | null; episodes_total: number | null; episodes_covered: number | null; characters: number | null
   scenes: number | null; images: number | null; completeness: { dimensions: CompletenessDimension[] } | null
   acceptance_pass_rate: number | null; production_status: string; last_updated_at: string | null; has_knowledge_version: boolean
+  online_verified_episodes?: number | null; open_conflicts?: number
 }
 export type KnowledgeWorksPage = { as_of: string; definition: number; items: KnowledgeWorkRow[]; next_cursor: string | null }
+export type KnowledgeEpisodeMatrixRow = {
+  number: number; in_policy: boolean
+  state: 'unregistered' | 'registered' | 'planned' | 'in_production' | 'accepted' | 'published'
+  local_published: boolean; online_verified: boolean
+  topic: string | null; title: string | null; acceptance_passed: boolean | null; acceptance_gaps: string[]
+  research_stage: string | null; research_error: string | null
+  release_receipt: number | null; release_href: string | null; release_error: string | null
+  media: { total: number; passed: number; failed: number; held: number; active: number }
+}
 export type KnowledgeWorkDetail = {
   overview: {
     work_id: string; world_slug: string | null; title: string; original_title: string | null; type: string | null
@@ -92,10 +106,21 @@ export type KnowledgeWorkDetail = {
     world_name: string | null; world_intro: string | null; origin: string | null; published_at: string | null
     has_knowledge_version: boolean; completeness: { dimensions: CompletenessDimension[] } | null
     sources: { external_ids: { provider: string; external_id: string; url: string }[]; records: { source: string; type: string; record_key: string; version_id: number }[] }
+    world_evidence?: { key: string; uri: string; locator: string; digest: string }[]
+    conflicts?: { source_record_id: number; source: string; record_key: string; candidate_work_id: string; candidate_title: string; reason: string; first_seen_at: string }[]
+    working_vs_public?: {
+      published_episodes: number; local_accepted_unpublished: number; online_verified_episodes: number
+      release_failed_episodes: number; active_plans: number; open_editor_tasks: number
+    }
   }
-  characters: { slug: string; name: string | null; role: string | null; introduction: string | null; portrait: string | null }[]
+  characters: { slug: string; name: string | null; role: string | null; introduction: string | null; portrait: string | null; evidence?: string | null }[]
   storylines: { slug: string; title: string; intro: string; chapters: { slug: string; title: string }[] }[]
-  episodes: { total: number | null; readable: number[]; scopes: { topic: string; number: number; first: number; last: number; passed: boolean | null; checked_at: string | null }[] }
+  episodes: {
+    total: number | null; applicable?: boolean; readable: number[]
+    progress?: { scope_total: number; unregistered: number; registered: number; planned: number; in_production: number; accepted: number; published: number; online_verified: number }
+    matrix?: KnowledgeEpisodeMatrixRow[]
+    scopes: { topic: string; number: number; first: number; last: number; passed: boolean | null; checked_at: string | null }[]
+  }
   scenes: { slug: string; name: string; chapter: string; place: string; text: string | null; image: string | null; missing_text: boolean }[]
   world_settings: { locations: { name: string }[]; organizations: { availability: string }; typed_settings: { availability: string } }
   timeline: { availability: string }

@@ -11,6 +11,7 @@ var completenessQueries = resources.Statements(completenessSource)
 var (
 	SeedCompletenessExamples             = completenessQueries["SeedCompletenessExamples"]
 	SeedCompletenessCatalogOnly          = completenessQueries["SeedCompletenessCatalogOnly"]
+	SeedCompletenessP0Contracts          = completenessQueries["SeedCompletenessP0Contracts"]
 	SetCowboyType                        = completenessQueries["SetCowboyType"]
 	SeedPrivateMediaCandidate            = completenessQueries["SeedPrivateMediaCandidate"]
 	AddWhitespaceCompletenessLocation    = completenessQueries["AddWhitespaceCompletenessLocation"]

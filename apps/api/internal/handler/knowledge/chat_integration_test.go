@@ -26,7 +26,7 @@ func TestWorkbenchChatConfirmation(t *testing.T) {
 	if err := domain.Sweep(ctx, db, "tidepost-original", true, false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(ctx, fixtures.SetChatEditionLength); err != nil {
+	if _, err := db.Exec(ctx, fixtures.SetChatEditionLength, 20); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("WORKBENCH_LOCAL_ENABLED", "true")
@@ -56,6 +56,11 @@ func TestWorkbenchChatConfirmation(t *testing.T) {
 			patch = map[string]any{"tool": "resume_production"}
 		case "policy":
 			patch = map[string]any{"tool": "update_production_policy", "character_consistency": "strict"}
+		case "create", "create other":
+			patch = map[string]any{"tool": "create_production_plan", "first_episode": 1, "last_episode": 5, "token_limit": 300000, "instruction": "补齐前 5 集（本地验收）"}
+			if payload.Question == "create other" {
+				patch["world"] = "cowboy-bebop-tv"
+			}
 		default:
 			if len(payload.Prior) != 0 {
 				t.Error("first turn unexpectedly has history")
@@ -160,4 +165,146 @@ func TestWorkbenchChatConfirmation(t *testing.T) {
 	if err := db.QueryRow(ctx, fixtures.ChatOperationCount, plan).Scan(&count); err != nil || count != 6 {
 		t.Fatalf("wrong audit count %d: %v", count, err)
 	}
+	createID := "a01c3782-97fc-43ac-bb47-000000000011"
+	request("POST", "chat", token, map[string]any{"request_id": createID, "world": "tidepost", "text": "create"}, 204)
+	createHistory := request("GET", "chat", token, nil, 200)
+	if !bytes.Contains(createHistory, []byte(`"publish_to_reader":false`)) && !bytes.Contains(createHistory, []byte(`"publish_to_reader": false`)) {
+		t.Fatalf("create_production_plan diff missing local-only publish_to_reader=false: %s", createHistory)
+	}
+	request("POST", "chat/"+createID+"/resolve", token, confirm, 204)
+	request("POST", "chat/"+createID+"/resolve", token, confirm, 204)
+	var createdPlans struct {
+		Plans []struct {
+			ID     string         `json:"id"`
+			First  int            `json:"first_episode"`
+			Last   int            `json:"last_episode"`
+			Budget int64          `json:"token_limit"`
+			Policy map[string]any `json:"production_policy"`
+		}
+	}
+	if err := json.Unmarshal(request("GET", "plans", token, nil, 200), &createdPlans); err != nil {
+		t.Fatal(err)
+	}
+	if len(createdPlans.Plans) != 2 {
+		t.Fatalf("expected 2 plans after idempotent create, got %d", len(createdPlans.Plans))
+	}
+	created := createdPlans.Plans[0]
+	if created.First != 1 || created.Last != 5 || created.Budget != 300000 {
+		t.Fatalf("created plan scope/budget mismatch: %+v", created)
+	}
+	if created.Policy["publish_to_reader"] != false || created.Policy["preserve_published"] != true || created.Policy["character_consistency"] != "standard" {
+		t.Fatalf("created plan must default to local-only acceptance: %+v", created.Policy)
+	}
+	var chatState struct {
+		Turns []struct {
+			ID     string  `json:"id"`
+			State  string  `json:"state"`
+			PlanID *string `json:"plan_id"`
+		} `json:"turns"`
+	}
+	if err := json.Unmarshal(request("GET", "chat", token, nil, 200), &chatState); err != nil {
+		t.Fatal(err)
+	}
+	bound := false
+	for _, row := range chatState.Turns {
+		if row.ID == createID {
+			bound = row.State == "applied" && row.PlanID != nil && *row.PlanID == created.ID && created.ID != plan
+		}
+	}
+	if !bound {
+		t.Fatalf("create turn was not bound to the new plan as applied: %+v", chatState.Turns)
+	}
+
+	editID := "a01c3782-97fc-43ac-bb47-000000000012"
+	request("POST", "chat", token, map[string]any{"request_id": editID, "world": "tidepost", "plan_id": created.ID, "text": "policy"}, 204)
+	request("POST", "chat/"+editID+"/resolve", token, confirm, 204)
+	if err := json.Unmarshal(request("GET", "plans", token, nil, 200), &createdPlans); err != nil {
+		t.Fatal(err)
+	}
+	edited := createdPlans.Plans[0]
+	if edited.ID != created.ID || edited.Policy["publish_to_reader"] != false || edited.Policy["preserve_published"] != true || edited.Policy["character_consistency"] != "strict" {
+		t.Fatalf("consistency update did not preserve the local-only policy: %+v", edited)
+	}
+
+	const worldError = "只能为当前对话的作品新建制作计划。"
+	const episodesError = "请先登记作品总集数，再新建制作计划。"
+	createTurn := func(n int, question string) string {
+		t.Helper()
+		id := fmt.Sprintf("a01c3782-97fc-43ac-bb47-%012d", n)
+		request("POST", "chat", token, map[string]any{"request_id": id, "world": "tidepost", "text": question}, 204)
+		return id
+	}
+	readCreateTurn := func(id string) (state, reply string, diff json.RawMessage) {
+		t.Helper()
+		var history struct {
+			Turns []struct {
+				ID, State, Reply string
+				Diff             json.RawMessage
+			}
+		}
+		if err := json.Unmarshal(request("GET", "chat", token, nil, 200), &history); err != nil {
+			t.Fatal(err)
+		}
+		for _, row := range history.Turns {
+			if row.ID == id {
+				return row.State, row.Reply, row.Diff
+			}
+		}
+		t.Fatalf("turn %s missing from history", id)
+		return "", "", nil
+	}
+	noWrites := func(id string) {
+		t.Helper()
+		var plans struct{ Plans []json.RawMessage }
+		if err := json.Unmarshal(request("GET", "plans", token, nil, 200), &plans); err != nil {
+			t.Fatal(err)
+		}
+		if len(plans.Plans) != 2 {
+			t.Fatalf("turn %s changed the plan count: %d", id, len(plans.Plans))
+		}
+		var audits int
+		if err := db.QueryRow(ctx, fixtures.ChatTurnOperationCount, id).Scan(&audits); err != nil || audits != 0 {
+			t.Fatalf("turn %s wrote %d audits: %v", id, audits, err)
+		}
+	}
+	rejectedProposal := func(id, want string) {
+		t.Helper()
+		state, reply, diff := readCreateTurn(id)
+		if state != "answered" || reply != want || string(diff) != "null" {
+			t.Fatalf("turn %s got state=%q reply=%q diff=%s", id, state, reply, diff)
+		}
+		noWrites(id)
+	}
+	pendingProposal := func(id string) {
+		t.Helper()
+		state, reply, diff := readCreateTurn(id)
+		if state != "pending" || len(diff) == 0 || string(diff) == "null" {
+			t.Fatalf("turn %s got state=%q reply=%q diff=%s, want a pending proposal", id, state, reply, diff)
+		}
+	}
+	rejectedConfirmation := func(id, want string) {
+		t.Helper()
+		var result struct{ Error string }
+		if err := json.Unmarshal(request("POST", "chat/"+id+"/resolve", token, confirm, 409), &result); err != nil || result.Error != want {
+			t.Fatalf("turn %s confirmation error=%q, want %q: %v", id, result.Error, want, err)
+		}
+		pendingProposal(id)
+		noWrites(id)
+	}
+
+	rejectedProposal(createTurn(13, "create other"), worldError)
+	tampered := createTurn(14, "create")
+	pendingProposal(tampered)
+	if _, err := db.Exec(ctx, fixtures.ChangeChatProposalWorld, tampered, "cowboy-bebop-tv"); err != nil {
+		t.Fatal(err)
+	}
+	rejectedConfirmation(tampered, worldError)
+
+	staleTotal := createTurn(15, "create")
+	pendingProposal(staleTotal)
+	if _, err := db.Exec(ctx, fixtures.SetChatEditionLength, nil); err != nil {
+		t.Fatal(err)
+	}
+	rejectedConfirmation(staleTotal, episodesError)
+	rejectedProposal(createTurn(16, "create"), episodesError)
 }

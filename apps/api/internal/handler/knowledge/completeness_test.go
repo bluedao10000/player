@@ -470,3 +470,180 @@ func hasTypeCount(rows []any, target any) bool {
 	}
 	return false
 }
+
+// TestOpsKnowledgeP0Contracts guards the Knowledge P0 read contract: governance summary, per-work
+// online/conflict counters, evidence and conflict sections, working-vs-public split and the
+// per-episode coverage matrix that reuses the Phase 3 six-state definition.
+func TestOpsKnowledgeP0Contracts(t *testing.T) {
+	db := testsupport.Database(t)
+	ctx := context.Background()
+	for _, statement := range []string{sqltest.SeedOpsSyncRuns, sqltest.SeedOpsWorlds, sqltest.SeedCompletenessExamples, sqltest.SeedCompletenessCatalogOnly, sqltest.SeedCompletenessP0Contracts} {
+		if _, err := db.Exec(ctx, statement); err != nil {
+			t.Fatalf("seed completeness examples: %v", err)
+		}
+	}
+	if err := domain.RecalculateCompleteness(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	router := completenessRouter(t, db)
+
+	summary := getMap(t, router, "/api/v1/admin/knowledge/ops/knowledge/summary?range=7d")
+	governance, ok := summary["governance"].(map[string]any)
+	if !ok {
+		t.Fatalf("summary omitted governance: %+v", summary)
+	}
+	for _, key := range []string{"pending_verification_works", "open_match_candidates", "open_quality_issues", "online_verified_topics", "release_failed_topics"} {
+		if value, ok := governance[key].(float64); !ok || value < 0 {
+			t.Errorf("governance.%s=%v, want a non-negative count", key, governance[key])
+		}
+	}
+
+	rows := getMap(t, router, "/api/v1/admin/knowledge/ops/knowledge/works?has_knowledge_version=true&limit=10")["items"].([]any)
+	if len(rows) == 0 {
+		t.Fatal("works list returned no published rows")
+	}
+	var cowboyRow map[string]any
+	for _, raw := range rows {
+		row := raw.(map[string]any)
+		if row["world_slug"] == "cowboy-bebop-tv" {
+			cowboyRow = row
+		}
+		if _, ok := row["online_verified_episodes"].(float64); !ok {
+			t.Errorf("work %v online_verified_episodes=%v, want a count", row["world_slug"], row["online_verified_episodes"])
+		}
+		if _, ok := row["open_conflicts"].(float64); !ok {
+			t.Errorf("work %v open_conflicts=%v, want a count", row["world_slug"], row["open_conflicts"])
+		}
+	}
+
+	catalogRows := getMap(t, router, "/api/v1/admin/knowledge/ops/knowledge/works?q=phase2-catalog-null&has_knowledge_version=false")["items"].([]any)
+	if len(catalogRows) != 1 || catalogRows[0].(map[string]any)["open_conflicts"] != float64(1) {
+		t.Fatalf("catalog-only work should report one conflict: %+v", catalogRows)
+	}
+	catalogID, ok := catalogRows[0].(map[string]any)["work_id"].(string)
+	if !ok || catalogID != "00000000-0000-4000-8000-000000000702" {
+		t.Fatalf("catalog-only work omitted its catalog UUID: %+v", catalogRows[0])
+	}
+	catalogDetail := getMap(t, router, "/api/v1/admin/knowledge/ops/knowledge/works/"+catalogID)
+	if applicable := catalogDetail["episodes"].(map[string]any)["applicable"]; applicable != false {
+		t.Fatalf("catalog-only work with NULL type and no plans: episodes.applicable=%v, want false", applicable)
+	}
+
+	detail := getMap(t, router, "/api/v1/admin/knowledge/ops/knowledge/works/cowboy-bebop-tv")
+	overview := detail["overview"].(map[string]any)
+	if _, ok := overview["world_evidence"].([]any); !ok {
+		t.Fatalf("overview.world_evidence=%v, want an array", overview["world_evidence"])
+	}
+	if _, ok := overview["conflicts"].([]any); !ok {
+		t.Fatalf("overview.conflicts=%v, want an array", overview["conflicts"])
+	}
+	wvp, ok := overview["working_vs_public"].(map[string]any)
+	if !ok {
+		t.Fatalf("overview omitted working_vs_public: %+v", overview)
+	}
+	for _, key := range []string{"published_episodes", "local_accepted_unpublished", "online_verified_episodes", "release_failed_episodes", "active_plans", "open_editor_tasks"} {
+		if value, ok := wvp[key].(float64); !ok || value < 0 {
+			t.Errorf("working_vs_public.%s=%v, want a non-negative count", key, wvp[key])
+		}
+	}
+
+	if wvp["active_plans"] != float64(1) {
+		t.Errorf("working_vs_public.active_plans=%v, want only the inventory plan", wvp["active_plans"])
+	}
+
+	episodes := detail["episodes"].(map[string]any)
+	if episodes["applicable"] != true {
+		t.Fatalf("cowboy episodes.applicable=%v, want true for a serial work", episodes["applicable"])
+	}
+	readable := episodes["readable"].([]any)
+	if wvp["published_episodes"] != float64(len(readable)) {
+		t.Errorf("working_vs_public.published_episodes=%v, want %d readable episodes", wvp["published_episodes"], len(readable))
+	}
+	total, _ := episodes["total"].(float64)
+	matrix := episodes["matrix"].([]any)
+	if total != 26 || len(matrix) != 26 {
+		t.Fatalf("matrix has %d rows for %v declared episodes, want 26 each", len(matrix), total)
+	}
+	states := map[string]bool{"unregistered": true, "registered": true, "planned": true, "in_production": true, "accepted": true, "published": true}
+	byNumber := map[int]map[string]any{}
+	previous, onlineVerified := 0.0, 0
+	for _, raw := range matrix {
+		row := raw.(map[string]any)
+		number, _ := row["number"].(float64)
+		if number <= previous {
+			t.Fatalf("matrix numbers are not strictly ascending at %v", number)
+		}
+		previous = number
+		if _, ok := row["acceptance_gaps"].([]any); !ok {
+			t.Errorf("episode %v acceptance_gaps=%v, want an array", number, row["acceptance_gaps"])
+		}
+		state, _ := row["state"].(string)
+		if !states[state] {
+			t.Errorf("episode %v has state %q outside the six-state definition", number, state)
+		}
+		if row["online_verified"] == true {
+			onlineVerified++
+			if state != "published" {
+				t.Errorf("episode %v is online-verified but state=%q", number, state)
+			}
+		}
+		byNumber[int(number)] = row
+	}
+	for n := 1; n <= int(total); n++ {
+		if _, ok := byNumber[n]; !ok {
+			t.Errorf("matrix is missing declared episode %d", n)
+		}
+	}
+	for _, raw := range readable {
+		number, _ := raw.(float64)
+		if row, ok := byNumber[int(number)]; !ok || row["local_published"] != true {
+			t.Errorf("readable episode %v is not marked local_published in the matrix", raw)
+		}
+	}
+	progress := episodes["progress"].(map[string]any)
+	sum := 0.0
+	for key := range states {
+		value, ok := progress[key].(float64)
+		if !ok || value < 0 {
+			t.Errorf("progress.%s=%v, want a non-negative count", key, progress[key])
+		}
+		sum += value
+	}
+	if scope, _ := progress["scope_total"].(float64); scope != 10 || sum != scope {
+		t.Errorf("six-state counts sum to %v, scope_total=%v, want both to be 10", sum, scope)
+	}
+	if onlineVerified != 1 || progress["online_verified"] != float64(onlineVerified) || wvp["online_verified_episodes"] != float64(onlineVerified) || cowboyRow["online_verified_episodes"] != float64(onlineVerified) {
+		t.Errorf("want one online-verified episode: progress=%v working_vs_public=%v matrix=%d list=%v", progress["online_verified"], wvp["online_verified_episodes"], onlineVerified, cowboyRow["online_verified_episodes"])
+	}
+
+	images := detail["images"].(map[string]any)
+	// The published reader-art override takes precedence over the fixture's base world image.
+	if images["main_visual"] != "/art/bebop/tijuana.webp" {
+		t.Errorf("detail lost the published main visual: %v", images["main_visual"])
+	}
+
+	acceptances := requestKnowledgeJSON(t, router, "/api/v1/knowledge/scope-acceptances")
+	var scopes []struct {
+		Checks []json.RawMessage
+	}
+	if err := json.Unmarshal(acceptances, &scopes); err != nil || len(scopes) == 0 {
+		t.Fatalf("scope acceptances should expose check arrays: %v: %s", err, acceptances)
+	}
+	for _, scope := range scopes {
+		if scope.Checks == nil {
+			t.Fatal("a scope acceptance omitted its check array")
+		}
+	}
+
+	// Catalog quality score must stay separate from the five-dimension acceptance figure.
+	quality, ok := detail["quality_report"].(map[string]any)
+	if !ok {
+		t.Fatalf("detail omitted quality_report: %+v", detail)
+	}
+	if _, leaked := quality["acceptance_pass_rate"]; leaked {
+		t.Error("quality_report must not carry the acceptance pass rate")
+	}
+	if _, ok := detail["acceptance_pass_rate"]; !ok {
+		t.Error("detail omitted the separate acceptance_pass_rate field")
+	}
+}

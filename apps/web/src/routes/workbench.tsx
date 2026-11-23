@@ -31,6 +31,7 @@ export const Route = createFileRoute('/workbench')({
     loop: typeof search.loop === 'string' ? search.loop : undefined,
     stage: typeof search.stage === 'string' ? search.stage : undefined,
     window: topologyWindow(search.window),
+    prompt: typeof search.prompt === 'string' ? search.prompt.slice(0, 1000) : undefined,
   }),
   beforeLoad: async ({ search }) => {
     await requireLocalWorkbench()

@@ -6,15 +6,33 @@ SELECT jsonb_build_object(
 
 -- name: ChatContext
 SELECT jsonb_build_object(
- 'work',jsonb_build_object('slug',w.slug,'name',w.name,'edition',w.edition,'episodes',k.episodes),
+ 'completeness',coalesce((SELECT jsonb_agg(jsonb_build_object('dimension',r.dimension,'item_code',r.item_code,'data_state',r.data_state,
+    'completed',r.completed_required_items,'applicable',r.applicable_required_items,'status',r.status,
+    'gaps',(SELECT coalesce(jsonb_agg(jsonb_build_object('key',d->>'item_key','status',d->>'status','reason',left(coalesce(d->>'reason',''),140))),'[]'::jsonb)
+      FROM (SELECT d FROM jsonb_array_elements(r.details) d WHERE d->>'status' IN ('missing','pending_verification') LIMIT 6) sub)))
+   FROM (
+    SELECT DISTINCT ON (x.rule_code) x.* FROM knowledge_completeness_results x
+    WHERE x.work_id=w.work_id AND x.version_id=w.version_id
+      AND x.rule_version=(SELECT max(rr.rule_version) FROM knowledge_completeness_rules rr WHERE rr.rule_code=x.rule_code AND rr.active)
+    ORDER BY x.rule_code,x.rule_version DESC,x.calculated_at DESC
+   ) r),'[]'::jsonb),
+ 'governance',jsonb_build_object(
+   'open_match_candidates',(SELECT count(*)::int FROM knowledge_match_candidates mc LEFT JOIN knowledge_source_records sr ON sr.id=mc.source_record_id WHERE mc.candidate_work_id=w.work_id OR sr.work_id=w.work_id),
+   'open_quality_issues',(SELECT count(*)::int FROM knowledge_quality_issues qi WHERE qi.entity_id=w.work_id AND qi.status='open'),
+   'active_plans',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',p.id,'first_episode',p.first_episode,'last_episode',p.last_episode,'stage',p.stage,'token_limit',p.token_limit,'consumed',p.consumed,'reserved',p.reserved,'operator_paused',p.operator_paused) ORDER BY p.created_at DESC),'[]'::jsonb)
+     FROM (SELECT * FROM episode_production_requests WHERE world=w.slug AND stage NOT IN ('published','local_ready') ORDER BY created_at DESC LIMIT 5) p)
+  ),
+ 'work',jsonb_build_object('slug',w.slug,'name',w.name,'edition',w.edition,'episodes',k.episodes,'type',k.type),
  'editor_task',(SELECT jsonb_build_object('id',id,'chapter',chapter,'status',status,'issue',left(issue,500),'round',round,'attempt',attempt) FROM editor_tasks WHERE id=$4 AND world=w.slug),
  'inventory', (SELECT jsonb_build_object('checked_at',s.checked_at,'record',entry) FROM (SELECT * FROM episode_inventory_snapshots ORDER BY checked_at DESC LIMIT 1)s, jsonb_array_elements(s.works) entry WHERE entry->>'slug'=w.slug LIMIT 1),
  'plan',(SELECT to_jsonb(p) FROM episode_production_requests p WHERE p.id=$2 AND p.world=w.slug),
  'episodes',coalesce((SELECT jsonb_agg(to_jsonb(ep)) FROM (
    SELECT p.number,p.topic,p.spec->>'title' AS title,r.stage,left(r.error,500) AS error,r.attempt,a.passed,
           (SELECT jsonb_agg(jsonb_build_object('name',dimension->>'name','gaps',
-           (SELECT jsonb_agg(left(item->>'gap',180)) FROM jsonb_array_elements(dimension->'items') item WHERE item?'gap')))
-           FROM jsonb_array_elements(a.checks) dimension) AS checks,
+           (SELECT jsonb_agg(left(item->>'gap',180))
+            FROM jsonb_array_elements(CASE WHEN jsonb_typeof(dimension->'items')='array' THEN dimension->'items' ELSE '[]'::jsonb END) item
+            WHERE item?'gap')))
+           FROM jsonb_array_elements(CASE WHEN jsonb_typeof(a.checks)='array' THEN a.checks ELSE '[]'::jsonb END) dimension) AS checks,
           rel.target_id AS receipt,rel.href,rel.error AS release_error
    FROM episode_plans p LEFT JOIN scope_heads h ON h.topic=p.topic
    LEFT JOIN scope_acceptances a ON a.id=h.latest
@@ -55,7 +73,7 @@ UPDATE workbench_chat_turns SET state=$3,reply=$4,tools=$5,proposal=$6,diff=$7,u
 WHERE id=$1 AND owner=$2 AND state='running'
 
 -- name: ChatTurnLock
-SELECT state,plan_id,proposal,diff FROM workbench_chat_turns WHERE id=$1 AND owner=$2 FOR UPDATE
+SELECT state,world,plan_id,proposal,diff FROM workbench_chat_turns WHERE id=$1 AND owner=$2 FOR UPDATE
 
 -- name: ChatResolve
 UPDATE workbench_chat_turns SET state=$3,updated_at=now() WHERE id=$1 AND owner=$2
@@ -64,7 +82,7 @@ UPDATE workbench_chat_turns SET state=$3,updated_at=now() WHERE id=$1 AND owner=
 SELECT to_jsonb(p) FROM (SELECT * FROM episode_production_requests WHERE id=$1 FOR UPDATE)p
 
 -- name: ChatEditionSize
-SELECT coalesce(k.episodes,0) FROM work_worlds w JOIN works k ON k.id=w.work_id WHERE w.slug=$1
+SELECT coalesce(k.episodes,0) FROM work_worlds w JOIN works k ON k.id=w.work_id WHERE w.slug=$1 FOR SHARE OF k
 
 -- name: ChatRegisteredScope
 SELECT EXISTS(SELECT FROM episode_request_specs WHERE request_id=$1 AND (world_slug<>$2 OR number NOT BETWEEN $3 AND $4))
@@ -106,3 +124,17 @@ AND step.started_at=(SELECT max(m.started_at) FROM media_steps m WHERE m.slot=c.
 UPDATE research_topics SET policy=policy+1,enabled=true WHERE id=$1
 AND NOT EXISTS (SELECT FROM research_runs r WHERE r.topic=$1 AND r.policy=research_topics.policy AND r.stage IN ('collect','write'))
 AND (NOT $2::boolean OR (SELECT stage FROM research_runs WHERE topic=$1 ORDER BY started_at DESC LIMIT 1)='failed')
+
+-- name: ChatCreatePlan
+WITH created AS (
+ INSERT INTO episode_production_requests(id,world,first_episode,last_episode,token_limit,production_policy)
+ VALUES(gen_random_uuid(),$1,$2,$3,$4,$5)
+ RETURNING id,revision
+), note AS (
+ INSERT INTO episode_plan_messages(request_id,revision,instruction,author)
+ SELECT id,revision,$6,$7 FROM created
+)
+SELECT id::text FROM created
+
+-- name: ChatBindTurnPlan
+UPDATE workbench_chat_turns SET plan_id=$3,state='applied',updated_at=now() WHERE id=$1 AND owner=$2

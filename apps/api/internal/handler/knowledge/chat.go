@@ -30,6 +30,7 @@ type chatPatch struct {
 	Consistency   *string `json:"character_consistency,omitempty"`
 	KeepPublished *bool   `json:"preserve_published,omitempty"`
 	Episode       int     `json:"episode,omitempty"`
+	Instruction   *string `json:"instruction,omitempty"`
 }
 
 type chatPlan struct {
@@ -47,7 +48,7 @@ type chatPlan struct {
 }
 
 var readTools = map[string]string{
-	"get_workspace_context": "work", "get_production_plan": "plan", "get_episode_status": "episodes",
+	"get_workspace_context": "work", "get_knowledge_completeness": "completeness", "get_production_plan": "plan", "get_episode_status": "episodes",
 	"get_media_candidates": "media", "get_execution_history": "history",
 }
 
@@ -126,12 +127,12 @@ func startChat(c *gin.Context, db *pgxpool.Pool) {
 		c.Status(503)
 		return
 	}
-	toolNames := []string{"get_workspace_context", "get_production_plan", "get_episode_status", "get_media_candidates", "get_execution_history"}
+	toolNames := []string{"get_workspace_context", "get_knowledge_completeness", "get_production_plan", "get_episode_status", "get_media_candidates", "get_execution_history"}
 	facts := make(map[string]any, len(toolNames))
 	for _, tool := range toolNames {
 		facts[tool] = sections[readTools[tool]]
 	}
-	facts["get_workspace_context"] = map[string]json.RawMessage{"work": sections["work"], "inventory": sections["inventory"], "editor_task": sections["editor_task"]}
+	facts["get_workspace_context"] = map[string]json.RawMessage{"work": sections["work"], "inventory": sections["inventory"], "editor_task": sections["editor_task"], "governance": sections["governance"]}
 	input, _ := json.Marshal(map[string]any{"question": in.Text, "tools": facts, "prior": prior})
 	if len(input) > 90000 {
 		toolNames = nil
@@ -144,10 +145,23 @@ func startChat(c *gin.Context, db *pgxpool.Pool) {
 	var proposal, diff any
 	if modelErr != nil {
 		state, reply.Text = "failed", "Pi 助手暂时无法完成本轮。请检查模型配置后重试。"
+	} else if reply.Patch != nil && reply.Patch.Tool == "create_production_plan" {
+		var changes map[string][2]any
+		err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
+			_, _, d, e := prepareCreatePlanPatch(ctx, tx, in.World, in.Text, reply.Patch)
+			changes = d
+			return e
+		})
+		if err != nil {
+			reply.Text = err.Error()
+		} else {
+			state, proposal, diff = "pending", reply.Patch, changes
+			toolNames = append(toolNames, reply.Patch.Tool)
+		}
 	} else if reply.Patch != nil {
 		var before chatPlan
 		if in.Plan == nil || json.Unmarshal(sections["plan"], &before) != nil || before.Revision == 0 {
-			reply.Text = "请先选择与当前作品匹配的制作计划。"
+			reply.Text = "请先选择与当前作品匹配的制作计划，或让我先为你新建一份本地验收计划。"
 		} else {
 			reply.Patch.Revision = before.Revision
 			var changes map[string][2]any
@@ -205,6 +219,82 @@ func chatInference(ctx context.Context, id string, input []byte) (chatReply, err
 	return reply, err
 }
 
+func prepareCreatePlanPatch(ctx context.Context, tx pgx.Tx, currentWorld, fallbackInstruction string, patch *chatPatch) (chatPlan, string, map[string][2]any, error) {
+	var created chatPlan
+	invalid := func(msg string) (chatPlan, string, map[string][2]any, error) {
+		return created, "", nil, errors.New(msg)
+	}
+	world := strings.TrimSpace(currentWorld)
+	if patch.World != nil {
+		proposedWorld := strings.TrimSpace(*patch.World)
+		if proposedWorld != "" && proposedWorld != world {
+			return invalid("只能为当前对话的作品新建制作计划。")
+		}
+	}
+	if world == "" || patch.First == nil || patch.Last == nil || patch.Budget == nil {
+		return invalid("新建制作计划需要明确作品、起始集、截止集和总预算。")
+	}
+	if patch.KeepPublished != nil && !*patch.KeepPublished {
+		return invalid("此计划工具必须保留已发布内容。")
+	}
+	consistency := "standard"
+	if patch.Consistency != nil && strings.TrimSpace(*patch.Consistency) != "" {
+		consistency = strings.TrimSpace(*patch.Consistency)
+	}
+	if consistency != "standard" && consistency != "strict" {
+		return invalid("人物一致性策略仅支持标准或严格。")
+	}
+	first, last, budget := *patch.First, *patch.Last, *patch.Budget
+	var total int
+	err := tx.QueryRow(ctx, q.ChatQueries["ChatEditionSize"], world).Scan(&total)
+	if err != nil {
+		return invalid("无法读取当前作品的集数，请重试。")
+	}
+	if total == 0 {
+		return invalid("请先登记作品总集数，再新建制作计划。")
+	}
+	if first < 1 || last < first || last-first >= 1000 || last > total {
+		return invalid("集数范围超出已登记的作品版本。")
+	}
+	if budget < 16000 || budget > 1_000_000_000 {
+		return invalid("新建计划预算需在 16,000 至 10 亿 token 之间。")
+	}
+	note := strings.TrimSpace(fallbackInstruction)
+	if patch.Instruction != nil && strings.TrimSpace(*patch.Instruction) != "" {
+		note = strings.TrimSpace(*patch.Instruction)
+	}
+	if note == "" {
+		note = fmt.Sprintf("工作台对话新建第 %d–%d 集本地验收计划", first, last)
+	}
+	if runes := []rune(note); len(runes) > 1400 {
+		note = string(runes[:1400])
+	}
+	patch.World = &world
+	patch.Consistency = &consistency
+	patch.Instruction = &note
+	policy := map[string]any{
+		"character_consistency": consistency,
+		"preserve_published":    true,
+		"publish_to_reader":     false,
+	}
+	created = chatPlan{
+		World:  world,
+		First:  first,
+		Last:   last,
+		Budget: budget,
+		Policy: policy,
+	}
+	changes := map[string][2]any{
+		"world":             {nil, world},
+		"first_episode":     {nil, first},
+		"last_episode":      {nil, last},
+		"token_limit":       {nil, budget},
+		"production_policy": {nil, policy},
+		"instruction":       {nil, note},
+	}
+	return created, note, changes, nil
+}
+
 func prepareChatPatch(ctx context.Context, tx pgx.Tx, id string, before chatPlan, patch chatPatch) (chatPlan, map[string][2]any, bool, error) {
 	after := before
 	changes := map[string][2]any{}
@@ -237,7 +327,15 @@ func prepareChatPatch(ctx context.Context, tx pgx.Tx, id string, before chatPlan
 			if *patch.Consistency != "strict" && *patch.Consistency != "standard" {
 				return invalid("人物一致性策略仅支持标准或严格。")
 			}
-			after.Policy = map[string]any{"character_consistency": *patch.Consistency, "preserve_published": true}
+			// Merge instead of replace so plan-level boundaries such as publish_to_reader=false survive a
+			// consistency change on plans created from the workbench conversation.
+			next := make(map[string]any, len(before.Policy)+2)
+			for key, value := range before.Policy {
+				next[key] = value
+			}
+			next["character_consistency"] = *patch.Consistency
+			next["preserve_published"] = true
+			after.Policy = next
 		}
 		scopeChanged = before.World != after.World || before.First != after.First || before.Last != after.Last
 		var total int
@@ -310,29 +408,57 @@ func resolveChat(c *gin.Context, db *pgxpool.Pool) {
 	}
 	ctx := c.Request.Context()
 	err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
-		var state string
+		var state, world string
 		var plan *string
 		var proposal, storedDiff []byte
-		if err := tx.QueryRow(ctx, q.ChatQueries["ChatTurnLock"], id, owner).Scan(&state, &plan, &proposal, &storedDiff); err != nil {
+		if err := tx.QueryRow(ctx, q.ChatQueries["ChatTurnLock"], id, owner).Scan(&state, &world, &plan, &proposal, &storedDiff); err != nil {
 			return err
 		}
 		if (state == "applied" && *in.Confirm) || (state == "rejected" && !*in.Confirm) {
 			return nil
 		}
-		if state != "pending" || plan == nil {
+		if state != "pending" {
 			return errors.New("这条建议已处理或无法确认。")
 		}
 		if !*in.Confirm {
 			_, err := tx.Exec(ctx, q.ChatQueries["ChatResolve"], id, owner, "rejected")
 			return err
 		}
+		var patch chatPatch
+		if json.Unmarshal(proposal, &patch) != nil {
+			return errors.New("计划记录无效。")
+		}
+		if patch.Tool == "create_production_plan" {
+			created, note, changes, err := prepareCreatePlanPatch(ctx, tx, world, "工作台对话新建本地验收计划", &patch)
+			if err != nil {
+				return err
+			}
+			var check, current map[string]any
+			currentDiff, _ := json.Marshal(changes)
+			_ = json.Unmarshal(storedDiff, &check)
+			_ = json.Unmarshal(currentDiff, &current)
+			if !reflect.DeepEqual(check, current) {
+				return errors.New("新建计划参数已变化，请重新生成建议。")
+			}
+			var newPlanID string
+			if err := tx.QueryRow(ctx, q.ChatQueries["ChatCreatePlan"], created.World, created.First, created.Last, created.Budget, created.Policy, note, owner).Scan(&newPlanID); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, q.ChatQueries["ChatAudit"], id, newPlanID, owner, patch.Tool, 0, 1, storedDiff); err != nil {
+				return err
+			}
+			_, err = tx.Exec(ctx, q.ChatQueries["ChatBindTurnPlan"], id, owner, newPlanID)
+			return err
+		}
+		if plan == nil {
+			return errors.New("这条建议已处理或无法确认。")
+		}
 		var raw []byte
 		var before chatPlan
-		var patch chatPatch
 		if err := tx.QueryRow(ctx, q.ChatQueries["ChatPlanLock"], *plan).Scan(&raw); err != nil {
 			return err
 		}
-		if json.Unmarshal(raw, &before) != nil || json.Unmarshal(proposal, &patch) != nil {
+		if json.Unmarshal(raw, &before) != nil {
 			return errors.New("计划记录无效。")
 		}
 		after, changes, refresh, err := prepareChatPatch(ctx, tx, *plan, before, patch)
