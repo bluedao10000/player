@@ -7,12 +7,13 @@ import resources "anime-agent/api/internal/repository/queries"
 var scheduleSource string
 
 var (
-	SetChatEditionLength    = scheduleSourceQueries["SetChatEditionLength"]
-	SeedChatRetry           = scheduleSourceQueries["SeedChatRetry"]
-	ChatRetryPolicy         = scheduleSourceQueries["ChatRetryPolicy"]
-	ChatOperationCount      = scheduleSourceQueries["ChatOperationCount"]
-	ChatTurnOperationCount  = scheduleSourceQueries["ChatTurnOperationCount"]
-	ChangeChatProposalWorld = scheduleSourceQueries["ChangeChatProposalWorld"]
+	SetChatEditionLength      = scheduleSourceQueries["SetChatEditionLength"]
+	SeedChatRetry             = scheduleSourceQueries["SeedChatRetry"]
+	ChatRetryPolicy           = scheduleSourceQueries["ChatRetryPolicy"]
+	ChatOperationCount        = scheduleSourceQueries["ChatOperationCount"]
+	ChatTurnOperationCount    = scheduleSourceQueries["ChatTurnOperationCount"]
+	ChangeChatProposalWorld   = scheduleSourceQueries["ChangeChatProposalWorld"]
+	ChangeChatProposalPublish = scheduleSourceQueries["ChangeChatProposalPublish"]
 
 	scheduleSourceQueries = resources.Statements(scheduleSource)
 	CreateScheduleEdition = scheduleSourceQueries["CreateScheduleEdition"]

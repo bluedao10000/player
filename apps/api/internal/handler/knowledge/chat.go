@@ -22,17 +22,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const chatPublicReleaseError = "工作台对话只支持本地验收计划，不能开启公网发布。"
+
 type chatPatch struct {
-	Tool          string  `json:"tool"`
-	Revision      int     `json:"expected_revision"`
-	World         *string `json:"world,omitempty"`
-	First         *int    `json:"first_episode,omitempty"`
-	Last          *int    `json:"last_episode,omitempty"`
-	Budget        *int64  `json:"token_limit,omitempty"`
-	Consistency   *string `json:"character_consistency,omitempty"`
-	KeepPublished *bool   `json:"preserve_published,omitempty"`
-	Episode       int     `json:"episode,omitempty"`
-	Instruction   *string `json:"instruction,omitempty"`
+	Tool            string  `json:"tool"`
+	Revision        int     `json:"expected_revision"`
+	World           *string `json:"world,omitempty"`
+	First           *int    `json:"first_episode,omitempty"`
+	Last            *int    `json:"last_episode,omitempty"`
+	Budget          *int64  `json:"token_limit,omitempty"`
+	Consistency     *string `json:"character_consistency,omitempty"`
+	KeepPublished   *bool   `json:"preserve_published,omitempty"`
+	PublishToReader *bool   `json:"publish_to_reader,omitempty"`
+	Episode         int     `json:"episode,omitempty"`
+	Instruction     *string `json:"instruction,omitempty"`
 }
 
 type chatPlan struct {
@@ -280,6 +283,9 @@ func prepareCreatePlanPatch(ctx context.Context, tx pgx.Tx, currentWorld, fallba
 	invalid := func(msg string) (chatPlan, string, map[string][2]any, error) {
 		return created, "", nil, errors.New(msg)
 	}
+	if patch.PublishToReader != nil && *patch.PublishToReader {
+		return invalid(chatPublicReleaseError)
+	}
 	world := strings.TrimSpace(currentWorld)
 	if patch.World != nil {
 		proposedWorld := strings.TrimSpace(*patch.World)
@@ -355,6 +361,9 @@ func prepareChatPatch(ctx context.Context, tx pgx.Tx, world, id string, before c
 	after := before
 	changes := map[string][2]any{}
 	invalid := func(msg string) (chatPlan, map[string][2]any, bool, error) { return after, nil, false, errors.New(msg) }
+	if patch.PublishToReader != nil && *patch.PublishToReader {
+		return invalid(chatPublicReleaseError)
+	}
 	if before.World != world || (patch.World != nil && *patch.World != world) {
 		return invalid("只能修改当前对话作品的制作计划。")
 	}

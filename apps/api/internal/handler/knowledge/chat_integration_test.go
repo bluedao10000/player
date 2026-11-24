@@ -56,11 +56,15 @@ func TestWorkbenchChatConfirmation(t *testing.T) {
 			patch = map[string]any{"tool": "resume_production"}
 		case "policy":
 			patch = map[string]any{"tool": "update_production_policy", "character_consistency": "strict"}
-		case "create", "create other":
+		case "create", "create other", "create public":
 			patch = map[string]any{"tool": "create_production_plan", "first_episode": 1, "last_episode": 5, "token_limit": 300000, "instruction": "补齐前 5 集（本地验收）"}
 			if payload.Question == "create other" {
 				patch["world"] = "cowboy-bebop-tv"
+			} else if payload.Question == "create public" {
+				patch["publish_to_reader"] = true
 			}
+		case "change public":
+			patch = map[string]any{"tool": "update_token_budget", "token_limit": 990000, "publish_to_reader": true}
 		default:
 			if len(payload.Prior) != 0 {
 				t.Error("first turn unexpectedly has history")
@@ -291,6 +295,17 @@ func TestWorkbenchChatConfirmation(t *testing.T) {
 		pendingProposal(id)
 		noWrites(id)
 	}
+
+	const publishError = "工作台对话只支持本地验收计划，不能开启公网发布。"
+	rejectedProposal(createTurn(17, "create public"), publishError)
+	turn(18, "change public")
+	rejectedProposal("a01c3782-97fc-43ac-bb47-000000000018", publishError)
+	publicTamper := createTurn(19, "create")
+	pendingProposal(publicTamper)
+	if _, err := db.Exec(ctx, fixtures.ChangeChatProposalPublish, publicTamper); err != nil {
+		t.Fatal(err)
+	}
+	rejectedConfirmation(publicTamper, publishError)
 
 	rejectedProposal(createTurn(13, "create other"), worldError)
 	tampered := createTurn(14, "create")
