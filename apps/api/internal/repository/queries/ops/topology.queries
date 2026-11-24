@@ -11,13 +11,13 @@ WITH clock AS (
 ), target AS (
  SELECT w.slug,w.work_id,w.name,w.edition FROM work_worlds w CROSS JOIN clock c WHERE w.slug=c.world_slug
 ), runs AS MATERIALIZED (
- SELECT r.*
+ SELECT r.stage,r.world_slug,r.status,r.outcome,r.started_at,r.finished_at
  FROM ops_task_runs r CROSS JOIN clock c
  WHERE c.world_slug IS NULL
     OR r.world_slug=c.world_slug
     OR (r.world_slug IS NULL AND r.stage IN ('source_sync','quality_scan','backup'))
 ), items AS MATERIALIZED (
- SELECT w.*
+ SELECT w.stage,w.world_slug,w.state
  FROM ops_work_items w CROSS JOIN clock c
  WHERE c.world_slug IS NULL OR w.world_slug=c.world_slug
     OR (w.world_slug IS NULL AND w.stage IN ('source_sync','quality_scan','backup'))
@@ -109,16 +109,17 @@ WITH clock AS (
  JOIN stage_execution_keys k ON k.stage_id=m.stage_id AND k.execution_key IS NOT NULL
  LEFT JOIN heartbeat_state h ON (h.role,h.loop)=(m.role,m.loop) AND m.role='agent'
  GROUP BY m.stage_id
+), record_keys AS (
+ SELECT stage,world_slug FROM runs
+ UNION
+ SELECT stage,world_slug FROM items
 ), stage_payloads AS (
  SELECT s.id,s.title,s.eyebrow,s.grp,s.topology_group,s.position,s.upstream,s.tracked,
   s.id IN ('source_sync','quality_scan','backup') AS global_scope,
-  CASE WHEN c.world_slug IS NULL THEN NULL
-   WHEN s.id IN ('source_sync','quality_scan','backup') THEN EXISTS(
-     SELECT FROM ops_task_runs r WHERE r.stage=s.id AND r.world_slug IS NULL)
-     OR EXISTS(SELECT FROM ops_work_items w WHERE w.stage=s.id AND w.world_slug IS NULL)
-   ELSE EXISTS(SELECT FROM ops_task_runs r WHERE r.stage=s.id AND r.world_slug=c.world_slug)
-     OR EXISTS(SELECT FROM ops_work_items w WHERE w.stage=s.id AND w.world_slug=c.world_slug)
-  END AS has_records,
+  CASE WHEN c.world_slug IS NULL THEN NULL ELSE EXISTS(
+   SELECT FROM record_keys r WHERE r.stage=s.id AND r.world_slug IS NOT DISTINCT FROM
+     CASE WHEN s.id IN ('source_sync','quality_scan','backup') THEN NULL ELSE c.world_slug END
+  ) END AS has_records,
   coalesce(cr.running,0)+coalesce(ci.pending,0)+coalesce(ci.blocked,0)+coalesce(ci.waiting_human,0) AS current_total,
   coalesce(cr.running,0) AS running,
   coalesce(ci.pending,0) AS pending,
@@ -225,8 +226,7 @@ SELECT jsonb_build_object(
  'selected_world',CASE WHEN c.world_slug IS NULL THEN NULL ELSE (
   SELECT jsonb_build_object(
    'slug',t.slug,'title',t.name,'edition',t.edition,'work_id',t.work_id,
-   'has_records',EXISTS(SELECT FROM ops_task_runs r WHERE r.world_slug=t.slug)
-              OR EXISTS(SELECT FROM ops_work_items w WHERE w.world_slug=t.slug),
+   'has_records',EXISTS(SELECT FROM record_keys r WHERE r.world_slug=t.slug),
    'progress',jsonb_build_object(
     'scope_total',(SELECT count(*)::int FROM progress),
     'unregistered',(SELECT count(*)::int FROM progress WHERE state='unregistered'),

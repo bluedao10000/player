@@ -2131,6 +2131,11 @@ CREATE UNIQUE INDEX knowledge_source_review_marks_open_identity
 CREATE INDEX knowledge_source_review_marks_open
  ON knowledge_source_review_marks(world_slug,updated_at DESC) WHERE resolved_at IS NULL;
 
+-- name: 064.sql
+-- Each known queue status returns exactly one row. The default estimate for
+-- a set-returning function is 1000, which inflates plans using ops_work_items.
+ALTER FUNCTION ops_policy_queue_work_item(text) ROWS 1;
+
 -- name: ledger
-INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,63) i;
+INSERT INTO knowledge_migrations(version) SELECT lpad(i::text,3,'0') || '.sql' FROM generate_series(1,64) i;
 COMMIT;

@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"time"
 
+	"anime-agent/api/internal/repository/database"
 	resources "anime-agent/api/internal/repository/queries"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -35,9 +36,7 @@ func TopologyAt(ctx context.Context, db *pgxpool.Pool, window string, hours int,
 	if at != nil {
 		clock = *at
 	}
-	var body []byte
-	err := db.QueryRow(ctx, topologyQueries["Topology"], window, hours, target, clock).Scan(&body)
-	return body, err
+	return database.ReadJSONWithoutJIT(ctx, db, topologyQueries["Topology"], window, hours, target, clock)
 }
 
 func TopologyStageDetail(ctx context.Context, db *pgxpool.Pool, stage string, hours int, world string,

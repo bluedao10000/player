@@ -24,7 +24,7 @@ func OpsKnowledgeCompleteness(ctx context.Context, db *pgxpool.Pool, work string
 }
 
 func OpsKnowledgeWorks(ctx context.Context, db *pgxpool.Pool, q, hasVersion, workType, completenessStatus, productionStatus, sort string, offset, limit int, sourceReviewOnly bool) ([]byte, error) {
-	return database.ReadJSON(ctx, db, opsCompletenessQueries["OpsKnowledgeWorks"], q, hasVersion, workType,
+	return database.ReadJSONWithoutJIT(ctx, db, opsCompletenessQueries["OpsKnowledgeWorks"], q, hasVersion, workType,
 		completenessStatus, productionStatus, sort, offset, limit, sourceReviewOnly)
 }
 

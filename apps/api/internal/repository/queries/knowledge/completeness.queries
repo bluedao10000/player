@@ -88,31 +88,30 @@ WITH worlds AS (
         CASE WHEN nullif(btrim(c.title),'') IS NOT NULL AND nullif(btrim(c.intro),'') IS NOT NULL AND c.body
              THEN NULL ELSE '缺少章节简介或正文' END reason
  FROM worlds w JOIN chapters c ON c.v=w.version_id
+), readable_episodes AS (
+ SELECT DISTINCT w.work_id,w.version_id,e::int AS number
+ FROM worlds w CROSS JOIN LATERAL jsonb_array_elements_text(w.inventory_card->'readable_episodes') e
+), pending_episodes AS (
+ SELECT w.work_id,w.version_id,p.number
+ FROM worlds w JOIN episode_plans p ON p.world_slug=w.slug
+ LEFT JOIN scope_heads h ON h.topic=p.topic
+ LEFT JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
+ WHERE EXISTS(SELECT FROM episode_source_captures c WHERE c.topic=p.topic)
+    OR EXISTS(SELECT FROM research_runs r WHERE r.topic=p.topic AND r.v=w.version_id)
+    OR (a.v=w.version_id AND NOT a.passed)
 ), episode_rows AS (
  SELECT w.work_id,w.slug,w.version_id,'plot.episodes'::text rule_code,
         n::text item_key,
-        CASE WHEN EXISTS(SELECT FROM jsonb_array_elements_text(w.inventory_card->'readable_episodes') e WHERE e::int=n)
-             THEN 'completed'
-             WHEN EXISTS(
-               SELECT FROM episode_plans p
-               WHERE p.world_slug=w.slug AND p.number=n AND (
-                 EXISTS(SELECT FROM episode_source_captures c WHERE c.topic=p.topic)
-                 OR EXISTS(SELECT FROM research_runs r WHERE r.topic=p.topic AND r.v=w.version_id)
-                 OR EXISTS(SELECT FROM scope_heads h JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
-                           WHERE h.topic=p.topic AND a.v=w.version_id AND NOT a.passed)
-               )) THEN 'pending_verification'
+        CASE WHEN rd.number IS NOT NULL THEN 'completed'
+             WHEN pe.number IS NOT NULL THEN 'pending_verification'
              ELSE 'missing' END item_status,
         'reader_knowledge_inventory.readable_episodes'::text evidence_ref,
-        CASE WHEN EXISTS(SELECT FROM jsonb_array_elements_text(w.inventory_card->'readable_episodes') e WHERE e::int=n)
-             THEN NULL
-             WHEN EXISTS(SELECT FROM episode_plans p WHERE p.world_slug=w.slug AND p.number=n AND
-               (EXISTS(SELECT FROM episode_source_captures c WHERE c.topic=p.topic)
-                OR EXISTS(SELECT FROM research_runs r WHERE r.topic=p.topic AND r.v=w.version_id)
-                OR EXISTS(SELECT FROM scope_heads h JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
-                          WHERE h.topic=p.topic AND a.v=w.version_id AND NOT a.passed)))
-             THEN '已有来源或取证，等待范围验收通过并发布'
+        CASE WHEN rd.number IS NOT NULL THEN NULL
+             WHEN pe.number IS NOT NULL THEN '已有来源或取证，等待范围验收通过并发布'
              ELSE '尚无当前版本的公开分集内容' END reason
  FROM worlds w CROSS JOIN LATERAL generate_series(1,CASE WHEN w.type IN ('MOVIE','SHORT_STORY_COLLECTION') THEN 0 ELSE greatest(coalesce(w.episodes,0),0) END) n
+ LEFT JOIN readable_episodes rd ON (rd.work_id,rd.version_id,rd.number)=(w.work_id,w.version_id,n)
+ LEFT JOIN pending_episodes pe ON (pe.work_id,pe.version_id,pe.number)=(w.work_id,w.version_id,n)
  UNION ALL
  SELECT w.work_id,w.slug,w.version_id,'plot.episodes','episode_total_unknown','missing',
         'works.type|works.episodes','连续剧未登记总集数'
@@ -164,7 +163,7 @@ WITH worlds AS (
         'published_chapters.card.image|published_extensions.chapter.image'::text evidence_ref,
         CASE WHEN nullif(btrim(c.image),'') IS NOT NULL THEN NULL ELSE '缺少章节配图' END reason
  FROM worlds w JOIN chapters c ON c.v=w.version_id
-), item_rows AS (
+), item_rows AS MATERIALIZED (
  SELECT * FROM profile_rows UNION ALL SELECT * FROM episode_total_rows
  UNION ALL SELECT * FROM person_rows UNION ALL SELECT * FROM storyline_rows
  UNION ALL SELECT * FROM chapter_rows UNION ALL SELECT * FROM episode_rows

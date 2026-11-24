@@ -118,18 +118,29 @@ FROM selected s
 WITH clock AS (SELECT statement_timestamp() AS as_of),
 review_worlds AS (
  SELECT world_slug,count(*)::int AS open_reviews FROM knowledge_source_review_marks WHERE resolved_at IS NULL GROUP BY world_slug
-),
-worlds AS (
- SELECT k.id AS work_id,coalesce(w.slug,review.world_slug) AS slug,w.version_id,w.edition,w.published_at,k.canonical_title,k.original_title,k.type,k.episodes,k.updated_at,
-        coalesce(review.open_reviews,0) AS open_source_reviews,
-        i.card,coalesce(rv.release_versions,0)::int release_versions
+), catalog AS MATERIALIZED (
+ SELECT k.id AS work_id,coalesce(w.slug,review.world_slug) AS slug,w.slug AS published_slug,w.version_id,
+        w.edition,w.published_at,k.canonical_title,k.type,k.episodes,k.updated_at,
+        coalesce(review.open_reviews,0) AS open_source_reviews
  FROM works k
  LEFT JOIN published_worlds w ON w.work_id=k.id
  LEFT JOIN work_worlds ww ON ww.work_id=k.id
  LEFT JOIN review_worlds review ON review.world_slug=ww.slug
- LEFT JOIN reader_knowledge_inventory i ON (i.work_id,i.slug)=(w.work_id,w.slug)
- LEFT JOIN (SELECT work_id,count(*) release_versions FROM world_releases GROUP BY work_id) rv ON rv.work_id=k.id
- WHERE k.active OR ($9::bool AND review.open_reviews>0)
+ WHERE (k.active OR ($9::bool AND review.open_reviews>0))
+ AND (NOT $9::bool OR review.open_reviews>0)
+ AND ($1='' OR lower(k.canonical_title) LIKE '%'||lower($1)||'%' OR lower(coalesce(k.original_title,'')) LIKE '%'||lower($1)||'%'
+   OR EXISTS(SELECT FROM work_titles t WHERE t.work_id=k.id AND lower(t.title) LIKE '%'||lower($1)||'%'))
+ AND ($2='all' OR ($2='true' AND w.version_id IS NOT NULL) OR ($2='false' AND w.version_id IS NULL))
+ AND ($3='' OR ($3='__null__' AND k.type IS NULL) OR k.type=$3)
+), worlds AS MATERIALIZED (
+ SELECT c.*,i.card,coalesce(rv.release_versions,0)::int release_versions
+ FROM catalog c
+ LEFT JOIN LATERAL (
+  SELECT card FROM reader_knowledge_inventory i
+  WHERE (i.work_id,i.slug)=(c.work_id,c.published_slug)
+  OFFSET 0
+ ) i ON true
+ LEFT JOIN (SELECT work_id,count(*) release_versions FROM world_releases GROUP BY work_id) rv ON rv.work_id=c.work_id
 ), operation_status AS (
  SELECT world_slug,count(*) FILTER(WHERE state='pending')::int pending_items,
         count(*) FILTER(WHERE state='blocked')::int blocked_items,
@@ -141,6 +152,24 @@ worlds AS (
  FROM episode_plans p JOIN scope_heads h ON h.topic=p.topic
  JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
  GROUP BY p.world_slug
+), verified_episodes AS (
+ SELECT p.world_slug,count(DISTINCT p.number)::int AS total
+ FROM episode_plans p JOIN reader_release_attempts rel ON rel.topic=p.topic
+ WHERE rel.target_id IS NOT NULL AND rel.href IS NOT NULL AND rel.error IS NULL
+ GROUP BY p.world_slug
+), match_endpoints AS (
+ SELECT mc.candidate_work_id,sr.work_id AS source_work_id
+ FROM knowledge_match_candidates mc LEFT JOIN knowledge_source_records sr ON sr.id=mc.source_record_id
+), conflicts AS (
+ SELECT work_id,count(*)::int AS total FROM (
+  SELECT candidate_work_id AS work_id FROM match_endpoints
+  UNION ALL
+  SELECT source_work_id FROM match_endpoints
+  WHERE source_work_id IS NOT NULL AND source_work_id IS DISTINCT FROM candidate_work_id
+ ) endpoints GROUP BY work_id
+), completeness_updates AS (
+ SELECT world_slug,version_id,max(calculated_at) AS updated_at
+ FROM knowledge_completeness_results GROUP BY world_slug,version_id
 ), counts AS (
  SELECT w.*,
    CASE WHEN w.version_id IS NULL THEN NULL ELSE jsonb_array_length(w.card->'readable_episodes') END episodes_covered,
@@ -151,15 +180,14 @@ worlds AS (
       +coalesce((w.card->>'portraits')::int,0)+coalesce((w.card->>'chapter_images')::int,0) END images_count,
    coalesce(os.pending_items,0) pending_items,coalesce(os.blocked_items,0) blocked_items,
    coalesce(os.waiting_items,0) waiting_items,a.acceptance_pass_rate,
-   CASE WHEN w.version_id IS NULL THEN NULL ELSE (
-     SELECT count(DISTINCT p.number)::int FROM episode_plans p
-     JOIN reader_release_attempts rel ON rel.topic=p.topic
-     WHERE p.world_slug=w.slug AND rel.target_id IS NOT NULL AND rel.href IS NOT NULL AND rel.error IS NULL
-   ) END online_verified_episodes,
-   (SELECT count(*)::int FROM knowledge_match_candidates mc LEFT JOIN knowledge_source_records sr ON sr.id=mc.source_record_id
-    WHERE mc.candidate_work_id=w.work_id OR sr.work_id=w.work_id) open_conflicts,
-   (SELECT max(r.calculated_at) FROM knowledge_completeness_results r WHERE r.world_slug=w.slug AND r.version_id=w.version_id) completeness_updated
- FROM worlds w LEFT JOIN operation_status os ON os.world_slug=w.slug LEFT JOIN acceptance a ON a.world_slug=w.slug
+   CASE WHEN w.version_id IS NULL THEN NULL ELSE coalesce(v.total,0) END online_verified_episodes,
+   coalesce(mc.total,0) open_conflicts,cu.updated_at AS completeness_updated
+ FROM worlds w
+ LEFT JOIN operation_status os ON os.world_slug=w.slug
+ LEFT JOIN acceptance a ON a.world_slug=w.slug
+ LEFT JOIN verified_episodes v ON v.world_slug=w.slug
+ LEFT JOIN conflicts mc ON mc.work_id=w.work_id
+ LEFT JOIN completeness_updates cu ON (cu.world_slug,cu.version_id)=(w.slug,w.version_id)
 ), current_results AS (
  SELECT DISTINCT ON (r.work_id,r.version_id,r.rule_code) r.*
  FROM knowledge_completeness_results r
@@ -192,14 +220,9 @@ worlds AS (
    c.canonical_title title
  FROM counts c LEFT JOIN completeness comp ON (comp.work_id,comp.version_id)=(c.work_id,c.version_id)
 ), filtered AS (
- SELECT p.* FROM prepared p CROSS JOIN clock c
- WHERE ($1='' OR lower(p.title) LIKE '%'||lower($1)||'%' OR lower(coalesce(p.original_title,'')) LIKE '%'||lower($1)||'%'
-   OR EXISTS(SELECT FROM work_titles t WHERE t.work_id=p.work_id AND lower(t.title) LIKE '%'||lower($1)||'%'))
- AND ($2='all' OR ($2='true' AND p.version_id IS NOT NULL) OR ($2='false' AND p.version_id IS NULL))
- AND ($3='' OR ($3='__null__' AND p.type IS NULL) OR p.type=$3)
- AND ($4='' OR EXISTS(SELECT FROM current_results r WHERE r.work_id=p.work_id AND r.version_id=p.version_id AND r.status=$4))
+ SELECT p.* FROM prepared p
+ WHERE ($4='' OR EXISTS(SELECT FROM current_results r WHERE r.work_id=p.work_id AND r.version_id=p.version_id AND r.status=$4))
  AND ($5='' OR p.production_status=$5)
- AND (NOT $9::bool OR p.open_source_reviews>0)
 ), ordered AS (
  SELECT f.*,row_number() OVER(ORDER BY
    CASE WHEN $6='title' THEN f.title END ASC,
@@ -229,17 +252,22 @@ SELECT jsonb_build_object('as_of',c.as_of,'definition',2,
 FROM clock c
 
 -- name: OpsKnowledgeWork
-WITH selected AS (
+WITH selected_work AS MATERIALIZED (
  SELECT k.*,w.slug,w.version_id,w.edition,w.name world_name,w.intro world_intro,w.origin,w.published_at,
-        ww.slug AS review_slug,
-        i.card,nullif(btrim(w.card->>'hero_asset_key'),'') AS main_visual
+        ww.slug AS review_slug,nullif(btrim(w.card->>'hero_asset_key'),'') AS main_visual
  FROM works k LEFT JOIN published_worlds w ON w.work_id=k.id
  LEFT JOIN work_worlds ww ON ww.work_id=k.id
- LEFT JOIN reader_knowledge_inventory i ON (i.work_id,i.slug)=(w.work_id,w.slug)
  WHERE (k.active AND ($1=w.slug OR $1=k.id::text))
     OR (($1=ww.slug OR $1=k.id::text) AND EXISTS(
       SELECT FROM knowledge_source_review_marks m WHERE m.world_slug=ww.slug AND m.resolved_at IS NULL))
  LIMIT 1
+), selected AS (
+ SELECT s.*,i.card
+ FROM selected_work s
+ LEFT JOIN LATERAL (
+  SELECT card FROM reader_knowledge_inventory i WHERE (i.work_id,i.slug)=(s.id,s.slug)
+  OFFSET 0
+ ) i ON true
 ), source_reviews AS (
  SELECT m.id,m.topic,p.number,m.last_run_id,m.previous_version_id,m.source_version_id,m.updated_at,m.changes,
         k.name AS source,r.record_key
@@ -280,39 +308,39 @@ WITH selected AS (
  FROM episode_plans p JOIN selected s ON s.slug=p.world_slug
  JOIN research_topics t ON t.id=p.topic LEFT JOIN scope_heads h ON h.topic=p.topic
  LEFT JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
+), work_slugs AS (
+ SELECT w.slug FROM work_worlds w JOIN selected s ON s.id=w.work_id
 ), policy_episodes AS (
  SELECT DISTINCT n.episode
- FROM episode_policies pol
- JOIN work_worlds ww ON ww.slug=pol.world_slug
- JOIN selected s ON s.id=ww.work_id
+ FROM episode_policies pol JOIN work_slugs w ON w.slug=pol.world_slug
  CROSS JOIN LATERAL generate_series(pol.first_episode,pol.last_episode) AS n(episode)
+), work_plans AS MATERIALIZED (
+ SELECT p.* FROM episode_plans p JOIN work_slugs w ON w.slug=p.world_slug
+), plan_facts AS (
+ SELECT p.number,
+  bool_or(EXISTS(SELECT FROM reader_release_attempts r WHERE r.topic=p.topic
+      AND r.target_id IS NOT NULL AND r.href IS NOT NULL AND r.error IS NULL)) AS online_verified,
+  bool_or(p.world_slug=s.slug AND h.published IS NOT NULL) AS local_published,
+  bool_or(a.passed AND p.number BETWEEN a.scope_first AND a.scope_last) AS is_accepted,
+  bool_or(EXISTS(SELECT FROM episode_admissions a WHERE a.topic=p.topic)) AS is_in_production
+ FROM work_plans p CROSS JOIN selected s
+ LEFT JOIN scope_heads h ON h.topic=p.topic
+ LEFT JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
+ GROUP BY p.number
+), planned_episodes AS (
+ SELECT DISTINCT a.number
+ FROM episode_configuration_attempts a JOIN episode_production_requests r ON r.id=a.request_id
+ JOIN work_slugs w ON w.slug=r.world WHERE a.registered
+), readable_episodes AS (
+ SELECT e::int AS number FROM selected s, jsonb_array_elements_text(coalesce(s.card->'readable_episodes','[]'::jsonb)) e
 ), matrix_numbers AS (
  SELECT n AS episode FROM selected s
  CROSS JOIN LATERAL generate_series(1,CASE WHEN s.type IN ('TV','ONA','OVA','SPECIAL') AND s.episodes>0 THEN least(s.episodes,500) ELSE 0 END) n
  UNION SELECT episode FROM policy_episodes
- UNION SELECT p.number FROM episode_plans p JOIN selected s ON s.slug=p.world_slug
- UNION SELECT (e)::int FROM selected s, jsonb_array_elements_text(coalesce(s.card->'readable_episodes','[]'::jsonb)) e
-), episode_matrix_rows AS (
- SELECT m.episode AS number,
-  EXISTS(SELECT FROM policy_episodes pe WHERE pe.episode=m.episode) AS in_policy,
-  EXISTS(SELECT FROM episode_plans p JOIN work_worlds w ON w.slug=p.world_slug WHERE w.work_id=s.id AND p.number=m.episode) AS has_plan,
-  EXISTS(SELECT FROM episode_plans p JOIN work_worlds w ON w.slug=p.world_slug JOIN reader_release_attempts r ON r.topic=p.topic
-         WHERE w.work_id=s.id AND p.number=m.episode AND r.target_id IS NOT NULL AND r.href IS NOT NULL AND r.error IS NULL) AS online_verified,
-  (EXISTS(SELECT FROM jsonb_array_elements_text(coalesce(s.card->'readable_episodes','[]'::jsonb)) e WHERE e::int=m.episode)
-   OR EXISTS(SELECT FROM episode_plans p JOIN scope_heads h ON h.topic=p.topic WHERE p.world_slug=s.slug AND p.number=m.episode AND h.published IS NOT NULL)) AS local_published,
-  EXISTS(SELECT FROM episode_plans p JOIN work_worlds w ON w.slug=p.world_slug JOIN scope_heads h ON h.topic=p.topic JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
-         WHERE w.work_id=s.id AND p.number=m.episode AND a.passed AND m.episode BETWEEN a.scope_first AND a.scope_last) AS is_accepted,
-  EXISTS(SELECT FROM episode_plans p JOIN work_worlds w ON w.slug=p.world_slug JOIN episode_admissions a ON a.topic=p.topic
-         WHERE w.work_id=s.id AND p.number=m.episode) AS is_in_production,
-  EXISTS(SELECT FROM episode_configuration_attempts a JOIN episode_production_requests r ON r.id=a.request_id JOIN work_worlds w ON w.slug=r.world
-         WHERE w.work_id=s.id AND a.number=m.episode AND a.registered) AS is_planned,
-  ep.topic,ep.title,ep.acceptance_passed,coalesce(ep.acceptance_gaps,'[]'::jsonb) AS acceptance_gaps,
-  ep.research_stage,ep.research_error,
-  ep.release_receipt,ep.release_href,ep.release_error,
-  coalesce(ep.media,jsonb_build_object('total',0,'passed',0,'failed',0,'held',0,'active',0)) AS media
- FROM matrix_numbers m CROSS JOIN selected s
- LEFT JOIN LATERAL (
-  SELECT p.topic,p.spec->>'title' AS title,a.passed AS acceptance_passed,
+ UNION SELECT p.number FROM work_plans p JOIN selected s ON s.slug=p.world_slug
+ UNION SELECT number FROM readable_episodes
+), episode_details AS MATERIALIZED (
+  SELECT p.number,p.topic,p.spec->>'title' AS title,a.passed AS acceptance_passed,
    coalesce((SELECT jsonb_agg(dimension->>'name' || '：' || (item->>'gap'))
      FROM jsonb_array_elements(CASE WHEN jsonb_typeof(a.checks)='array' THEN a.checks ELSE '[]'::jsonb END) dimension
      CROSS JOIN jsonb_array_elements(CASE WHEN jsonb_typeof(dimension->'items')='array' THEN dimension->'items' ELSE '[]'::jsonb END) item
@@ -327,13 +355,30 @@ WITH selected AS (
      'active',count(*) FILTER(WHERE c.stage IN ('reference','queued','generate','review','recrop','recheck'))::int)
     FROM episode_art_jobs j JOIN media_candidates c ON c.art_job=j.id
     WHERE j.world_slug=p.world_slug AND j.slug=p.spec->>'sceneSlug') AS media
-  FROM episode_plans p
+  FROM work_plans p JOIN selected s ON s.slug=p.world_slug
   LEFT JOIN scope_heads h ON h.topic=p.topic
   LEFT JOIN scope_acceptances a ON a.topic=h.topic AND a.id=h.latest
   LEFT JOIN LATERAL (SELECT stage,error FROM research_runs WHERE topic=p.topic ORDER BY started_at DESC LIMIT 1) rr ON true
   LEFT JOIN LATERAL (SELECT target_id,href,error FROM reader_release_attempts WHERE topic=p.topic ORDER BY started_at DESC LIMIT 1) rel ON true
-  WHERE p.world_slug=s.slug AND p.number=m.episode LIMIT 1
- ) ep ON true
+), episode_matrix_rows AS (
+ SELECT m.episode AS number,
+  pe.episode IS NOT NULL AS in_policy,
+  f.number IS NOT NULL AS has_plan,
+  coalesce(f.online_verified,false) AS online_verified,
+  (rd.number IS NOT NULL OR coalesce(f.local_published,false)) AS local_published,
+  coalesce(f.is_accepted,false) AS is_accepted,
+  coalesce(f.is_in_production,false) AS is_in_production,
+  cfg.number IS NOT NULL AS is_planned,
+  ep.topic,ep.title,ep.acceptance_passed,coalesce(ep.acceptance_gaps,'[]'::jsonb) AS acceptance_gaps,
+  ep.research_stage,ep.research_error,
+  ep.release_receipt,ep.release_href,ep.release_error,
+  coalesce(ep.media,jsonb_build_object('total',0,'passed',0,'failed',0,'held',0,'active',0)) AS media
+ FROM matrix_numbers m CROSS JOIN selected s
+ LEFT JOIN policy_episodes pe ON pe.episode=m.episode
+ LEFT JOIN plan_facts f ON f.number=m.episode
+ LEFT JOIN (SELECT DISTINCT number FROM readable_episodes) rd ON rd.number=m.episode
+ LEFT JOIN planned_episodes cfg ON cfg.number=m.episode
+ LEFT JOIN episode_details ep ON ep.number=m.episode
 ), episode_matrix AS (
  SELECT r.*,
   CASE WHEN NOT r.has_plan THEN 'unregistered'

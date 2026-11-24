@@ -1,0 +1,2 @@
+-- name: DisableJIT
+SET LOCAL jit = off
