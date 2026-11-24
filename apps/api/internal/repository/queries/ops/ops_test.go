@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"anime-agent/api/internal/repository/database"
+	knowledgeread "anime-agent/api/internal/repository/queries/knowledge"
 	ops "anime-agent/api/internal/repository/queries/ops"
 	domain "anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/testsupport"
@@ -381,7 +382,7 @@ func TestOpsHeartbeatPersistenceAndOnlineBoundaries(t *testing.T) {
 func TestOpsDailySnapshotIsIdempotent(t *testing.T) {
 	db := testsupport.Database(t)
 	ctx := context.Background()
-	day := time.Date(2026, 11, 22, 0, 0, 0, 0, time.FixedZone("Asia/Shanghai", 8*60*60))
+	day, _ := ops.BeijingSnapshotDay(time.Now())
 	legacyDay := day.AddDate(0, 0, -1)
 	for _, statement := range []string{sqltest.SeedOpsSyncRuns, sqltest.SeedOpsWorlds} {
 		if _, err := db.Exec(ctx, statement); err != nil {
@@ -394,6 +395,9 @@ func TestOpsDailySnapshotIsIdempotent(t *testing.T) {
 	if _, err := db.Exec(ctx, sqltest.SeedCompletenessCatalogOnly); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec(ctx, sqltest.SeedOpsSnapshotSources); err != nil {
+		t.Fatal(err)
+	}
 	if err := domain.RecalculateCompleteness(ctx, db); err != nil {
 		t.Fatalf("calculate completeness for snapshot: %v", err)
 	}
@@ -401,8 +405,8 @@ func TestOpsDailySnapshotIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var activeWorksBefore int
-	if err := db.QueryRow(ctx, sqltest.OpsSnapshotActiveWorks, day.Format("2006-01-02")).Scan(&activeWorksBefore); err != nil {
-		t.Fatal(err)
+	if err := db.QueryRow(ctx, sqltest.OpsSnapshotActiveWorks, day.Format("2006-01-02")).Scan(&activeWorksBefore); err != nil || activeWorksBefore != 4 {
+		t.Fatalf("all snapshot active works=%d want=4 err=%v", activeWorksBefore, err)
 	}
 	var legacyDefinition int
 	var legacyMarker sql.NullString
@@ -451,6 +455,32 @@ func TestOpsDailySnapshotIsIdempotent(t *testing.T) {
 	}
 	if worldDefinition != 2 || len(worldCompletenessRaw) == 0 {
 		t.Fatalf("world snapshot definition=%d completeness=%s", worldDefinition, worldCompletenessRaw)
+	}
+	payload, err := knowledgeread.OpsKnowledgeSummary(ctx, db, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var summary struct {
+		Trend struct {
+			Points []struct {
+				Day             string
+				Definition      int
+				ActiveWorks     int `json:"active_works"`
+				PublishedWorlds int `json:"published_worlds"`
+				Completeness    json.RawMessage
+			}
+		}
+	}
+	if err := json.Unmarshal(payload, &summary); err != nil {
+		t.Fatal(err)
+	}
+	points := summary.Trend.Points
+	if len(points) != 2 || points[0].Day != legacyDay.Format("2006-01-02") ||
+		points[0].Definition != 1 || string(points[0].Completeness) != "null" ||
+		points[1].Day != day.Format("2006-01-02") || points[1].Definition != 2 ||
+		points[1].ActiveWorks != 4 || points[1].PublishedWorlds != 2 ||
+		len(points[1].Completeness) == 0 || string(points[1].Completeness) == "null" {
+		t.Fatalf("unexpected snapshot trend: %+v", points)
 	}
 }
 

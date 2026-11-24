@@ -404,8 +404,16 @@ SELECT count(*)::int FROM ops_daily_snapshots WHERE day=$1::date
 -- name: OpsSnapshotDefinitions
 SELECT count(*)::int FROM ops_daily_snapshots WHERE day=$1::date AND definition=2
 
+-- name: SeedOpsSnapshotSources
+INSERT INTO knowledge_source_records(source_id,record_key,version_id,work_id,raw,norm)
+SELECT v.source_id,'snapshot:'||k.canonical_title,v.id,k.id,
+ jsonb_build_object('title',k.canonical_title),jsonb_build_object('title',k.canonical_title,'type',k.type)
+FROM works k CROSS JOIN knowledge_source_versions v
+WHERE v.version='ops-bebop-v1'
+ AND k.canonical_title IN ('Ops Bebop','phase2-catalog-unknown','phase2-catalog-null')
+
 -- name: OpsSnapshotExpectedCount
-SELECT 1+(SELECT count(*) FROM reader_knowledge_inventory)
+SELECT 1+(SELECT count(*) FROM reader_knowledge_inventory WHERE slug IS NOT NULL)
 
 -- name: OpsMigrationState
 SELECT (SELECT count(*) FROM knowledge_migrations WHERE version IN ('059.sql','060.sql','062.sql')),

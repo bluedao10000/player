@@ -51,6 +51,7 @@ var (
 	OpsSnapshotCount                 = opsQueries["OpsSnapshotCount"]
 	OpsSnapshotDefinitions           = opsQueries["OpsSnapshotDefinitions"]
 	OpsSnapshotExpectedCount         = opsQueries["OpsSnapshotExpectedCount"]
+	SeedOpsSnapshotSources           = opsQueries["SeedOpsSnapshotSources"]
 	OpsMigrationState                = opsQueries["OpsMigrationState"]
 	OpsExistingMediaCandidateCount   = opsQueries["OpsExistingMediaCandidateCount"]
 	ResetOpsMigration059             = opsQueries["ResetOpsMigration059"]

@@ -208,6 +208,7 @@ WITH inventory_totals AS (
  LEFT JOIN accepted acc ON acc.world_slug=i.slug
  LEFT JOIN released rel ON rel.world_slug=i.slug
  LEFT JOIN world_completeness wc ON wc.world_slug=i.slug
+ WHERE i.slug IS NOT NULL
 ), all_metrics AS (
  SELECT jsonb_build_object(
   'activeWorks',(SELECT count(*) FROM works WHERE active),
