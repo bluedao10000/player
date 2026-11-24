@@ -51,6 +51,22 @@ SELECT jsonb_build_object(
    AND ($3=0 OR $3 BETWEEN t.first_episode AND t.last_episode) ORDER BY r.started_at DESC LIMIT 12
  ) e),'[]'))
 FROM work_worlds w JOIN works k ON k.id=w.work_id WHERE w.slug=$1
+ AND ($5::uuid IS NULL OR w.work_id=$5)
+
+-- name: ChatSelection
+SELECT w.work_id::text,w.slug,w.name,
+ ($2::uuid IS NULL OR EXISTS(SELECT FROM episode_production_requests p WHERE p.id=$2 AND p.world=w.slug))
+ AND ($3::uuid IS NULL OR EXISTS(SELECT FROM editor_tasks t WHERE t.id=$3 AND t.world=w.slug))
+ AND ($4::int=0 OR EXISTS(SELECT FROM episode_plans p WHERE p.world_slug=w.slug AND p.number=$4)
+                OR EXISTS(SELECT FROM work_chapters c WHERE c.v=w.version_id AND c.episode=$4))
+FROM work_worlds w WHERE w.slug=$1 OR w.work_id::text=$1
+ORDER BY (w.work_id::text=$1) DESC LIMIT 1
+
+-- name: ChatPromptHistory
+SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY created_at,id),'[]')
+FROM (SELECT world,prompt,reply,created_at,id FROM workbench_chat_turns
+ WHERE owner=$1 AND world=$2 AND read_selection IS NULL AND state<>'running'
+ ORDER BY created_at DESC,id DESC LIMIT 6) t
 
 -- name: ChatHistory
 SELECT coalesce(jsonb_agg(to_jsonb(t)-'owner' ORDER BY created_at,id),'[]')
@@ -61,12 +77,12 @@ FROM (SELECT t.id,t.owner,t.world,t.plan_id,t.task_id,t.episode,t.prompt,
  t.created_at,t.updated_at FROM workbench_chat_turns t WHERE owner=$1 ORDER BY created_at DESC,id DESC LIMIT 100)t
 
 -- name: ChatStart
-INSERT INTO workbench_chat_turns(id,owner,world,plan_id,episode,prompt,task_id)
-VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING
+INSERT INTO workbench_chat_turns(id,owner,world,plan_id,episode,prompt,task_id,read_selection)
+VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING
 
 -- name: ChatRequestMatches
 SELECT EXISTS(SELECT FROM workbench_chat_turns WHERE id=$1 AND owner=$2 AND world=$3
-  AND plan_id IS NOT DISTINCT FROM $4 AND episode=$5 AND prompt=$6 AND task_id IS NOT DISTINCT FROM $7)
+  AND plan_id IS NOT DISTINCT FROM $4 AND episode=$5 AND prompt=$6 AND task_id IS NOT DISTINCT FROM $7 AND read_selection IS NOT DISTINCT FROM $8::jsonb)
 
 -- name: ChatFinish
 UPDATE workbench_chat_turns SET state=$3,reply=$4,tools=$5,proposal=$6,diff=$7,updated_at=now()

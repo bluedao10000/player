@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
 	catalog "anime-agent/api/internal/model/knowledge"
 	q "anime-agent/api/internal/repository/queries/knowledge"
+	"anime-agent/api/internal/service/knowledge/chattools"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,11 +49,6 @@ type chatPlan struct {
 	Paused      bool           `json:"operator_paused"`
 }
 
-var readTools = map[string]string{
-	"get_workspace_context": "work", "get_knowledge_completeness": "completeness", "get_production_plan": "plan", "get_episode_status": "episodes",
-	"get_media_candidates": "media", "get_execution_history": "history",
-}
-
 func chatRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 	g.GET("/chat", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
@@ -73,12 +70,13 @@ func chatRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 
 func startChat(c *gin.Context, db *pgxpool.Pool) {
 	var in struct {
-		ID      string  `json:"request_id" binding:"required,uuid"`
-		World   string  `json:"world" binding:"required,max=128"`
-		Plan    *string `json:"plan_id"`
-		Task    *string `json:"task_id"`
-		Episode int     `json:"episode" binding:"min=0,max=100000"`
-		Text    string  `json:"text" binding:"required,max=1800"`
+		ID            string                `json:"request_id" binding:"required,uuid"`
+		World         string                `json:"world" binding:"required,max=128"`
+		Plan          *string               `json:"plan_id"`
+		Task          *string               `json:"task_id"`
+		Episode       int                   `json:"episode" binding:"min=0,max=100000"`
+		Text          string                `json:"text" binding:"required,max=1800"`
+		SelectedWorks []chattools.Selection `json:"selected_works"`
 	}
 	if !editorRequest(c, &in) {
 		return
@@ -89,23 +87,49 @@ func startChat(c *gin.Context, db *pgxpool.Pool) {
 	}
 	ctx := c.Request.Context()
 	owner := c.GetString("operator")
+	if len(in.SelectedWorks) > chattools.MaxSelectedWorks {
+		c.JSON(400, gin.H{"error": "每轮最多可另选 1 部作品。"})
+		return
+	}
+	var selection *chattools.Selection
+	var storedSelection []byte
+	if len(in.SelectedWorks) == 1 {
+		readCtx, cancel := context.WithTimeout(ctx, chattools.ReadTimeout)
+		var err error
+		selection, err = chattools.Resolve(readCtx, db, in.World, in.SelectedWorks[0])
+		cancel()
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			c.JSON(404, gin.H{"error": "找不到所选作品。"})
+			return
+		case errors.Is(err, chattools.ErrScope), errors.Is(err, chattools.ErrArguments):
+			c.JSON(400, gin.H{"error": "请选择另一部作品，并核对计划、审稿任务和分集是否属于该作品。"})
+			return
+		case err != nil:
+			c.JSON(503, gin.H{"error": "所选作品暂时无法读取，请重试。"})
+			return
+		}
+		saved := *selection
+		saved.Work = saved.UUID
+		storedSelection, _ = json.Marshal(saved)
+	}
 	var snapshot, history json.RawMessage
-	if err := db.QueryRow(ctx, q.ChatQueries["ChatContext"], in.World, in.Plan, in.Episode, in.Task).Scan(&snapshot); err != nil {
+	if err := db.QueryRow(ctx, q.ChatQueries["ChatContext"], in.World, in.Plan, in.Episode, in.Task, nil).Scan(&snapshot); err != nil {
 		c.JSON(404, gin.H{"error": "无法读取所选作品上下文。"})
 		return
 	}
-	if err := db.QueryRow(ctx, q.ChatQueries["ChatHistory"], owner).Scan(&history); err != nil {
+	if err := db.QueryRow(ctx, q.ChatQueries["ChatPromptHistory"], owner, in.World).Scan(&history); err != nil {
 		c.Status(503)
 		return
 	}
-	tag, err := db.Exec(ctx, q.ChatQueries["ChatStart"], in.ID, owner, in.World, in.Plan, in.Episode, in.Text, in.Task)
+	tag, err := db.Exec(ctx, q.ChatQueries["ChatStart"], in.ID, owner, in.World, in.Plan, in.Episode, in.Text, in.Task, storedSelection)
 	if err != nil {
 		c.Status(503)
 		return
 	}
 	if tag.RowsAffected() == 0 {
 		var same bool
-		if err := db.QueryRow(ctx, q.ChatQueries["ChatRequestMatches"], in.ID, owner, in.World, in.Plan, in.Episode, in.Text, in.Task).Scan(&same); err != nil {
+		if err := db.QueryRow(ctx, q.ChatQueries["ChatRequestMatches"], in.ID, owner, in.World, in.Plan, in.Episode, in.Text, in.Task, storedSelection).Scan(&same); err != nil {
 			c.Status(503)
 			return
 		}
@@ -119,32 +143,28 @@ func startChat(c *gin.Context, db *pgxpool.Pool) {
 	// Keep prompts bounded while retaining the latest dialogue. Database state comes from this turn's snapshot.
 	var prior []struct{ World, Prompt, Reply string }
 	_ = json.Unmarshal(history, &prior)
-	if len(prior) > 6 {
-		prior = prior[len(prior)-6:]
+	facts, toolNames, err := chattools.Snapshot(snapshot)
+	if err != nil {
+		c.Status(503)
+		return
 	}
 	var sections map[string]json.RawMessage
 	if err = json.Unmarshal(snapshot, &sections); err != nil {
 		c.Status(503)
 		return
 	}
-	toolNames := []string{"get_workspace_context", "get_knowledge_completeness", "get_production_plan", "get_episode_status", "get_media_candidates", "get_execution_history"}
-	facts := make(map[string]any, len(toolNames))
-	for _, tool := range toolNames {
-		facts[tool] = sections[readTools[tool]]
+	input := map[string]any{"question": in.Text, "tools": facts, "prior": prior, "capabilities": chattools.Capabilities(selection != nil), "allow_reads": true, "max_reads": chattools.MaxCalls}
+	if selection != nil {
+		input["selected_work"] = map[string]string{"id": selection.UUID, "slug": selection.Slug, "title": selection.Title}
 	}
-	facts["get_workspace_context"] = map[string]json.RawMessage{"work": sections["work"], "inventory": sections["inventory"], "editor_task": sections["editor_task"], "governance": sections["governance"]}
-	input, _ := json.Marshal(map[string]any{"question": in.Text, "tools": facts, "prior": prior})
-	if len(input) > 90000 {
-		toolNames = nil
-		_, _ = db.Exec(ctx, q.ChatQueries["ChatFinish"], in.ID, owner, "failed", "当前上下文过长，请指定分集后重试。", []string{}, nil, nil)
-		c.Status(204)
-		return
-	}
-	reply, modelErr := chatInference(ctx, in.ID, input)
+	reply, modelErr := runChatInference(ctx, db, in.ID, input, selection, &toolNames)
 	state := "answered"
 	var proposal, diff any
 	if modelErr != nil {
 		state, reply.Text = "failed", "Pi 助手暂时无法完成本轮。请检查模型配置后重试。"
+		if errors.Is(modelErr, chattools.ErrPayload) {
+			reply.Text = "当前上下文过长，请指定分集后重试。"
+		}
 	} else if reply.Patch != nil && reply.Patch.Tool == "create_production_plan" {
 		var changes map[string][2]any
 		err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
@@ -166,7 +186,7 @@ func startChat(c *gin.Context, db *pgxpool.Pool) {
 			reply.Patch.Revision = before.Revision
 			var changes map[string][2]any
 			err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
-				_, d, _, e := prepareChatPatch(ctx, tx, *in.Plan, before, *reply.Patch)
+				_, d, _, e := prepareChatPatch(ctx, tx, in.World, *in.Plan, before, *reply.Patch)
 				changes = d
 				return e
 			})
@@ -189,17 +209,53 @@ func startChat(c *gin.Context, db *pgxpool.Pool) {
 }
 
 type chatReply struct {
-	Text  string     `json:"text"`
-	Patch *chatPatch `json:"patch"`
+	Text  string           `json:"text"`
+	Patch *chatPatch       `json:"patch"`
+	Reads []chattools.Call `json:"read_calls"`
 }
 
-func chatInference(ctx context.Context, id string, input []byte) (chatReply, error) {
+func runChatInference(ctx context.Context, db *pgxpool.Pool, id string, input map[string]any, selection *chattools.Selection, names *[]string) (chatReply, error) {
+	ctx, cancel := context.WithTimeout(ctx, 110*time.Second)
+	defer cancel()
+	reply, err := chatInference(ctx, id, 1, input)
+	if err != nil || len(reply.Reads) == 0 {
+		if errors.Is(err, chattools.ErrPayload) {
+			*names = []string{}
+		}
+		return reply, err
+	}
+	if reply.Patch != nil {
+		return chatReply{}, errors.New("cannot request reads and propose a write in the same model response")
+	}
+	results, used := chattools.Execute(ctx, db, selection, reply.Reads)
+	for _, name := range used {
+		if !slices.Contains(*names, name) {
+			*names = append(*names, name)
+		}
+	}
+	input["allow_reads"] = false
+	input["read_results"] = results
+	reply, err = chatInference(ctx, id, 2, input)
+	if err == nil && len(reply.Reads) != 0 {
+		return chatReply{}, errors.New("read round already completed")
+	}
+	return reply, err
+}
+
+func chatInference(ctx context.Context, id string, attempt int, input map[string]any) (chatReply, error) {
 	var reply chatReply
 	base := strings.TrimRight(os.Getenv("KNOWLEDGE_RESEARCH_URL"), "/")
 	if base == "" {
 		return reply, errors.New("Pi endpoint unavailable")
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/internal/editor/"+id+"/1/1/conversation", bytes.NewReader(input))
+	payload, err := json.Marshal(input)
+	if err != nil {
+		return reply, err
+	}
+	if len(payload) > 90000 {
+		return reply, chattools.ErrPayload
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/internal/editor/%s/1/%d/conversation", base, id, attempt), bytes.NewReader(payload))
 	if err != nil {
 		return reply, err
 	}
@@ -213,7 +269,7 @@ func chatInference(ctx context.Context, id string, input []byte) (chatReply, err
 		return reply, fmt.Errorf("Pi HTTP %d", res.StatusCode)
 	}
 	err = json.NewDecoder(io.LimitReader(res.Body, 32768)).Decode(&reply)
-	if err == nil && (strings.TrimSpace(reply.Text) == "" || len(reply.Text) > 12000) {
+	if err == nil && ((strings.TrimSpace(reply.Text) == "" && len(reply.Reads) == 0) || len(reply.Text) > 12000) {
 		err = errors.New("invalid model response")
 	}
 	return reply, err
@@ -295,10 +351,13 @@ func prepareCreatePlanPatch(ctx context.Context, tx pgx.Tx, currentWorld, fallba
 	return created, note, changes, nil
 }
 
-func prepareChatPatch(ctx context.Context, tx pgx.Tx, id string, before chatPlan, patch chatPatch) (chatPlan, map[string][2]any, bool, error) {
+func prepareChatPatch(ctx context.Context, tx pgx.Tx, world, id string, before chatPlan, patch chatPatch) (chatPlan, map[string][2]any, bool, error) {
 	after := before
 	changes := map[string][2]any{}
 	invalid := func(msg string) (chatPlan, map[string][2]any, bool, error) { return after, nil, false, errors.New(msg) }
+	if before.World != world || (patch.World != nil && *patch.World != world) {
+		return invalid("只能修改当前对话作品的制作计划。")
+	}
 	if patch.Revision != before.Revision {
 		return invalid("计划版本已变化，请重新生成修改建议。")
 	}
@@ -308,9 +367,6 @@ func prepareChatPatch(ctx context.Context, tx pgx.Tx, id string, before chatPlan
 	scopeChanged := false
 	switch patch.Tool {
 	case "update_production_plan", "update_episode_scope", "update_token_budget", "update_production_policy":
-		if patch.World != nil {
-			after.World = *patch.World
-		}
 		if patch.First != nil {
 			after.First = *patch.First
 		}
@@ -337,7 +393,7 @@ func prepareChatPatch(ctx context.Context, tx pgx.Tx, id string, before chatPlan
 			next["preserve_published"] = true
 			after.Policy = next
 		}
-		scopeChanged = before.World != after.World || before.First != after.First || before.Last != after.Last
+		scopeChanged = before.First != after.First || before.Last != after.Last
 		var total int
 		err := tx.QueryRow(ctx, q.ChatQueries["ChatEditionSize"], after.World).Scan(&total)
 		if err != nil || after.First < 1 || after.Last < after.First || after.Last-after.First >= 1000 || (total == 0 && scopeChanged) || (total > 0 && after.Last > total) {
@@ -350,9 +406,6 @@ func prepareChatPatch(ctx context.Context, tx pgx.Tx, id string, before chatPlan
 			var conflict bool
 			if err := tx.QueryRow(ctx, q.ChatQueries["ChatRegisteredScope"], id, after.World, after.First, after.Last).Scan(&conflict); err != nil || conflict {
 				return invalid("范围改动会移出已登记的分集，请另建计划。")
-			}
-			if after.World != before.World && before.Consumed > 0 {
-				return invalid("已产生用量的计划不能更换作品，请另建计划。")
 			}
 		}
 	case "pause_production":
@@ -461,7 +514,7 @@ func resolveChat(c *gin.Context, db *pgxpool.Pool) {
 		if json.Unmarshal(raw, &before) != nil {
 			return errors.New("计划记录无效。")
 		}
-		after, changes, refresh, err := prepareChatPatch(ctx, tx, *plan, before, patch)
+		after, changes, refresh, err := prepareChatPatch(ctx, tx, world, *plan, before, patch)
 		if err != nil {
 			return err
 		}

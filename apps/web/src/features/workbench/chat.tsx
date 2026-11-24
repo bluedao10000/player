@@ -54,6 +54,7 @@ export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask,
 }) {
   const [chat, setChat] = useState<Chat>()
   const [world, setWorld] = useState(initialWorld)
+  const [comparison, setComparison] = useState('')
   const [task, setTask] = useState(initialTask)
   const [plan, setPlan] = useState(initialPlan)
   const [episode, setEpisode] = useState<number>(initialEpisode ?? 0)
@@ -83,7 +84,16 @@ export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask,
     setBusy(true)
     setError('')
     try {
-      const completion = request('chat', { request_id: crypto.randomUUID(), world: currentWorld, plan_id: currentPlan || null, task_id: currentTask || null, episode, text: trimmed })
+      const completion = request('chat', {
+        request_id: crypto.randomUUID(),
+        world: currentWorld,
+        plan_id: currentPlan || null,
+        task_id: currentTask || null,
+        episode,
+        text: trimmed,
+        selected_works: comparison ? [{ work: comparison }] : [],
+      })
+      setComparison('')
       const timer = setInterval(() => { void refresh().catch(() => {}) }, 2500)
       try { await completion } finally { clearInterval(timer) }
       setSuggestedPrompt('')
@@ -130,8 +140,12 @@ export function WorkbenchChat({ request, initialWorld, initialPlan, initialTask,
   return (
     <div className="wb-chat">
       <div className="wb-panel wb-chat-context">
-        <label>作品<select value={currentWorld} onChange={e => { setWorld(e.target.value); setPlan(undefined); setTask(''); setEpisode(0) }}>
+        <label>作品<select value={currentWorld} onChange={e => { setWorld(e.target.value); setComparison(''); setPlan(undefined); setTask(''); setEpisode(0) }}>
           {works.map(w => <option value={w.slug} key={w.slug}>{w.name} · {w.edition}</option>)}
+        </select></label>
+        <label>本轮对照作品<select value={comparison} disabled={busy} onChange={e => setComparison(e.target.value)}>
+          <option value="">不另选作品</option>
+          {works.filter(w => w.slug !== currentWorld).map(w => <option value={w.slug} key={w.slug}>{w.name} · {w.edition}</option>)}
         </select></label>
         <label>计划<select value={currentPlan} onChange={e => setPlan(e.target.value)}>
           <option value="">未选计划</option>

@@ -244,7 +244,7 @@
 .ed-account-code button { flex-shrink: 0; }
 .ed .ed-logout { display: inline-flex; align-items: center; gap: 8px; }
 
-.wb-chat-context { display: grid; grid-template-columns: repeat(3, minmax(0, 2fr)) minmax(0, 1fr); gap: 12px; }
+.wb-chat-context { display: grid; grid-template-columns: repeat(4, minmax(0, 2fr)) minmax(0, 1fr); gap: 12px; }
 .wb-chat-context label { display: grid; gap: 5px; min-width: 0; }
 .wb-chat-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr); gap: 16px; }
 .wb .wb-chat-thread { display: flex; flex-direction: column; min-height: 520px; }

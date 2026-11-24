@@ -1,0 +1,24 @@
+-- name: ChatToolCatalogIDs
+SELECT id::text,canonical_title FROM works ORDER BY canonical_title
+
+-- name: SeedChatToolCatalogExtras
+INSERT INTO works(canonical_title,type,active)
+SELECT CASE WHEN n=12 THEN '工具测试 · 隐藏目录' ELSE '工具测试 · 公开目录 '||n END,'TV',n<12
+FROM generate_series(1,12) n
+
+-- name: SeedChatToolDetail
+INSERT INTO work_titles(work_id,lang,title)
+SELECT id,'en','Test alias '||lpad(n::text,2,'0')
+FROM works CROSS JOIN generate_series(1,25) n WHERE canonical_title='Ops Bebop'
+
+-- name: SeedChatToolPayload
+UPDATE works SET canonical_title=repeat('资料',15000) WHERE canonical_title='工具测试 · 公开目录 1'
+
+-- name: ChatToolEditorTask
+SELECT id::text FROM editor_tasks WHERE world='tidepost' ORDER BY id LIMIT 1
+
+-- name: LockChatToolCatalog
+LOCK TABLE work_titles IN ACCESS EXCLUSIVE MODE
+
+-- name: SeedChatToolBatchPayload
+UPDATE works SET canonical_title=repeat('资料',2500) WHERE canonical_title='工具测试 · 公开目录 2'

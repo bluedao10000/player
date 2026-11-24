@@ -9,6 +9,7 @@ import {
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node'
 import { contentProvider } from './content-provider.ts'
 import { profile } from './model-api.ts'
+import { conversationReadInstructions } from './knowledge.ts'
 
 const active = new Set<string>()
 const rules =
@@ -28,6 +29,7 @@ export async function editText(
 ) {
   const budgeted = stage === 'planning' || stage === 'configuration'
   const name = `editor-${id}-${round}-${attempt}-${stage}`
+  const readInstructions = stage === 'conversation' ? conversationReadInstructions(input) : ''
   if (active.has(name)) throw Error('任务正在执行')
   active.add(name)
   try {
@@ -60,7 +62,7 @@ export async function editText(
             requestId: name,
             content:
               (stage === 'conversation'
-                ? '你是 Folio 工作台助手。以 tools 的服务端数据为准，历史只用于理解指代。工具包含 get_workspace_context、get_knowledge_completeness（七维完整度与缺项）、get_production_plan、get_episode_status、get_media_candidates、get_execution_history。被问到评估作品某集数范围的知识覆盖与缺口时，先总结已有覆盖、逐项列出主要缺口与依据，再给出推荐补全顺序、任务量和预算依据（默认仅走本地验收，不自动触发公网发布）。只返回一个 JSON 对象。查询示例：{"text":"状态说明","patch":null}。只能为当前对话的作品新建制作计划，且作品必须已登记总集数。新建时省略 world 即使用当前作品。新建制作计划示例（作品尚无合适计划时使用）：{"text":"请确认新建本地验收计划","patch":{"tool":"create_production_plan","first_episode":1,"last_episode":10,"token_limit":600000,"character_consistency":"standard","preserve_published":true,"instruction":"补齐第1-10集缺口（默认本地验收）"}}。组合修改示例：{"text":"请确认差异","patch":{"tool":"update_production_plan","first_episode":1,"last_episode":20,"token_limit":1000000,"preserve_published":true}}。所有变更字段必须直接放到 patch 内，和 tool 同级，禁止使用 changes、fields、arguments、scope 或其他嵌套对象。只写用户明确要求的字段。工具可选 create_production_plan、update_production_plan、update_episode_scope、update_token_budget、update_production_policy、pause_production、resume_production、retry_episode、rebuild_episode。字段可选 world（作品 slug）、first_episode、last_episode、token_limit（整数）、character_consistency（standard 或 strict）、preserve_published（布尔值）、episode（整数）、instruction（新建计划说明）。始终保留已发布内容。修改与新建计划只生成建议，确认必须由用户点击，不可声称执行。'
+                ? readInstructions + '\n' + '你是 Folio 工作台助手。以 tools 和 read_results 的服务端数据为准，历史只用于理解指代。说明事实所属的作品。日期和时间统一按北京时间表达。被问到评估作品某集数范围的知识覆盖与缺口时，先总结已有覆盖、逐项列出主要缺口与依据，再给出推荐补全顺序、任务量和预算依据（默认仅走本地验收，不自动触发公网发布）。只返回一个 JSON 对象。查询示例：{"text":"状态说明","patch":null}。只能为当前对话的作品新建或修改制作计划，新建要求作品已登记总集数。新建时省略 world 即使用当前作品。新建制作计划示例（作品尚无合适计划时使用）：{"text":"请确认新建本地验收计划","patch":{"tool":"create_production_plan","first_episode":1,"last_episode":10,"token_limit":600000,"character_consistency":"standard","preserve_published":true,"instruction":"补齐第1-10集缺口（默认本地验收）"}}。组合修改示例：{"text":"请确认差异","patch":{"tool":"update_production_plan","first_episode":1,"last_episode":20,"token_limit":1000000,"preserve_published":true}}。所有变更字段必须直接放到 patch 内，和 tool 同级，禁止使用 changes、fields、arguments、scope 或其他嵌套对象。只写用户明确要求的字段。工具可选 create_production_plan、update_production_plan、update_episode_scope、update_token_budget、update_production_policy、pause_production、resume_production、retry_episode、rebuild_episode。字段可选 world（作品 slug）、first_episode、last_episode、token_limit（整数）、character_consistency（standard 或 strict）、preserve_published（布尔值）、episode（整数）、instruction（新建计划说明）。始终保留已发布内容。修改与新建计划只生成建议，确认必须由用户点击，不可声称执行。'
                 : stage === 'configuration'
                 ? '依据输入的本集官方和指南句子生成制作配置。只输出 JSON 对象，字段 slug,title,intro,place,sceneSlug,sceneName,sceneBeat,setting:[设定词,段号],artBrief,people:[{slug,beat,evidence}],beats:[{kind,needle,question,officialSentence?}]。标题中文，slug 英文短横线。4至6个节点按时间排列，kind覆盖motive,turn,cause。needle必须从各不相同且依次递增的英文指南句子摘录连续原文。至少一项用officialSentence对应日语官方句子编号。question中文明确要写什么。所有编号从1开始。people 只选来源原文明确出现且有已登记肖像的角色。evidence 从该段对应的英语指南或官方句子中摘录角色原名或行动原文，未写到的人物直接省略。场景图与artBrief只选有据场景。若 portraitSlugs 非空，必须返回 artCharacter，其值为该列表中的角色 slug，该角色必须出现在 people 中，beat 等于 sceneBeat，artBrief 用选中角色的姓名说明画面动作。选中角色必须是原文记载的动作执行者。只介绍作品情节。'
                 : stage === 'planning'
