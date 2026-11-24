@@ -1,0 +1,83 @@
+---
+title: Folio 时光 · 2026-11 交付 · 运营拓扑与知识闭环（91e92da → b7ebc8b）
+config:
+  flowchart:
+    wrappingWidth: 300
+    nodeSpacing: 18
+    rankSpacing: 34
+---
+flowchart TB
+  subgraph phase3["运营中心 Phase 3 · 25b8faa"]
+    direction LR
+    topo["全局运营拓扑<br/>062 迁移 · 五组业务阶段与基础设施栏<br/>24 小时 / 7 天 / 30 天窗口、作品筛选"]
+    six["分集六态进度<br/>未登记 → 已登记 → 已规划<br/>→ 生产中 → 已验收 → 已发布"]
+    agentexec["Agent 执行计数<br/>按在线心跳统计，区分规划与配置"]
+    compose["本地与部署 Compose<br/>根入口默认节点名 local<br/>部署入口仍要求显式唯一节点名"]
+  end
+  subgraph p0["Knowledge P0 · 7b793a3"]
+    direction LR
+    drill["知识中心总览下钻<br/>目录、治理、资产三组摘要卡<br/>类型筛选、生产状态中文化"]
+    matrix["作品分集覆盖矩阵<br/>复用六态，本地发布与<br/>线上已验证分开统计"]
+    evidence["证据与口径隔离<br/>来源、世界依据、待裁决冲突<br/>目录质量分 ≠ 五维验收"]
+    plan["对话新建制作计划<br/>人工确认后建计划，默认仅本地验收<br/>二次核验、审计、重复确认幂等"]
+    rules["建计划规则<br/>只限当前对话作品<br/>总集数未登记则拒绝"]
+  end
+  subgraph p1["Knowledge P1 · 78e4436 / 8ede1fa / b7ebc8b"]
+    direction LR
+    identity["作品身份保护<br/>已有世界或历史知识版本的作品<br/>参与合并、拆分或来源移挂时返回 409"]
+    review["来源变化待复核<br/>063 迁移，不改公开状态与格式<br/>先标世界，人工确认后关闭"]
+    registry["只读工具统一登记<br/>Go 单一来源，生成共享 TS 清单<br/>npm run check 检查漂移"]
+    compare["本轮对照作品<br/>065 迁移，每轮另选 1 部<br/>选作校验、批次读取各限 3 秒<br/>同批结果最多 36 KiB"]
+    boundary["发布边界与状态依据<br/>拒绝开启公网投递的提案<br/>状态只依据快照字段与回执"]
+  end
+  subgraph perf["性能与修复 · 6a5122a / ae6a855"]
+    direction LR
+    rewrite["查询改写与 064 迁移<br/>隔离库较大样本完整度重算<br/>SQL 执行时间：58.6 秒 → 约 0.1 秒"]
+    jit["事务级关闭 JIT<br/>仅作品列表与拓扑汇总<br/>连接归还后恢复默认"]
+    snapshot["每日快照修复<br/>无世界的目录作品只计入 all<br/>同日重复写入幂等"]
+  end
+  subgraph later["未完成 · 不在本轮范围"]
+    direction LR
+    kimi["线上 Magpie Kimi<br/>同场景对话验证"]
+    ci["CI 流水线<br/>仓库暂无 workflows"]
+    heal["历史作品身份<br/>受控修复流程"]
+    load["正式库负载下<br/>接口端到端耗时"]
+    picker["为对照作品细选<br/>计划、审稿任务与分集"]
+  end
+  six -. 复用六态口径 .-> matrix
+  drill --> matrix
+  matrix -- AI 评估缺口 --> plan
+  plan --> rules
+  rules --> boundary
+  registry --> compare
+  review -. 有直接依赖时标注分集 .-> matrix
+  identity -. 保持公开 UUID、slug、锚点与入选图 .-> evidence
+  jit -.-> topo
+  rewrite -.-> drill
+  style later fill:#f3eef9,stroke:#917bab
+  classDef done fill:#e5f2e9,stroke:#55856c,color:#153b2c
+  classDef todo fill:#f0eaf8,stroke:#917bab,color:#412d56
+  class topo,six,agentexec,compose,drill,matrix,evidence,plan,rules,identity,review,registry,compare,boundary,rewrite,jit,snapshot done
+  class kimi,ci,heal,load,picker todo
+%% topo | 062 迁移登记阶段分组和工作进程映射。拓扑按五组业务阶段排列节点，附基础设施备份栏，支持窗口切换、作品筛选和阶段详情分页，统一显示北京时间。 | apps/api/internal/handler/knowledge/ops_topology.go
+%% six | 六态互斥、按集号去重，合计等于补集策略范围；未登记排最前。 | apps/api/internal/repository/queries/ops/topology.queries
+%% agentexec | 运行中执行数按在线心跳统计，规划与配置分开计数，运营总览口径升至 definition 2。 | apps/agent/src/executions.ts
+%% compose | 本地根入口与部署入口共用服务定义；节点名缺失或留空时，部署入口报错退出。 | deploy/docker-compose.yml
+%% drill | 摘要卡可点击下钻，作品行显示线上已验证集数与待裁决冲突，提供 AI 评估和运行拓扑入口。 | apps/web/src/features/workbench/knowledge-center.tsx
+%% matrix | 逐集返回六态、本地发布、线上已验证、验收缺口、取证与发布错误及图片统计，支持全部、未完成、失败筛选。 | apps/api/internal/repository/queries/knowledge/ops_completeness.queries
+%% evidence | 作品详情分区展示工作态与公开版差异、来源记录、世界依据和冲突，目录质量分与五维验收通过率分开。 | apps/web/src/features/workbench/knowledge-detail.tsx
+%% plan | 模型只生成提案；Go 在确认事务内重新核验差异，写入计划与审计，默认 publish_to_reader 为 false。 | apps/api/internal/handler/knowledge/chat.go
+%% rules | 跨作品提案、篡改已存提案、总集数未登记和提案后清空总集数均返回拒绝，不建计划、不写审计。 | apps/api/internal/handler/knowledge/chat_integration_test.go
+%% identity | 合并双方、拆分来源与恢复目标、approve 与 rematch 均在事务锁内检查世界指针和历史版本。 | apps/api/internal/service/knowledge/curation.go
+%% review | 同步事务写入 raw 与 norm 摘要、字段差异和拟变更值；重复同步不产生重复标记，质检不会自动关闭。当前目录同步只自动标记世界，矩阵可显示已有明确分集的标记。 | apps/api/internal/handler/knowledge/source_review.go
+%% registry | 每项登记名称、中文说明、版本、范围、调用方式、上限与 Go 绑定，Agent 读取生成的共享清单。 | apps/api/internal/service/knowledge/chattools/registry.go
+%% compare | 对照作品按 UUID 或 slug 解析，结果标注所属作品，授权只在当轮有效，发送或切换当前作品即清空对照选择。写提案始终绑定当前作品。 | apps/web/src/features/workbench/chat.tsx
+%% boundary | Go 在新建、修改和确认阶段拒绝开启公网投递；提示词禁止仅凭 topic 名称推断发布状态。 | apps/agent/src/editor.ts
+%% rewrite | 分集事实先计算再复用，消除两处逐集子计划；064 迁移校正队列映射函数的行数估计。隔离库较大样本在默认 JIT 下的 SQL 执行时间由 58,626.255 毫秒降至 103.33 毫秒。 | apps/api/internal/repository/queries/knowledge/completeness.queries
+%% jit | 只读事务内执行 SET LOCAL jit = off，数据库全局配置、10 秒请求期限和返回契约不变。 | apps/api/internal/repository/database/json.go
+%% snapshot | 逐世界快照只写有世界的作品，历史 definition 与总览趋势口径不变。 | apps/api/internal/repository/queries/ops/ops.queries
+%% kimi | 本轮真实模型验证使用 OpenAI gpt-5.5 直连；线上 Magpie Kimi 走 Chat Completions，表现尚未实测。 | docs/模型用量与计费.md
+%% ci | 当前验证在本地与隔离 PostgreSQL 完成，推送不触发自动流水线。 | package.json
+%% heal | 已错位的历史数据需先盘点证据，再经预演与公开读回核对后修复。 | docs/知识库-P1-设计.md
+%% load | 已测隔离库 SQL 执行时间，正式库并发负载下的接口耗时待测。 | docs/运维手册.md
+%% picker | 界面可为当前作品选择计划、审稿任务与分集。对照作品在界面仅能选作品，其计划、审稿任务与分集可通过请求接口指定。 | apps/web/src/features/workbench/chat.tsx

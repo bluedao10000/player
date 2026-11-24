@@ -17,3 +17,5 @@ NODE_PATH="$diagram_tools/node_modules" CHROME_CHANNEL=chrome node docs/diagrams
 [功能地图](features.png) 按领域列出开发状态；更新时同步维护[图源](features.mmd)与[功能明细](../功能地图.md)。
 
 [本地工作台功能地图](workbench.svg) · [PNG](workbench.png) · [Mermaid 源文件](workbench.mmd)
+
+[2026-11 交付图](delivery-2026-11.svg) · [PNG](delivery-2026-11.png) · [Mermaid 源文件](delivery-2026-11.mmd)：运营中心 Phase 3、Knowledge P0 与 P1、性能和快照修复，覆盖 `91e92da` 至 `b7ebc8b`，并列出未完成项。单独更新时在渲染命令末尾加上 `delivery`。

@@ -30,7 +30,8 @@ async function build() {
     }))
     const workbenchOnly = process.argv[2] === 'workbench'
     const backlogOnly = process.argv[2] === 'backlog'
-    const selected = workbenchOnly ? [['workbench','本地工作台','diagrams/workbench.mmd']] : backlogOnly ? [['backlog', '待开发功能', 'diagrams/backlog.mmd']] : views
+    const deliveryOnly = process.argv[2] === 'delivery'
+    const selected = workbenchOnly ? [['workbench','本地工作台','diagrams/workbench.mmd']] : backlogOnly ? [['backlog', '待开发功能', 'diagrams/backlog.mmd']] : deliveryOnly ? [['delivery-2026-11', '2026-11 交付', 'diagrams/delivery-2026-11.mmd']] : views
     const atlas=[]
     for (const [key,title,source] of selected) {
       const code=fs.readFileSync(path.join(docs,source),'utf8')
@@ -51,13 +52,13 @@ async function build() {
         return new XMLSerializer().serializeToString(template.content.querySelector('svg'))
       },{key,code,nodes})
       fs.writeFileSync(path.join(__dirname,key+'.svg'),svg)
-      if(key==='workbench'||backlogOnly||key==='product'||key==='business'||key==='features'){
+      if(key==='workbench'||backlogOnly||deliveryOnly||key==='product'||key==='business'||key==='features'){
         await page.evaluate(svg=>{document.body.innerHTML=svg},svg)
         await page.locator('svg').screenshot({path:path.join(__dirname,key+'.png')})
       }
       atlas.push({key,title,source,nodes,svg})
     }
-    if (workbenchOnly || backlogOnly) return
+    if (workbenchOnly || backlogOnly || deliveryOnly) return
     const template=fs.readFileSync(path.join(__dirname,'atlas.template.html'),'utf8')
     const payload=JSON.stringify(atlas).replaceAll('<','\\u003c')
     fs.writeFileSync(path.join(docs,'architecture.html'),template.replace('/* ATLAS_DATA */ []',()=>payload))
