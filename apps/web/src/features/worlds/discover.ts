@@ -1,4 +1,3 @@
-import { createServerFn } from '@tanstack/react-start'
 import { discoveryCatalog } from '@anime/shared/knowledge'
 import type { DiscoveryWork } from '@anime/shared/knowledge'
 
@@ -57,94 +56,90 @@ function recentEditions(works: DiscoveryWork[]) {
     Number(work.edition_label.match(/\b(?:19|20)\d{2}\b/)?.[0] ?? 0)
   return [...works].sort((a, b) => year(b) - year(a))
 }
-export const discoverHome = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    const { items } = await discoveryCatalog()
-    const ordered = recentEditions(items)
-    const lead = ordered[0]
-    const classic = items.find(
-      (w) =>
-        w.origin === 'external' &&
-        w !== lead &&
-        w.edition_label.slice(0, 4) !== lead?.edition_label.slice(0, 4),
-    )
-    const original = items.find((w) => w.origin === 'original')
-    const featured = [
-      ...new Set(
-        [lead, classic, original, ...ordered].filter(
-          (w): w is DiscoveryWork => !!w,
-        ),
+export const discoverHome = async () => {
+  const { items } = await discoveryCatalog()
+  const ordered = recentEditions(items)
+  const lead = ordered[0]
+  const classic = items.find(
+    (w) =>
+      w.origin === 'external' &&
+      w !== lead &&
+      w.edition_label.slice(0, 4) !== lead?.edition_label.slice(0, 4),
+  )
+  const original = items.find((w) => w.origin === 'original')
+  const featured = [
+    ...new Set(
+      [lead, classic, original, ...ordered].filter(
+        (w): w is DiscoveryWork => !!w,
       ),
-    ].slice(0, 3)
-    const others = ordered.filter((w) => !featured.includes(w))
-    return {
-      total: items.length,
-      featured: featured.map(workCard),
-      covers: others.slice(0, 6).map(workCard),
-      portraits: ordered
-        .flatMap((w) => {
-          const cast = portraits(w)
-          const lead = cast.find((p) => p.image) ?? cast[0]
-          return lead ? [lead] : []
-        })
-        .slice(0, 6),
-      scenes: [classic, ...others]
-        .flatMap((w) => {
-          const scene = w?.scene
-          if (!w || !scene) return []
-          const image =
-            scene.image ??
-            w.chapters.find((c) => c.slug === scene.chapter_slug)?.image
-          return [
-            {
-              href: scene.href,
-              title: scene.title,
-              work: w.title,
-              place: scene.place,
-              image,
-            },
-          ]
-        })
-        .slice(0, 2),
-      stories: [...others, ...featured]
-        .flatMap((w) => stories(w).slice(0, 1))
-        .slice(0, 4),
-    }
-  },
-)
+    ),
+  ].slice(0, 3)
+  const others = ordered.filter((w) => !featured.includes(w))
+  return {
+    total: items.length,
+    featured: featured.map(workCard),
+    covers: others.slice(0, 6).map(workCard),
+    portraits: ordered
+      .flatMap((w) => {
+        const cast = portraits(w)
+        const lead = cast.find((p) => p.image) ?? cast[0]
+        return lead ? [lead] : []
+      })
+      .slice(0, 6),
+    scenes: [classic, ...others]
+      .flatMap((w) => {
+        const scene = w?.scene
+        if (!w || !scene) return []
+        const image =
+          scene.image ??
+          w.chapters.find((c) => c.slug === scene.chapter_slug)?.image
+        return [
+          {
+            href: scene.href,
+            title: scene.title,
+            work: w.title,
+            place: scene.place,
+            image,
+          },
+        ]
+      })
+      .slice(0, 2),
+    stories: [...others, ...featured]
+      .flatMap((w) => stories(w).slice(0, 1))
+      .slice(0, 4),
+  }
+}
 
-export const discoverDirectory = createServerFn({ method: 'GET' })
-  .validator((data: Search & { kind: Directory }) => data)
-  .handler(async ({ data }) => {
-    const { items } = await discoveryCatalog()
-    const works = recentEditions(items)
-    const query = data.q?.toLocaleLowerCase() ?? ''
-    const matches = (...words: string[]) =>
-      words.some((word) => word.toLocaleLowerCase().includes(query))
-    const scoped = works.filter((w) => !data.work || w.slug === data.work)
-    const groups = scoped
-      .map((w) => ({
-        work: workCard(w),
-        portraits:
-          data.kind === 'characters'
-            ? portraits(w).filter((p) => matches(w.title, p.title, p.subtitle))
-            : [],
-        stories:
-          data.kind === 'stories'
-            ? stories(w).filter((c) => matches(w.title, c.title, c.label))
-            : [],
-      }))
-      .filter((g) =>
-        data.kind === 'works'
-          ? matches(g.work.title, g.work.edition)
-          : g.portraits.length + g.stories.length > 0,
-      )
-    return {
-      groups,
-      options: works.map((w) => ({
-        slug: w.slug,
-        title: w.title,
-        edition: w.edition_label,
-      })),
-    }
-  })
+export const discoverDirectory = async ({ data }: { data: Search & { kind: Directory } }) => {
+  const { items } = await discoveryCatalog()
+  const works = recentEditions(items)
+  const query = data.q?.toLocaleLowerCase() ?? ''
+  const matches = (...words: string[]) =>
+    words.some((word) => word.toLocaleLowerCase().includes(query))
+  const scoped = works.filter((w) => !data.work || w.slug === data.work)
+  const groups = scoped
+    .map((w) => ({
+      work: workCard(w),
+      portraits:
+        data.kind === 'characters'
+          ? portraits(w).filter((p) => matches(w.title, p.title, p.subtitle))
+          : [],
+      stories:
+        data.kind === 'stories'
+          ? stories(w).filter((c) => matches(w.title, c.title, c.label))
+          : [],
+    }))
+    .filter((g) =>
+      data.kind === 'works'
+        ? matches(g.work.title, g.work.edition)
+        : g.portraits.length + g.stories.length > 0,
+    )
+  return {
+    groups,
+    options: works.map((w) => ({
+      slug: w.slug,
+      title: w.title,
+      edition: w.edition_label,
+    })),
+  }
+}

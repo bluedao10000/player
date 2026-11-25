@@ -1,3 +1,4 @@
+import { imageUrl } from '../lib/images'
 import { siteTitle } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
 import { readWork } from '../features/knowledge-api'
@@ -26,7 +27,7 @@ function Work() {
           >
             <img
               className="catalog-world-cover"
-              src={w.cover_image}
+              src={imageUrl(w.cover_image)}
               alt=""
               fetchPriority="high"
             />

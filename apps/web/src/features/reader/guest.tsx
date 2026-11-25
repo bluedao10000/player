@@ -1,3 +1,4 @@
+import { imageUrl } from '../../lib/images'
 import { Membership } from './membership'
 import { LinkEmail, WechatButton } from './wechat'
 import { useState } from 'react'
@@ -111,7 +112,7 @@ export function GuestLibrary({
         )}
         {!full && last !== undefined && (
           <section className="guest-feature">
-            {heroImage && <img src={heroImage} alt="" />}
+            {heroImage && <img src={imageUrl(heroImage)} alt="" />}
             <div>
               {last ? (
                 <>
@@ -185,7 +186,7 @@ export function GuestLibrary({
               const content = (
                 <>
                   {chapter?.image && (
-                    <img src={chapter.image} alt="" loading="lazy" />
+                    <img src={imageUrl(chapter.image)} alt="" loading="lazy" />
                   )}
                   <span>
                     <small>

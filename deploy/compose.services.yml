@@ -64,19 +64,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-  web:
-    profiles: [web]
-    build:
-      context: ..
-      dockerfile: apps/web/Dockerfile
-    restart: unless-stopped
-    environment:
-      KNOWLEDGE_API_URL: http://api:4311
-      KNOWLEDGE_ADMIN_TOKEN: ${KNOWLEDGE_ADMIN_TOKEN:-}
-    ports:
-      - "127.0.0.1:${KNOWLEDGE_WEB_PORT:-14311}:4310"
-    depends_on:
-      - api
   research-agent:
     build:
       context: ..

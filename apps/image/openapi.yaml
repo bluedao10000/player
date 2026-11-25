@@ -17,7 +17,13 @@ paths:
       responses: {'200': {description: Ready}, '503': {description: Unavailable}}
   /i/{id}:
     parameters:
-      - $ref: '#/components/parameters/id'
+      - name: id
+        in: path
+        required: true
+        description: UUID of an asset, or SHA-256 of a published original. Signatures apply to UUID paths.
+        schema:
+          type: string
+          pattern: '^([a-f0-9]{64}|[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12})$'
       - $ref: '#/components/parameters/width'
       - $ref: '#/components/parameters/height'
       - $ref: '#/components/parameters/fit'

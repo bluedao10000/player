@@ -1,5 +1,5 @@
 flowchart TB
-  subgraph front["前端 · TanStack Start / SwiftUI"]
+  subgraph front["前端 · TanStack Router / SwiftUI"]
     readers["公开 H5 与 iOS"]
     bench["本地工作台 · 对话、审稿、运行记录"]
   end
@@ -18,9 +18,9 @@ flowchart TB
   pg[("制作 PostgreSQL · 配置、用量与回执")]
   local[("本地 PostgreSQL · 工作台会话与制作计划")]
   online[("正式读库与入选图片")]
-  media["广州 Axum + libvips · 图片灰度"]
+  media["广州 Axum + libvips · 图片库"]
   backup["K3s · 每日备份与恢复校验"]
-  readers -->|公开 SSR / JSON| api
+  readers -->|公开 JSON| api
   api -->|读已发布内容| online
   bench -->|确认结构化差异| admin
   admin -->|事务更新和审计| local
@@ -33,9 +33,9 @@ flowchart TB
   pi --> models
   pg -->|验收定稿与入选图| publish
   publish -->|Mesh 内网投递| online
-  readers -->|火影灰度路径经阿里云网关与 Mesh| media
+  readers -->|img.codeiy.com 经 Nginx 与私网| media
   backup -->|Mesh 只读快照| pg
-%% readers | H5 服务端与 iOS 共享公开阅读契约和段落锚点。 | apps/ios/server/reader.server.ts
+%% readers | H5 与 iOS 共享公开阅读契约和段落锚点。 | apps/ios/server/reader.server.ts
 %% bench | 本地对话可跟踪分集状态及确认修改，并保留原有人工审稿。 | apps/web/src/routes/workbench.tsx
 %% api | 在线 Gin 提供正式站公开读模型和读者业务。 | apps/api/internal/handler/knowledge/world_api.go
 %% admin | Gin 从业务数据生成差异，确认后做版本校验、写事务及审计。 | apps/api/internal/handler/knowledge/chat.go
@@ -48,5 +48,5 @@ flowchart TB
 %% pg | 广州制作库保存业务事实、配置快照、预算、五维验收和发布回执。 | database/migrations/init.sql
 %% local | 本地工作台会话、结构化提案与计划不向公网开放。 | apps/web/src/features/workbench/local.ts
 %% online | 阿里云在一个事务中安装单集投影并记录回执。 | apps/api/internal/repository/queries/release/queries.queries
-%% media | 广州负责《火影忍者》试点图分发，其他作品继续读取正式站归档。 | apps/sync/ops/image-import/README.md
+%% media | 广州负责原件分发、签名与转换。 | apps/image/README.md
 %% backup | 从同一源快照导出、恢复并逐表核对。 | deploy/pg-backup/backup.sh

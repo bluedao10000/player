@@ -1,12 +1,12 @@
 flowchart TB
-  reader["公网 H5 / iOS / 支付通知"] -->|HTTPS 443| edge["Cloudflare DNS · CDN · WAF"]
+  reader["公网 H5 / iOS / 支付通知"] -->|HTTPS 443| edge["DNS · www 与 img"]
   subgraph ali["阿里云杭州 · 无业务数据"]
-    tunnel["cloudflared · systemd"] -->|受限 Unix socket| gw["Nginx · 公网路由白名单"]
+    gw["Nginx · 双域名及 API 白名单"] --> site["静态 HTML / JS / CSS"]
   end
-  edge -->|出站 Tunnel 承载回源| tunnel
+  edge -->|HTTPS| gw
   subgraph gz["腾讯云广州 · 私有业务主节点"]
     origin["Mesh 连接器 · 按来源和端口放行"]
-    origin --> web["TanStack SSR · 认证与支付适配"]
+    origin --> web["Reader API · 认证、支付与 iOS"]
     web -->|Docker DNS| api["Gin · 读者 API"]
     origin -->|只读 API| api
     api --> readerdb[("PostgreSQL · 读者库")]
@@ -17,7 +17,7 @@ flowchart TB
     pi -->|授权读写| image
     pi --> domestic["国内模型出口"]
   end
-  gw -->|私有 Mesh · Web / API / 图片三端口| origin
+  gw -->|私有 Mesh · 三个后端端口| origin
   web -->|历史订单兼容| legacy["Folio 账户站"]
   pi -->|Mesh · 双向 TLS| sv["腾讯云硅谷 · Model Gateway"]
   sv -->|HTTPS · 供应商密钥| provider["境外模型供应商"]
@@ -26,13 +26,13 @@ flowchart TB
   backup -->|Mesh · 只读备份包| image
 %% reader | 读者客户端和通知方使用既有公开 URL。 | deploy/gateway/nginx/routes.conf
 %% edge | 公开原件与静态资源遵循源缓存头，预览与签名请求绕过缓存。 | docs/部署架构.md
-%% tunnel | 独立 Tunnel 主动出站，凭据由 systemd 加载。 | deploy/gateway/cloudflare/player-edge-tunnel.service
-%% gw | 认证、支付和图片清单有独立处理路径。 | deploy/gateway/nginx/routes.conf
+%% site | 静态目录随同一 Nginx 镜像交付。 | apps/web/Dockerfile
+%% gw | 认证、支付和图片读取使用独立白名单。 | deploy/gateway/nginx/routes.conf
 %% origin | 三个监听器绑定广州 Mesh IP，仅允许杭州源 /32。 | deploy/gateway/mesh/reader-origin.conf.template
-%% web | 浏览器使用同源路径，SSR 在广州直连 Gin。 | deploy/guangzhou/compose.yaml
+%% web | 浏览器使用同源路径，读者业务适配器在广州直连 Gin。 | deploy/guangzhou/compose.yaml
 %% api | 公开查询由 Gin 连接读者库，管理路由仅供内网。 | apps/api/internal/router/api.go
 %% readerdb | 读者账户、订单、正式投影和回执使用独立库和角色。 | deploy/guangzhou/README.md
-%% image | 独立资产卷与旧图回退分开验收。 | apps/image/compose.yaml
+%% image | 独立资产卷存放图片目录、原件与衍生件。 | apps/image/compose.yaml
 %% sync | 迁移领取者及发布器时先排空旧端。 | apps/sync/ops/reader-release/README.md
 %% proddb | 制作库持有任务和用量事实，备份角色只读。 | deploy/pg-backup/source-grants.psql
 %% pi | 检查点、素材与用量待送回执随任务迁移。 | apps/agent/src/model-api.ts

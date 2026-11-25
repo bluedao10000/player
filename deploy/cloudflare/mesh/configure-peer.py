@@ -18,7 +18,7 @@ def api(path, method="GET", data=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("path", choices=["release", "backup", "image"])
+    parser.add_argument("path", choices=["release", "backup"])
     parser.add_argument("source", type=ipaddress.IPv4Address)
     parser.add_argument("destination", type=ipaddress.IPv4Address)
     args = parser.parse_args()
@@ -26,7 +26,6 @@ def main():
         parser.error("expected enrolled Mesh /32 addresses")
     name, port, priority = {
         "release": ("Folio Silicon Valley to Aliyun reader", 2222, 9010),
-        "image": ("Folio Aliyun to Guangzhou images", 14580, 9030),
         "backup": ("Folio backup to Guangzhou PostgreSQL", 5433, 9020),
     }[args.path]
     traffic = f'net.src.internal_src_ip == {args.source} and net.dst.ip == {args.destination} and net.dst.port == {port} and net.protocol == "tcp"'

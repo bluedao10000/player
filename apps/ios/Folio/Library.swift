@@ -75,8 +75,12 @@ enum LibraryAPI {
     }()
 
     static func image(_ path: String?) -> URL? {
-        guard let path, path.hasPrefix("/art/") else { return nil }
-        return origin.appending(path: String(path.dropFirst()))
+        guard let path, let url = URL(string: path),
+              url.scheme == "https", url.host == "img.codeiy.com", url.port == nil,
+              url.user == nil, url.password == nil, url.fragment == nil,
+              url.path.range(of: #"^/i/([a-f0-9]{64}|[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12})$"#,
+                             options: .regularExpression) != nil else { return nil }
+        return url
     }
 
     static func load<T: Decodable>(_ path: String, as: T.Type = T.self) async throws -> T {

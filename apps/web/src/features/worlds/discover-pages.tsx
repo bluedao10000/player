@@ -1,3 +1,4 @@
+import { imageUrl } from '../../lib/images'
 import { Layout, SectionHeader } from '../post/design'
 import { Icon } from '../post/icons'
 import { ContinueReading } from '../post/progress'
@@ -16,7 +17,7 @@ function WorkTile({ work }: { work: DiscoverCard }) {
   return (
     <a className="folio-tile" href={work.href}>
       <div className="folio-cover">
-        {work.image && <img src={work.image} loading="lazy" alt="" />}
+        {work.image && <img src={imageUrl(work.image)} loading="lazy" alt="" />}
       </div>
       <small>{work.edition}</small>
       <strong>{work.title}</strong>
@@ -29,7 +30,7 @@ function PortraitTile({ person }: { person: Portrait }) {
     <a className="folio-person" href={person.href}>
       <div className="folio-portrait">
         {person.image ? (
-          <img src={person.image} alt="" loading="lazy" />
+          <img src={imageUrl(person.image)} alt="" loading="lazy" />
         ) : (
           <Icon name="people" size={36} />
         )}
@@ -44,7 +45,7 @@ function ChapterRow({ story }: { story: StoryEntry }) {
   return (
     <a className="folio-chapter" href={story.href}>
       <div className="folio-thumb">
-        {story.image && <img src={story.image} alt="" loading="lazy" />}
+        {story.image && <img src={imageUrl(story.image)} alt="" loading="lazy" />}
       </div>
       <div>
         <small>
@@ -70,7 +71,7 @@ export function DiscoverHome({
             {lead.image && (
               <img
                 className="folio-art"
-                src={lead.image}
+                src={imageUrl(lead.image)}
                 alt=""
                 fetchPriority="high"
               />
@@ -94,7 +95,7 @@ export function DiscoverHome({
               {features.map((w) => (
                 <a href={w.href} key={w.href}>
                   {w.image && (
-                    <img className="folio-art" src={w.image} alt="" />
+                    <img className="folio-art" src={imageUrl(w.image)} alt="" />
                   )}
                   <div>
                     <small>{w.edition}</small>
@@ -154,7 +155,7 @@ export function DiscoverHome({
           <div className="folio-scenes">
             {page.scenes.map((scene) => (
               <a href={scene.href} key={scene.href}>
-                {scene.image && <img src={scene.image} alt="" loading="lazy" />}
+                {scene.image && <img src={imageUrl(scene.image)} alt="" loading="lazy" />}
                 <div>
                   <small>
                     {scene.work} · {scene.place}

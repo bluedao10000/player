@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS assets (
     deleted_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS asset_directory ON assets(directory_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS asset_public_digest ON assets(sha256) WHERE visibility='public' AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS asset_object ON assets(storage_key);
 CREATE INDEX IF NOT EXISTS asset_source ON assets(source_asset_id) WHERE deleted_at IS NULL;
 

@@ -1,7 +1,7 @@
 use axum::serve::ListenerExt;
 use folio_image::{service, Config};
-use std::{env, path::PathBuf};
-use tokio::{fs, net::TcpListener, signal};
+use std::env;
+use tokio::{net::TcpListener, signal};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -11,17 +11,8 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap_or_else(|_| "folio_image=info".into()),
         )
         .init();
-    let config = match env::var_os("IMAGE_DATA_DIR") {
-        Some(path) => Some(Config::from_env(path.into()).await?),
-        None => None,
-    };
-    let legacy = match env::var_os("IMAGE_LEGACY_DIR") {
-        Some(path) if !path.is_empty() => Some(PathBuf::from(path)),
-        Some(_) => None,
-        None if config.is_none() || fs::try_exists("manifest.txt").await? => Some(".".into()),
-        None => None,
-    };
-    let service = service(config, legacy).await?;
+    let config = Config::from_env(env::var("IMAGE_DATA_DIR")?.into()).await?;
+    let service = service(config).await?;
     let bind = env::var("IMAGE_BIND").unwrap_or_else(|_| "127.0.0.1:14580".into());
     let listener = TcpListener::bind(&bind).await?;
     tracing::info!(address = %listener.local_addr()?, "image service listening");

@@ -1,3 +1,4 @@
+import { imageUrl } from '../../lib/images'
 import { catalog, feature, storyUrl } from './catalog'
 import {
   Button,
@@ -49,7 +50,7 @@ export function Reader({
       <article className="reading">
         <header className="reading-cover">
           <img
-            src={isFeature ? nightImage : chapter.image}
+            src={imageUrl(isFeature ? nightImage : chapter.image)}
             alt={isFeature ? nightAlt : story.alt}
             fetchPriority="high"
           />

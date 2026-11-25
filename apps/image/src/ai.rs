@@ -817,7 +817,7 @@ mod tests {
         .await
         .unwrap();
         let worker = tokio::spawn(worker(state.clone()));
-        let router = crate::modern(state.clone());
+        let router = crate::router(state.clone());
         let request = |method: &str, uri: &str, body: Value| {
             router.clone().oneshot(
                 axum::http::Request::builder()

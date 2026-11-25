@@ -156,9 +156,16 @@ pub async fn read(
         return Err(ApiError::NOT_FOUND);
     }
     let params = query(uri.query())?;
-    let asset = state.asset(&id).await?;
-    let recipe = recipe(&state, &params, &asset)?;
     let signed = params.sig.is_some() || params.exp.is_some();
+    let asset = if Key::parse(&id).is_ok() {
+        if signed {
+            return Err(ApiError::NOT_FOUND);
+        }
+        state.public_image(&id).await?
+    } else {
+        state.asset(&id).await?
+    };
+    let recipe = recipe(&state, &params, &asset)?;
     let cache = if asset.visibility == "public" && !signed {
         if recipe.is_some() {
             "public, max-age=86400"

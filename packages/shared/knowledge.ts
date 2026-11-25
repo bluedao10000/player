@@ -1,4 +1,4 @@
-// Server-side client used by TanStack Start server functions and the Pi worker.
+// Public knowledge client used by readers and the Pi worker.
 export type WorkSummary = {
   id: string
   canonical_title: string
@@ -34,7 +34,9 @@ export class KnowledgeError extends Error {
   }
 }
 async function request<T>(path: string): Promise<T> {
-  const base = process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'
+  const base = typeof window === 'undefined'
+    ? process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'
+    : window.location.origin
   const response = await fetch(new URL('/api/v1/knowledge/' + path, base), {
     signal: AbortSignal.timeout(12000),
   })

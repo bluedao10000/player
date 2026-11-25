@@ -1,3 +1,4 @@
+import { imageUrl } from '../lib/images'
 import { siteTitle } from '../site'
 import { createFileRoute } from '@tanstack/react-router'
 import { findWorks } from '../features/knowledge-api'
@@ -47,7 +48,7 @@ function Knowledge() {
                 {w.cover_image && (
                   <img
                     className="catalog-cover"
-                    src={w.cover_image}
+                    src={imageUrl(w.cover_image)}
                     alt=""
                     width="92"
                     height="60"

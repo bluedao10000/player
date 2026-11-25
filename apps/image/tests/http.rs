@@ -7,13 +7,8 @@ use axum::{
 use base64::{engine::general_purpose::STANDARD, Engine};
 use folio_image::{service, Config, Service};
 use futures_util::future::join_all;
-use hmac::{Hmac, Mac};
 use serde_json::{json, Value};
-use sha2::Sha256;
-use std::{
-    path::Path,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::path::Path;
 use tempfile::TempDir;
 use tower::ServiceExt;
 
@@ -40,7 +35,7 @@ fn config(directory: &Path) -> Config {
 
 async fn app(directory: &TempDir) -> Service {
     let _ = tracing_subscriber::fmt().with_test_writer().try_init();
-    service(Some(config(directory.path())), None).await.unwrap()
+    service(config(directory.path())).await.unwrap()
 }
 
 async fn send(
@@ -136,6 +131,8 @@ async fn asset_download_range_validator_and_durable_publication() {
     let id = asset["id"].as_str().unwrap();
     let uri = format!("/i/{id}");
     assert_eq!(get(router, &uri).await.status(), 403);
+    let digest_uri = format!("/i/{}", asset["sha256"].as_str().unwrap());
+    assert_eq!(get(router, &digest_uri).await.status(), 404);
     let signed = data(
         manage(
             router,
@@ -166,6 +163,16 @@ async fn asset_download_range_validator_and_durable_publication() {
         sample()
     );
     publish(router, id).await;
+    let by_digest = get(router, &digest_uri).await;
+    assert_eq!(by_digest.status(), 200);
+    assert_eq!(
+        to_bytes(by_digest.into_body(), 1000).await.unwrap(),
+        sample()
+    );
+    assert_eq!(
+        get(router, &format!("{digest_uri}?sig=bad")).await.status(),
+        404
+    );
     let response = get(router, &uri).await;
     assert_eq!(
         response.headers()[header::CACHE_CONTROL],
@@ -369,7 +376,7 @@ async fn concurrent_upload_and_transform_are_deduplicated() {
     let directory = tempfile::tempdir().unwrap();
     let mut configuration = config(directory.path());
     configuration.cpu_jobs = 4;
-    let service = service(Some(configuration), None).await.unwrap();
+    let service = service(configuration).await.unwrap();
     let router = &service.router;
     let assets = join_all((0..4).map(|i| async move {
         let name = format!("name={i}.png");
@@ -427,48 +434,6 @@ async fn concurrent_upload_and_transform_are_deduplicated() {
 }
 
 #[tokio::test]
-async fn original_legacy_routes_and_preview_signatures() {
-    let directory = tempfile::tempdir().unwrap();
-    let legacy = directory.path().join("legacy");
-    std::fs::create_dir_all(legacy.join("library/preview/art")).unwrap();
-    std::fs::create_dir_all(legacy.join("library/art")).unwrap();
-    std::fs::write(legacy.join("library/art/a.webp"), b"original").unwrap();
-    std::fs::write(legacy.join("library/preview/art/a.webp.webp"), b"preview").unwrap();
-    std::fs::write(legacy.join("manifest.txt"), b"art/a.webp\n").unwrap();
-    std::fs::write(legacy.join("preview.key"), KEY).unwrap();
-    let service = service(Some(config(&directory.path().join("modern"))), Some(legacy))
-        .await
-        .unwrap();
-    let router = &service.router;
-    let response = get(router, "/art/a.webp").await;
-    assert_eq!(response.headers()["x-folio-image"], "gz-naruto-v1");
-    assert_eq!(response.headers()[header::ETAG], "\"a.webp\"");
-    assert_eq!(
-        to_bytes(response.into_body(), 1000).await.unwrap(),
-        "original"
-    );
-    let path = "/image-preview/art/a.webp";
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let url = |expiration| {
-        let mut mac = Hmac::<Sha256>::new_from_slice(&KEY).unwrap();
-        mac.update(format!("{path}\n{expiration}").as_bytes());
-        format!(
-            "{path}?exp={expiration}&sig={}",
-            hex::encode(mac.finalize().into_bytes())
-        )
-    };
-    let valid = get(router, &url(now + 300)).await;
-    assert_eq!(valid.headers()[header::CACHE_CONTROL], "private, no-store");
-    assert_eq!(to_bytes(valid.into_body(), 1000).await.unwrap(), "preview");
-    assert_eq!(get(router, &url(now - 1)).await.status(), 403);
-    assert_eq!(get(router, &url(now + 601)).await.status(), 403);
-    assert_eq!(get(router, "/art/unknown.webp").await.status(), 404);
-}
-
-#[tokio::test]
 async fn orientation_is_applied_and_decode_limit_checked() {
     let directory = tempfile::tempdir().unwrap();
     let service = app(&directory).await;
@@ -508,9 +473,7 @@ async fn orientation_is_applied_and_decode_limit_checked() {
     let constrained = tempfile::tempdir().unwrap();
     let mut configuration = config(constrained.path());
     configuration.max_pixels = 200;
-    let limited = folio_image::service(Some(configuration), None)
-        .await
-        .unwrap();
+    let limited = folio_image::service(configuration).await.unwrap();
     assert_eq!(
         upload(&limited.router, "name=over.png", "image/png", sample())
             .await

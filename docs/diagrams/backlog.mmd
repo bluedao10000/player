@@ -19,7 +19,7 @@ flowchart LR
         picks["热门作品选题<br/>20 部已匹配目录，已发布作品世界 0 部"]
         edit["AI 编辑工作台<br/>两个样板的章节、场景、人物与世界观修订<br/>自动取证校对、手机预览、整项审发"]
         desk["工作台与作品判同<br/>工作台可查看取证、验图与返工<br/>Jev 判同已接入 Gin 管理接口"]
-        seo["搜索引流<br/>公开内容 SSR、页面标题与描述"]
+        seo["搜索引流<br/>静态站抓取验收、页面标题与描述"]
         app["移动端<br/>可在手机浏览器阅读和探索"]
         ops["部署<br/>API 与数据服务已拆分，单机 Compose"]
     end
@@ -59,7 +59,7 @@ flowchart LR
 %% cms | 两个样板已支持人物与世界观修订；更多作品、互动片段与首页推荐待开发。 | docs/产品架构.md
 %% desk | 工作台 feed 汇集同步、质检、作品、研究、图片与范围记录，暂未消费管理端用量接口。 | apps/web/src/features/workbench/feed.ts
 %% console | 当前由已授权的 Gin 请求触发判同、部分质检和重算；跨云时数据服务需要异步命令和结果协议。 | apps/api/internal/service/knowledge/curation.go
-%% seo | H5 内容可 SSR，若干路由已有 head 元信息。 | apps/web/src/routes
+%% seo | 静态站提供页面元信息与 sitemap，需复查主要爬虫对客户端渲染的支持。 | apps/web/src/routes
 %% growth | 补齐可索引公开内容的 sitemap、统一结构化数据与传播摘要；索引和引用由搜索平台决定。 | docs/功能地图.md
 %% app | 角色、阅读、互动与书架路由已经支持移动 H5。 | apps/web/src/features/post
 %% ios | iOS 包装与真机交付待实施。 | docs/产品架构.md

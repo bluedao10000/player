@@ -19,3 +19,5 @@
 ## 正式站内网传输
 
 硅谷 ssh_config 的 folio-reader 指向阿里云 Mesh 地址，使用 `ProxyCommand /usr/bin/nc -U /srv/folio-data/release-socket/reader.sock`。专用 relay 从硅谷 Mesh IP 连接阿里云 Mesh IP 的 TCP 2222，接收侧转发到本机 sshd。保留原 host key 的 HostKeyAlias 与严格校验。authorized_keys 里的发布专用公钥同时限定阿里云 Mesh Docker 网桥来源、restrict 和原接收命令。发布器只使用这个 socket，公网 HTTPS 用于验证读者看到的结果。地址与规则见[部署架构](../../../../docs/部署架构.md)。
+
+接收端配置 `IMAGE_ADMIN_URL` 和 `IMAGE_API_TOKEN` 连接广州私有图片管理端。接收器上传、公开和校验 SHA-256 后才提交读者发布事务。发送端随后验证静态入口、阅读 API、iOS 数据和 `img.codeiy.com` 原件摘要。

@@ -1,3 +1,4 @@
+import { imageUrl } from '../../lib/images'
 import { Icon } from '../post/icons'
 import { Button, Layout, SectionHeader } from '../post/design'
 import type {
@@ -32,7 +33,7 @@ function PeopleList({ people }: { people: CharacterCard[] }) {
       {people.map((person) => (
         <a key={person.slug} href={person.href}>
           {person.portrait && (
-            <img src={person.portrait} width="52" height="52" alt="" />
+            <img src={imageUrl(person.portrait)} width="52" height="52" alt="" />
           )}
           <span>
             <strong>{person.name}</strong>
@@ -53,7 +54,7 @@ function ChapterList({ chapters }: { chapters: ChapterCard[] }) {
           {chapter.image && (
             <img
               className="chapter-thumb"
-              src={chapter.image}
+              src={imageUrl(chapter.image)}
               alt=""
               loading="lazy"
             />
@@ -74,7 +75,7 @@ export function SceneLink({ scene }: { scene: SceneCard }) {
   return (
     <a className="world-scene-link" href={scene.href}>
       {scene.image ? (
-        <img className="scene-thumb" src={scene.image} alt="" loading="lazy" />
+        <img className="scene-thumb" src={imageUrl(scene.image)} alt="" loading="lazy" />
       ) : (
         <Icon name="compass" />
       )}
@@ -108,7 +109,7 @@ export function Hero({
     >
       {image && (
         <img
-          src={image}
+          src={imageUrl(image)}
           alt=""
           fetchPriority="high"
           style={
@@ -149,7 +150,7 @@ function IllustratedOpening({
     <header className="illustrated-opening">
       <figure>
         <img
-          src={image}
+          src={imageUrl(image)}
           alt={caption ?? ''}
           fetchPriority="high"
           width="1440"
@@ -211,7 +212,7 @@ export function WorkPage({
                   }
                 >
                   <img
-                    src={pic.image}
+                    src={imageUrl(pic.image)}
                     alt=""
                     width="1536"
                     height="1024"
@@ -270,7 +271,7 @@ export function PersonPage({
       <header className="person-opening">
         {character.portrait && (
           <img
-            src={character.portrait}
+            src={imageUrl(character.portrait)}
             alt={character.name}
             fetchPriority="high"
           />
@@ -318,7 +319,7 @@ export function ReadingBlocks({
                 key={pic.anchor}
               >
                 <img
-                  src={pic.image}
+                  src={imageUrl(pic.image)}
                   alt={pic.name}
                   width="1536"
                   height="1024"

@@ -1,54 +1,69 @@
-# 杭州公网网关
+# Folio 公网 Nginx
 
-网关只持有路由配置、公开图片路径清单和短期日志。Nginx 使用 Linux host 网络访问既有回环灰度中继，只监听 Unix socket。公网请求从专用 cloudflared 进入；到广州的新连接通过三个受限 Unix socket 进入现有 Mesh 网络命名空间。[路由模板](nginx/routes.conf) · [广州服务](../guangzhou/README.md) · [分阶段切换与网络矩阵](../../docs/部署架构.md)
+`www.codeiy.com` 提供 Vite 构建的 SPA，`img.codeiy.com` 提供广州图片库。两个域名使用同一份 Nginx 配置和同一份正式构建。Gin 读 API 和读者业务接口走私网。图片管理、工作台和编辑接口只在受限网络使用。
 
-## 建立旁路入口
+## 部署前准备
 
-1. 准备 Linux、Docker Compose v2.24.4+、Python 3、curl、flock 和 /usr/local/bin/cloudflared。核对容器 UID 1000 在宿主机为专用可信身份。安装脚本使用 GNU coreutils、systemd 和 /usr/bin/docker。只有连接器与受信运维账号可以进入 /run/player-edge。现有 Tunnel、Nginx、转发器及 DNS 继续服务。
-2. 从本目录以 root 运行 `scripts/install.sh`。脚本安装独立单元和 /opt/player-edge、/etc/player-edge 下的文件。更新版本时从新检出重新安装，保留 settings 和历史渲染配置。每个 release 同时快照 Compose 和镜像摘要，保留已验收镜像；Tunnel 与 Mesh 单元另存旧版本。
-3. 用专用测试 Tunnel 的 UUID、核验过的指标回环端口和测试域名，分别替换 /etc/player-edge/tunnel.yml.in 中的 TUNNEL_UUID、METRICS_PORT、PUBLIC_HOST，保存为 /etc/player-edge/tunnel.yml。它是**本地管理的 Tunnel**。将该隧道的 JSON 凭据以 root:root 0600 安装到 /etc/player-edge/tunnel.json，确认 catch-all 返回 404。测试与正式 hostname 需要各自明确授权的 Cloudflare 路由。旧远程管理令牌继续用于旧单元。[Tunnel 模板](cloudflare/tunnel.yml.in)
-4. 将已核验的 image-import 清单安装到 settings 的 MANIFEST 路径。填写 PUBLIC_HOST、旧账户站 ACCOUNT_HOST、各组上游。确认全部 11 个旧图路径与原入口相同。模板允许每组单独选 Mesh socket 或回环 IP 加端口，未填、空清单、含通配符或非法文件名会中止部署。测试域名的页面加 noindex。正式配置使用 www.codeiy.com。开发、预发和正式配置分别留档。[清单来源](../../apps/sync/ops/image-import/README.md)
-5. 按 [Mesh 手册](mesh/README.md) 接好广州三个服务。初期 WEB、STATIC、AUTH、BILLING 和 FALLBACK 可以分别指向经核实的**原 H5**回环端口；API 组必须指向 Gin。旧网关端口不能用作兜底上游，否则可能循环回源。新 /i/ 与旧灰度分别设置。检查工作台只在私有环境可用。
-6. 在杭州运行以下命令。首次部署脚本在隔离的运行目录做 nginx -t，然后启动 Nginx。同镜像更新先切换已渲染配置的符号链接再发 HUP，旧 worker 排空已有连接；镜像或容器配置变化时 Compose 重建网关，须安排短暂重连窗口。脚本用锁串行更新，等待本地检查 socket 返回新版本号，失败时恢复上版。版本检查仅证明配置加载，继续做下方端到端探测后再切流。
+1. 将两个域名指向经核实的 Nginx 入口，准备覆盖两域名的公共 CA 完整证书链及私钥。普通 Docker 入口监听 80/443。按防火墙和证书签发流程放行所需端口。
+2. 复制 [.env.example](.env.example) 到权限受限的 settings。填写 `API_UPSTREAM`、`READER_API_UPSTREAM` 和 `IMAGE_UPSTREAM`。端点可使用私网 TCP 或 Nginx 可访问的 Unix socket。填写图片上游的 `IMAGE_UPSTREAM_HOST`。上游若使用 HTTPS，设置 `IMAGE_UPSTREAM_SCHEME=https`，Host 同时用于 SNI 及证书校验，私有 CA 用 `UPSTREAM_CA_BUNDLE` 指定容器内可读路径。HTTP 上游应经受限加密 Mesh 或同机私网。
+3. 启动 [广州私网服务](../guangzhou/README.md)。如采用现有 Mesh，使用 [中继配置](mesh/README.md)。从网关验证发现 API、读者业务服务和图片库就绪。管理 API 的 token 只交给广州资产调用者。
+4. 在维护窗口暂停正式发布。从读者数据库导出已发布的图片引用，并准备对应 JPEG、WebP 原件。归档根目录和读者库 DSN 均由运维按实际挂载配置。图片原件导入和核验完成后再开放两个域名，并恢复单集投递。
 
 ```sh
-cd /opt/player-edge
-scripts/deploy.sh
-scripts/healthcheck.sh
-cloudflared tunnel --config /etc/player-edge/tunnel.yml ingress validate
-systemctl enable --now player-edge-tunnel
-curl -fsS "http://127.0.0.1:${METRICS_PORT}/ready"
+psql "$READER_INVENTORY_DSN" -X -At -v ON_ERROR_STOP=1 \
+  -f deploy/gateway/scripts/published-images.sql > published-images.txt
+# 在能访问广州管理端口的私有环境中设置 IMAGE_ADMIN_URL 和 IMAGE_API_TOKEN。
+python3 deploy/gateway/scripts/seed-images.py published-images.txt \
+  --scene-archive "$SCENE_ARCHIVE" --portrait-archive "$PORTRAIT_ARCHIVE"
+# 使用相同参数加 --verify-only 可以复查 SHA-256。
 ```
 
-## 路由与缓存
+脚本同时导入仓库的原创插画和品牌位图，校验每个有摘要的归档文件，缺图时中止。JPEG 文件名为 SHA-256，WebP 文件名为 SHA-256 加 `.webp`。原件不联网下载。新增原创位图后运行 `node apps/web/generate-images.mjs` 并上传该版本的图片。
 
-| 请求 | 行为 |
-|---|---|
-| /、/work/、/story/、/art/ 其余路径、/ios-data/、TanStack server function | 广州 Web；静态 /assets/ 可独立切换，页面与构建资源需来自兼容版本 |
-| /api/v1/knowledge/discovery、worlds 及已登记详情 | 仅 GET/HEAD 走 Gin。其余 /api/ 默认 404，增加公开接口时同时更新两端白名单 |
-| /reader-auth/、/ios-account/ | 广州 H5 校验同源、转换 Cookie/Bearer、转发 Gin 的 /api/v1/reader/。微信回调同时保留 folio_flow 和 folio_reader；原生接口保留 Authorization、X-Reader-ID |
-| /api/auth/callback/wechat、/api/auth/callback/github、/billing/alipay-return | 仅 GET 重定向旧账户站，保留 query；/guides/ 保留原重定向。/api/wechat-mini/ 使用验证证书和域名的 HTTPS 原方法代理 |
-| POST /api/billing/alipay/notify | 原表单送 H5。仅当 Host 为 www.codeiy.com 且唯一 out_trade_no 为 32 位小写十六进制，H5 才转旧账户站。其余由 Gin 验签 |
-| /i/、精确清单 /art/、精确清单 /image-preview/art/ | 只读。清单原图仅在 502/503/504 时回退一次旧图；404、签名失败和新资产均不回退。签名预览强制 private, no-store |
-| /workbench*、/editor-api*、/editor-preview*、/v1/、后台 API | 404；广州 Web 强制 PLAYER_PUBLIC_ONLY，Gin 禁用公开工作台凭据 |
-
-Cloudflare 对带 sig 或 exp 的请求、预览、认证、iOS 账户、支付、携带授权或 Set-Cookie 的响应绕过缓存。/i/ 仅在源响应明确 public 时缓存，缓存键包含完整变换查询串。公开版本原图保留一年 immutable，变体服从源 TTL。禁止对 HTML、错误或全站使用 Cache Everything。灰度对比同时记录 CF-Cache-Status、ETag、Range 和源响应头，区分旧缓存命中。
-
-仅接受 socket 对端转来的 CF-Connecting-IP。Cloudflare 边缘必须覆盖此头，仅授权本隧道回源，禁用未经审查的改写 Worker。Nginx 从白名单重建上游请求头，单值 X-Forwarded-For、Host 和 https 由网关写入。访问日志含路径、上游和耗时，限制错误日志的权限及保留期，Nginx 上游错误可能含查询串。默认按连接 IP 使用独立的登录、通知和读取令牌桶，429 计数与运营方回调峰值一起复核。网关关闭通用重试和请求/响应缓冲；SSE 心跳与 WebSocket ping 需短于 90 秒的上游空闲超时。
-
-## 验证、定位故障与回退
+## Docker
 
 ```sh
-cd /opt/player-edge
-docker compose ps
-docker compose logs --since 10m nginx
-journalctl -u player-edge-tunnel -u player-edge-mesh --since '10 minutes ago'
-scripts/healthcheck.sh --upstreams "/i/$PUBLISHED_ASSET_UUID"
-curl --unix-socket /run/player-edge/origin.sock -fsS -H "Host: $PUBLIC_HOST" http://local/healthz
-curl --unix-socket /var/lib/player-edge/mesh/api.sock -fsS http://local/api/v1/knowledge/discovery
-curl --unix-socket /run/player-edge/origin.sock -s -o /dev/null -w '%{http_code}\n' -H "Host: $PUBLIC_HOST" http://local/workbench
+deploy/gateway/scripts/deploy.sh docker /etc/folio-edge/settings
 ```
 
-依次检查 Tunnel ready、本机版本、三个 socket 的属主与监听、Mesh enrolled 状态、/32 策略、广州 Mesh IP 绑定、Docker DNS 和服务自身健康。Tunnel 正常而正文 502 时直接探测 web.sock；API 503 再查 Gin /healthz 与 PostgreSQL。以批准的公开作品检查 HTML 正文、canonical、锚点和哈希静态资源。用测试账号完成 OAuth、iOS challenge、验单和重复测试通知。测试域名不能触发旧单 www 判断；用隔离账户端及原 Host 演练，再在授权窗口观察正式回执。模拟断开测试图片上游，核对旧图字节；预览无签名、篡改、过期应被拒绝并禁缓存。
+`EDGE_CONFIG_DIR`、`EDGE_TLS_DIR`、`EDGE_RELAY_DIR` 必须是宿主机绝对路径。证书目录提供 `fullchain.pem`、`privkey.pem`。纯 TCP 场景也需创建一个空的 relay 目录。Nginx worker UID 1000，需要目录遍历权限和连接 socket 的权限。部署脚本构建镜像、验证 Compose 与 Nginx 配置，再替换唯一 Nginx 容器。CI 产出 `folio-static-site` 并运行隔离验证。正式部署在已配置入口执行。
 
-配置回退运行 `scripts/rollback.sh release-已验收版本`，它用该版本的 Compose 和固定摘要再次校验配置，恢复容器或热加载。首次旁路失败时保留原 Tunnel 入口，停用新 Tunnel。若已切域名，恢复原先保存的 Cloudflare route/origin 配置，核对公网查询与所有回调的唯一写入端。已发生写入时按阶段 4 反向追平后再切写。仓库中的 [隔离回归](tests/smoke.sh) 可在带 Docker、Python 3 的开发机运行，不接入任何隧道。
+## 独立 Nginx
+
+使用带 HTTP/2 模块的 Nginx 1.25.1 或以上版本，并准备 Node 24、Python 3、rsync。设置 `NGINX_WORKER_USER`、`TLS_FULLCHAIN`、`TLS_PRIVATE_KEY`、`EDGE_CONFIG_DIR`。确保 worker 可写 `IMAGE_CACHE_DIR` 且可读 `SITE_ROOT`。以能管理 Nginx 的账号运行下令，所用服务单元应以同一 `nginx.conf` 启动。
+
+```sh
+deploy/gateway/scripts/deploy.sh native /etc/folio-edge/settings
+```
+
+也可从 CI 解包 `folio-static-site` 到 `SITE_ROOT`，执行渲染、`nginx -t -c "$EDGE_CONFIG_DIR/nginx.conf"` 和同配置加载。证书轮换同样触发 Nginx reload。
+
+## 复用本机 Cloudflare Tunnel
+
+杭州生产入口可由现有 Tunnel 接收两个公开域名，Nginx 仅监听宿主机回环。渲染时设置 `CLOUDFLARE_LOCAL_TUNNEL=1`，并填写实际 `HTTP_LISTEN`、`HTTPS_LISTEN` 回环端口。容器使用宿主机网络并明确配置可访问 Mesh socket 的 worker UID/GID。Cloudflared 的每个 ingress 使用 HTTPS 本机端口，设置对应的 `originServerName` 和 `httpHostHeader`，通过 `caPool` 校验本机证书。Nginx 读取 Tunnel 提供的客户端地址，把公网 HTTP 请求重定向到同域 HTTPS。
+
+`www` 与 `img` 的代理 DNS 记录指向同一 Tunnel。切换前先从公网校验图片证书、原件摘要和变体，再切换站点入口。切换时暂停发布定时器，确认在途任务完成并更新发送端和接收端，验证公开读链路后恢复。
+
+## 路由、缓存与验收
+
+| 入口 | 行为 |
+| --- | --- |
+| `www /work/*`、`/story/*` | SPA 入口，HTML 须重新验证。浏览器经同源白名单读取 Gin |
+| `www /assets/*` | 仅返回存在的文件，带构建 hash 的文件缓存一年，Gzip 压缩文本资源 |
+| `www /reader-auth/*`、`/ios-account/*`、`/ios-data/*`、`/api/billing/alipay/notify` | 私网 Reader API 保留 Cookie、App 凭证和支付原始表单。iOS 上线须使用支持独立图片域名的客户端版本 |
+| `img /i/*` | 只读代理。转发 Range 和验证器，保持源 Content-Type。公开原件缓存一年，变体一天。共享缓存只存明确公开的完整响应。签名、携带凭据及 Range 请求绕过共享缓存 |
+| `/healthz`、`/readyz` | 检查 Nginx 与各站就绪。站点就绪检查入口 HTML，图片就绪请求广州 |
+| 两站 HTTPS | 未知主机拒绝，HTTP 升级到 HTTPS。图片 CORS 允许配置的站点 Origin，公开图片可跨域嵌入 |
+
+若接入 CDN，保留全部查询参数作为缓存键，遵守源 Cache-Control，对签名、Cookie、Authorization、Range 请求绕过共享缓存。CDN 与源站采用校验源证书的 HTTPS。启用上游真实客户端地址时，只信任已核对的 CDN 代理网段。网关磁盘缓存和广州衍生缓存各有独立容量。
+
+```sh
+deploy/gateway/tests/smoke.sh
+curl -fsS https://www.codeiy.com/readyz
+curl -fsS https://img.codeiy.com/readyz
+curl -sSI "https://img.codeiy.com/i/$PUBLIC_IMAGE_SHA?format=webp&w=600"
+```
+
+公网验收应在移动端直达章节和场景并核对段落回跳。用真实样本核对响应摘要、图片缓存命中、登录与支付回调，并确认两个域名对外提供完整证书链。访问日志记录规范化路径、上游状态、耗时与缓存状态。
+
+使用 Playwright 运行 390px 浏览器用例时，设置 `EDGE_SMOKE_BROWSER=1` 及可解析 Playwright 模块的 `NODE_PATH`。浏览器用例使用隔离监听器，并记录独立图片域名的实际资源请求。

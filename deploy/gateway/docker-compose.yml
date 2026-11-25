@@ -1,19 +1,24 @@
 name: player-edge
 services:
   nginx:
-    image: nginx:stable-alpine@sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54193075997b3a97e3
+    build: {context: ../.., dockerfile: apps/web/Dockerfile, target: site}
     entrypoint: [nginx]
-    command: [-c, /edge/current/nginx.conf, -g, "daemon off;"]
-    network_mode: host
-    user: "1000:1000"
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    command: [-c, /etc/folio-edge/nginx.conf, -g, "daemon off;"]
     restart: unless-stopped
-    tmpfs: [/tmp]
+    ports:
+      - "${EDGE_BIND:-0.0.0.0}:${EDGE_HTTP_PORT:-80}:80"
+      - "${EDGE_BIND:-0.0.0.0}:${EDGE_HTTPS_PORT:-443}:443"
     volumes:
-      - /var/lib/player-edge/config:/edge:ro
-      - /run/player-edge:/run/player-edge
-      - /var/lib/player-edge/mesh:/mesh:ro
-    logging:
-      driver: local
+      - ${EDGE_CONFIG_DIR:?rendered configuration}:/etc/folio-edge:ro
+      - ${EDGE_TLS_DIR:?TLS certificate and key}:/etc/folio-tls:ro
+      - ${EDGE_RELAY_DIR:?private relay directory}:/mesh:ro
+      - image-cache:/var/cache/nginx
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t -q -c /etc/folio-edge/nginx.conf && test -s /usr/share/nginx/html/index.html"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging: {driver: local}
+volumes:
+  image-cache:

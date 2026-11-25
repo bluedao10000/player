@@ -1,3 +1,4 @@
+import { imageUrl } from '../../lib/images'
 import { artUrl, feature, stories, storyUrl } from './catalog'
 import {
   Avatar,
@@ -42,7 +43,7 @@ export function CharacterHero({ name, role, preview }: {
     <header className="mio-arrival" aria-labelledby="mio-name">
       <img
         className="mio-key-art"
-        src={preview?.src ?? "/art/mio-invitation.webp"}
+        src={preview?.src ?? imageUrl("/art/mio-invitation.webp")}
         style={preview ? {objectPosition: "65% "+preview.focus+"%"} : undefined}
         width="1672"
         height="941"
@@ -86,7 +87,7 @@ export function Character({
               {appearances.map((story) => (
                 <a key={story.slug} href={story.href}>
                   <img
-                    src={story.image}
+                    src={imageUrl(story.image)}
                     alt=""
                     width="766"
                     height="510"

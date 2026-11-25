@@ -30,7 +30,7 @@ open AnimeApp.xcodeproj
 
 正式站的[作品目录](https://www.codeiy.com/ios-data/v1/discovery)可以直接在设备上打开。读取支持 GET 和 HEAD，其他方法返回 405。
 
-App 从内容站读取下表的 GET 路径，图片沿用站点的 /art/ 地址。服务端按字段返回发布内容。人物、章节和场景 slug 以所属作品为作用域。场景的 anchor 与章节 blocks 中的 anchors 对应。
+App 从内容站读取下表的 GET 路径，图像 URL 使用 `https://img.codeiy.com/i/…`。服务端按字段返回发布内容。人物、章节和场景 slug 以所属作品为作用域。场景的 anchor 与章节 blocks 中的 anchors 对应。
 
 | 路径（以 /ios-data/v1 开头） | 内容 |
 | --- | --- |

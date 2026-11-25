@@ -1,3 +1,4 @@
+import { imageUrl } from '../../lib/images'
 import { useEffect, useState } from 'react'
 import { WechatButton } from './wechat'
 import { Layout } from '../post/design'
@@ -124,7 +125,7 @@ export function ReaderLogin({
     <Layout active="me">
       <section className="reader-login">
         <figure>
-          <img src={chapter?.image || '/art/night-post.webp'} alt="" />
+          <img src={imageUrl(chapter?.image || '/art/night-post.webp')} alt="" />
           <figcaption>{chapter?.work || '潮汐邮局'}</figcaption>
         </figure>
         <div className="reader-form">

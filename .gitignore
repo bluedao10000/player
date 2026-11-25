@@ -28,3 +28,5 @@ tunnel-token
 *.xcuserstate
 
 *.local.xcconfig
+
+/apps/web/src/routeTree.public.gen.js

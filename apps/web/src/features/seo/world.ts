@@ -1,3 +1,4 @@
+import { imageUrl } from '../../lib/images'
 import type { ChapterDetail, CharacterDetail, SceneDetail, WorldOverview } from '@anime/shared/knowledge'
 import { siteOrigin, siteTitle } from '../../site'
 
@@ -9,9 +10,6 @@ export function publicUrl(href: string) {
 
 const ref = (href: string) => ({ '@id': publicUrl(href) })
 
-function imageUrl(href: string | null | undefined) {
-  return href?.startsWith('/art/') ? publicUrl(href) : undefined
-}
 
 function worldEntity(work: WorldOverview['work']) {
   return {

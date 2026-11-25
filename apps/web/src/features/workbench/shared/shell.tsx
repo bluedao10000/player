@@ -1,3 +1,4 @@
+import { brandMark } from '../../../lib/brand'
 import { Activity, Bot, BookOpen, BriefcaseBusiness, ChartNoAxesCombined, Network, ShieldAlert, UserRound } from 'lucide-react'
 import { useId, useState } from 'react'
 
@@ -19,7 +20,7 @@ export function WorkbenchSidebar({ current }: { current: WorkbenchSection }) {
   return (
     <aside className="wb-sidebar" data-expanded={expanded}>
       <div className="wb-sidebar-header">
-        <a href="/" className="wb-brand"><img src="/brand/folio-plane.svg" alt="" width="26" height="26" /><span>Folio 时光</span></a>
+        <a href="/" className="wb-brand"><img src={brandMark} alt="" width="26" height="26" /><span>Folio 时光</span></a>
         <button
           type="button"
           className="wb-sidebar-toggle"

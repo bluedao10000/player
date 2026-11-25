@@ -1,39 +1,37 @@
 flowchart TB
-  reader["H5 与 iOS"] -->|公开 HTTPS| edge["Cloudflare CDN · www"]
+  reader["H5 与 iOS"] -->|公开 HTTPS| edge["DNS · www / img"]
   subgraph ali["阿里云杭州"]
-    gw["读者入口与网关"] --> site["TanStack SSR 与 Gin"]
+    gw["Nginx · 双域名入口"] --> site["静态站点 · Gin / Reader API"]
     site -->|查询| online[("正式读库与入选图")]
     receive["受限 SSH 接收端"] -->|校验并安装单集定稿| online
   end
-  edge -->|出站 Tunnel 承载回源| gw
+  edge -->|TLS| gw
   site -->|32 位旧商户单号通知| legacy["旧 Folio · Worker / D1"]
   subgraph gz["腾讯云广州"]
     text["sync · 盘点、自动登记与文本"] --> pg[("PostgreSQL 制作库")]
     text -->|内部 HTTP| pi["Pi Durable · Magpie Kimi"]
-    image["Axum + libvips · 火影灰度"]
-    shadow["独立资产 API · 回环验收"]
+    image["Axum + libvips · 统一图片库"]
   end
   subgraph sv["腾讯云硅谷"]
     media["媒体调度、五维验收"] -->|Pi / OpenAI| archive["候选图与选图归档"]
     archive --> push["发布定时器 / 授权投递"]
   end
-  gw -->|Mesh · 仅灰度图片路径| image
+  gw -->|Mesh · /i/ 图片读取| image
   media -->|Mesh · 领取任务，写验收| pg
   push -->|Mesh · 读取已验收定稿| pg
   push -->|Mesh · SSH 投递| receive
   cron["局域网 K3s · 每日备份与恢复"] -->|Mesh · 只读快照| pg
   local["本地 Docker · 工作台、Gin、sync 与 Pi"]
 %% reader | 公开网页与 iOS 读取共享作品、章节及段落链接。 | apps/ios/Folio/Reading.swift
-%% edge | 正式站使用独立出站隧道和 CDN。 | deploy/cloudflare/player-tunnel.service
-%% gw | 公开入口会拒绝工作台及私有预览。火影试点使用专门的图片路由。 | deploy/cloudflare/player-ingress.conf
-%% site | TanStack 和 Gin 提供网页及原生阅读数据。 | apps/ios/server/reader.server.ts
+%% edge | 两个公开域名共用一个 TLS 网关。 | deploy/gateway/nginx/nginx.conf
+%% gw | Nginx 托管静态资源，同源 API 按白名单代理。 | deploy/gateway/nginx/routes.conf
+%% site | 公开网页与原生客户端使用 Gin 与 Reader API。 | apps/ios/server/reader.server.ts
 %% online | 正式读库有自己的发布指针、资产归档和回执。 | apps/sync/ops/reader-release/receiver.psql
 %% receive | 发布端通过受限命令投递，接收端校验版本、来源和图像摘要。 | apps/sync/ops/reader-release/receive.sh
 %% text | 已部署自动配置生成与登记。符合模板的作品缺集进入文本生产队列。 | apps/sync/internal/service/scheduler/production.go
 %% pi | 文本、规划和来源配置由 Pi Durable 调用 Magpie Kimi。 | apps/agent/src/episode-configuration-task.ts
 %% pg | 广州制作库保存来源、任务、验收、发布历史和模型计量。 | database/migrations/init.sql
-%% image | 公开灰度范围为《火影忍者》试点场景和肖像，保留原 URL。 | apps/sync/ops/image-import/README.md
-%% shadow | 新图像资产 API 使用自己的卷和回环入口，验收流量与公开灰度分别运行。 | apps/image/compose.yaml
+%% image | 广州提供原件、签名和按规格变换。 | apps/image/README.md
 %% media | 硅谷以受限数据库权限为合格文本生成媒体及完成五维验收。 | apps/sync/ops/production/media-grants.psql
 %% archive | 保存候选原图、裁切和已验收选图。 | apps/agent/src/media.ts
 %% push | 定时器处理明确授权的配置。第 10 集经相同接收器执行授权投递。 | apps/sync/cmd/reader-release/send.go

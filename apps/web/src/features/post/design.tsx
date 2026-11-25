@@ -1,3 +1,5 @@
+import { storyImage } from '../../lib/images'
+import { brandMark } from '../../lib/brand'
 import { siteName } from '../../site'
 import type { SceneCard } from '@anime/shared/knowledge'
 import type { ReactNode } from 'react'
@@ -54,7 +56,7 @@ export function Layout({
       <header className="mast">
         <div className="wrap mast-inner">
           <a className="brand" href="/" aria-label={siteName + '首页'}>
-            <img src="/brand/folio-plane.svg" width="34" height="34" alt="" />
+            <img src={brandMark} width="34" height="34" alt="" />
             <b>{siteName}</b>
           </a>
           <nav className="top-nav" aria-label="主导航">
@@ -77,7 +79,7 @@ export function Layout({
         {children}
       </main>
       <footer className="wrap foot">
-        <img src="/brand/folio-plane.svg" width="22" height="22" alt="" />
+        <img src={brandMark} width="22" height="22" alt="" />
         {siteName}
       </footer>
       <BottomNavigation active={active} />
@@ -167,7 +169,7 @@ export function Avatar({ image }: { image: string }) {
   return (
     <img
       className="avatar"
-      src={'/art/' + image + '.webp'}
+      src={storyImage(image)}
       alt=""
       width="40"
       height="40"

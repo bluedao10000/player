@@ -43,6 +43,17 @@ pub struct Asset {
 }
 
 impl State {
+    pub async fn public_image(&self, digest: &str) -> Result<Asset, ApiError> {
+        sqlx::query_as(&format!(
+            "SELECT {FIELDS} FROM assets
+            WHERE sha256=? AND visibility='public' AND deleted_at IS NULL ORDER BY rowid LIMIT 1"
+        ))
+        .bind(digest)
+        .fetch_optional(&self.db)
+        .await?
+        .ok_or(ApiError::NOT_FOUND)
+    }
+
     pub async fn asset(&self, id: &str) -> Result<Asset, ApiError> {
         valid_id(id)?;
         sqlx::query_as(&format!(

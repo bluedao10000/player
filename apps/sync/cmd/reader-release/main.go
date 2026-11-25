@@ -208,7 +208,10 @@ func receive(ctx context.Context, db *pgx.Conn, in io.Reader) (int64, error) {
 		if !valid {
 			return errors.New("chapter not visible with its predecessors")
 		}
-		return installImage(os.Getenv("KNOWLEDGE_ARCHIVE_DIR"), sha, e.Image)
+		if err := installImage(os.Getenv("KNOWLEDGE_ARCHIVE_DIR"), sha, e.Image); err != nil {
+			return err
+		}
+		return publishImage(ctx, sha, e.Image)
 	})
 	return id, err
 }

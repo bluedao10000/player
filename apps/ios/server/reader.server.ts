@@ -1,3 +1,4 @@
+import { imageUrl } from '../../web/src/lib/images'
 import {catalog,artUrl} from '../../web/src/features/post/catalog'
 import {
   discoveryCatalog,
@@ -24,14 +25,14 @@ const work = ({
   title,
   edition: edition_label,
   intro,
-  image: hero_asset_key,
+  image: imageUrl(hero_asset_key),
   href,
 })
 const person = ({ slug, name, role, portrait, href }: CharacterCard) => ({
   slug,
   title: name,
   subtitle: role,
-  image: portrait,
+  image: imageUrl(portrait),
   href,
 })
 const chapter = ({ slug, title, label, intro, image, href }: ChapterCard) => ({
@@ -39,14 +40,14 @@ const chapter = ({ slug, title, label, intro, image, href }: ChapterCard) => ({
   title,
   subtitle: label,
   intro,
-  image,
+  image: imageUrl(image),
   href,
 })
 const scene = ({ slug, title, place, image, href }: SceneCard) => ({
   slug,
   title,
   subtitle: place,
-  image,
+  image: imageUrl(image),
   href,
 })
 
@@ -121,7 +122,7 @@ async function read(path: string) {
     blocks: blocks.map(({ key, text, anchors }) => ({ key, text, anchors })),
     illustrations: (c.accepted_art ?? []).map(({ block, image, name }) => ({
       block,
-      image,
+      image: imageUrl(image),
       name,
     })),
     scenes: c.scenes.map(scene),

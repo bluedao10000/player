@@ -4,8 +4,6 @@ services:
     extends: {file: compose.services.yml, service: postgres}
   api:
     extends: {file: compose.services.yml, service: api}
-  web:
-    extends: {file: compose.services.yml, service: web}
   research-agent:
     extends: {file: compose.services.yml, service: research-agent}
   sync:

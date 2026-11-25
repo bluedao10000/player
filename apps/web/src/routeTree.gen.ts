@@ -40,8 +40,6 @@ import { Route as WorkbenchKnowledgeRouteImport } from './routes/workbench.knowl
 import { Route as WorkbenchMeRouteImport } from './routes/workbench.me'
 import { Route as WorkbenchOperationsRouteImport } from './routes/workbench.operations'
 import { Route as WorkbenchProjectsRouteImport } from './routes/workbench.projects'
-import { Route as ArtEpisodeScenesFileRouteImport } from './routes/art.episode-scenes.$file'
-import { Route as ArtPortraitsFileRouteImport } from './routes/art.portraits.$file'
 import { Route as WorkWorkIndexRouteImport } from './routes/work.$work.index'
 import { Route as WorkbenchKnowledgeIndexRouteImport } from './routes/workbench.knowledge.index'
 import { Route as WorkbenchKnowledgeWorkRouteImport } from './routes/workbench.knowledge.$work'
@@ -203,16 +201,6 @@ const WorkbenchProjectsRoute = WorkbenchProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => WorkbenchRoute,
 } as any)
-const ArtEpisodeScenesFileRoute = ArtEpisodeScenesFileRouteImport.update({
-  id: '/art/episode-scenes/$file',
-  path: '/art/episode-scenes/$file',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArtPortraitsFileRoute = ArtPortraitsFileRouteImport.update({
-  id: '/art/portraits/$file',
-  path: '/art/portraits/$file',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WorkWorkIndexRoute = WorkWorkIndexRouteImport.update({
   id: '/work/$work/',
   path: '/work/$work/',
@@ -271,8 +259,6 @@ export interface FileRoutesByFullPath {
   '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge/': typeof KnowledgeIndexRoute
   '/workbench/': typeof WorkbenchIndexRoute
-  '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
-  '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work/': typeof WorkWorkIndexRoute
   '/workbench/knowledge/': typeof WorkbenchKnowledgeIndexRoute
@@ -309,8 +295,6 @@ export interface FileRoutesByTo {
   '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge': typeof KnowledgeIndexRoute
   '/workbench': typeof WorkbenchIndexRoute
-  '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
-  '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work': typeof WorkWorkIndexRoute
   '/workbench/knowledge': typeof WorkbenchKnowledgeIndexRoute
@@ -350,8 +334,6 @@ export interface FileRoutesById {
   '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge/': typeof KnowledgeIndexRoute
   '/workbench/': typeof WorkbenchIndexRoute
-  '/art/episode-scenes/$file': typeof ArtEpisodeScenesFileRoute
-  '/art/portraits/$file': typeof ArtPortraitsFileRoute
   '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work/': typeof WorkWorkIndexRoute
   '/workbench/knowledge/': typeof WorkbenchKnowledgeIndexRoute
@@ -392,8 +374,6 @@ export interface FileRouteTypes {
     | '/workbench/projects'
     | '/knowledge/'
     | '/workbench/'
-    | '/art/episode-scenes/$file'
-    | '/art/portraits/$file'
     | '/workbench/knowledge/$work'
     | '/work/$work/'
     | '/workbench/knowledge/'
@@ -430,8 +410,6 @@ export interface FileRouteTypes {
     | '/workbench/projects'
     | '/knowledge'
     | '/workbench'
-    | '/art/episode-scenes/$file'
-    | '/art/portraits/$file'
     | '/workbench/knowledge/$work'
     | '/work/$work'
     | '/workbench/knowledge'
@@ -470,8 +448,6 @@ export interface FileRouteTypes {
     | '/workbench/projects'
     | '/knowledge/'
     | '/workbench/'
-    | '/art/episode-scenes/$file'
-    | '/art/portraits/$file'
     | '/workbench/knowledge/$work'
     | '/work/$work/'
     | '/workbench/knowledge/'
@@ -503,8 +479,6 @@ export interface RootRouteChildren {
   WorkbenchArtFileRoute: typeof WorkbenchArtFileRoute
   WorkbenchHeroFileRoute: typeof WorkbenchHeroFileRoute
   KnowledgeIndexRoute: typeof KnowledgeIndexRoute
-  ArtEpisodeScenesFileRoute: typeof ArtEpisodeScenesFileRoute
-  ArtPortraitsFileRoute: typeof ArtPortraitsFileRoute
   WorkWorkIndexRoute: typeof WorkWorkIndexRoute
   ApiBillingAlipayNotifyRoute: typeof ApiBillingAlipayNotifyRoute
   WorkWorkKindSlugRoute: typeof WorkWorkKindSlugRoute
@@ -729,20 +703,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkbenchProjectsRouteImport
       parentRoute: typeof WorkbenchRoute
     }
-    '/art/episode-scenes/$file': {
-      id: '/art/episode-scenes/$file'
-      path: '/art/episode-scenes/$file'
-      fullPath: '/art/episode-scenes/$file'
-      preLoaderRoute: typeof ArtEpisodeScenesFileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/art/portraits/$file': {
-      id: '/art/portraits/$file'
-      path: '/art/portraits/$file'
-      fullPath: '/art/portraits/$file'
-      preLoaderRoute: typeof ArtPortraitsFileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/work/$work/': {
       id: '/work/$work/'
       path: '/work/$work'
@@ -844,8 +804,6 @@ const rootRouteChildren: RootRouteChildren = {
   WorkbenchArtFileRoute: WorkbenchArtFileRoute,
   WorkbenchHeroFileRoute: WorkbenchHeroFileRoute,
   KnowledgeIndexRoute: KnowledgeIndexRoute,
-  ArtEpisodeScenesFileRoute: ArtEpisodeScenesFileRoute,
-  ArtPortraitsFileRoute: ArtPortraitsFileRoute,
   WorkWorkIndexRoute: WorkWorkIndexRoute,
   ApiBillingAlipayNotifyRoute: ApiBillingAlipayNotifyRoute,
   WorkWorkKindSlugRoute: WorkWorkKindSlugRoute,

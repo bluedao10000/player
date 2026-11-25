@@ -1,60 +1,73 @@
-"""Render a self-contained release from the operator's reviewed settings and asset manifest."""
-import ipaddress
+"""Render a single Nginx configuration from reviewed infrastructure settings."""
+import argparse
 import os
 import re
-import sys
 from pathlib import Path
-from string import Template
 
 
-def hostname(key):
-    value = os.environ[key]
-    if len(value) > 253 or not all(re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label)
-                                   for label in value.split(".")):
-        raise ValueError(f"Invalid {key}")
+def setting(name, pattern, default=None):
+    value = os.environ.get(name, default)
+    if value is None or not re.fullmatch(pattern, value):
+        raise SystemExit(f"Invalid or missing {name}")
     return value
 
 
-def endpoint(key):
-    value = os.environ[key]
-    if value in {f"unix:/mesh/{name}.sock" for name in ("web", "api", "image")}:
-        return value
-    host, _, port = value.rpartition(":")
-    if not ipaddress.IPv4Address(host).is_loopback or not port.isdecimal() or not 1 <= int(port) <= 65535:
-        raise ValueError(f"{key} must use a Mesh socket or loopback")
+def endpoint(name):
+    value = setting(name, r"(?:unix:/[a-zA-Z0-9_./-]+\.sock|(?:[a-zA-Z0-9.-]+|\[[a-fA-F0-9:]+\]):[0-9]+)")
+    if not value.startswith("unix:") and not 1 <= int(value.rsplit(":", 1)[1]) <= 65535:
+        raise SystemExit(f"Invalid port in {name}")
     return value
 
 
-src = Path(__file__).resolve().parents[1] / "nginx"
-dest = Path(sys.argv[1])
-if not re.fullmatch(r"[a-zA-Z0-9_-]+", dest.name):
-    raise ValueError("Invalid release name")
-assets = Path(os.environ["MANIFEST"]).read_text().splitlines()
-if not assets or len(set(assets)) != len(assets):
-    raise ValueError("Expected a nonempty manifest with unique asset paths")
-routes = []
-for asset in assets:
-    if not re.fullmatch(r"art/(episode-scenes/[a-f0-9]{64}\.jpg|portraits/[a-f0-9]{64}\.webp)", asset):
-        raise ValueError("Invalid pilot asset path")
-    routes.append(f"""location = /{asset} {{
-    limit_except GET {{ deny all; }}
-    proxy_intercept_errors on;
-    error_page 502 503 504 = @original;
-    proxy_pass http://gray_origin;
-}}
-location = /image-preview/{asset} {{
-    limit_except GET {{ deny all; }}
-    proxy_hide_header Cache-Control;
-    add_header Cache-Control "private, no-store" always;
-    add_header Referrer-Policy no-referrer always;
-    proxy_pass http://gray_origin;
-}}""")
+parser = argparse.ArgumentParser()
+parser.add_argument("directory", type=Path)
+parser.add_argument("--docker", action="store_true")
+options = parser.parse_args()
+path_pattern = r"/[a-zA-Z0-9_./-]+"
+hostname = r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?"
+settings = {
+    "PUBLIC_HOST": setting("PUBLIC_HOST", hostname, "www.codeiy.com"),
+    "ACCOUNT_HOST": setting("ACCOUNT_HOST", hostname, "r.codeiy.com"),
+    "API_UPSTREAM": endpoint("API_UPSTREAM"),
+    "READER_API_UPSTREAM": endpoint("READER_API_UPSTREAM"),
+    "IMAGE_UPSTREAM": endpoint("IMAGE_UPSTREAM"),
+    "IMAGE_UPSTREAM_SCHEME": setting("IMAGE_UPSTREAM_SCHEME", r"https?", "http"),
+    "IMAGE_UPSTREAM_HOST": setting("IMAGE_UPSTREAM_HOST", hostname),
+    "HTTP_LISTEN": setting("HTTP_LISTEN", r"(?:(?:[0-9.]+|\[[a-fA-F0-9:]+\]):)?[0-9]{1,5}", "80"),
+    "HTTPS_LISTEN": setting("HTTPS_LISTEN", r"(?:(?:[0-9.]+|\[[a-fA-F0-9:]+\]):)?[0-9]{1,5}", "443"),
+}
+for key, docker, native in [
+    ("CONFIG_DIR", "/etc/folio-edge", str(options.directory.resolve())),
+    ("TLS_FULLCHAIN", "/etc/folio-tls/fullchain.pem", None),
+    ("TLS_PRIVATE_KEY", "/etc/folio-tls/privkey.pem", None),
+    ("SITE_ROOT", "/usr/share/nginx/html", "/srv/folio-site"),
+    ("IMAGE_CACHE_DIR", "/var/cache/nginx/folio-images", "/var/cache/nginx/folio-images"),
+    ("NGINX_PID", "/run/nginx.pid", "/run/nginx.pid"),
+    ("UPSTREAM_CA_BUNDLE", "/etc/ssl/certs/ca-certificates.crt", "/etc/ssl/certs/ca-certificates.crt"),
+]:
+    settings[key] = setting(key, path_pattern, docker if options.docker else native)
+settings["NGINX_WORKER_USER"] = setting(
+    "NGINX_WORKER_USER", r"[a-z_][a-z0-9_-]*", "folio-edge" if options.docker else None,
+)
+for name in ("HTTP_LISTEN", "HTTPS_LISTEN"):
+    if not 1 <= int(settings[name].rsplit(":", 1)[-1]) <= 65535:
+        raise SystemExit(f"Invalid port in {name}")
+if settings["PUBLIC_HOST"] == "img.codeiy.com":
+    raise SystemExit("PUBLIC_HOST must differ from the image host")
 
-settings = dict(RELEASE=dest.name, PUBLIC_HOST=hostname("PUBLIC_HOST"), ACCOUNT_HOST=hostname("ACCOUNT_HOST"),
-                CONFIG_DIR=f"/edge/{dest.name}", GRAY_ROUTES="\n".join(routes))
-(dest / "public-host").write_text(settings["PUBLIC_HOST"] + "\n")
+settings.update(TUNNEL_HTTP_CONFIG="", TUNNEL_HTTPS_REDIRECT="")
+if setting("CLOUDFLARE_LOCAL_TUNNEL", r"[01]", "0") == "1":
+    if any(not settings[key].startswith("127.0.0.1:") for key in ("HTTP_LISTEN", "HTTPS_LISTEN")):
+        raise SystemExit("Cloudflare Tunnel requires both Nginx listeners on IPv4 loopback")
+    settings["TUNNEL_HTTP_CONFIG"] = """set_real_ip_from 127.0.0.1;
+    real_ip_header CF-Connecting-IP;
+    map $http_x_forwarded_proto $redirect_tunnel_http { default 0; http 1; }"""
+    settings["TUNNEL_HTTPS_REDIRECT"] = 'if ($redirect_tunnel_http) { return 308 https://$host$request_uri; }'
+
+options.directory.mkdir(parents=True, exist_ok=True)
+source = Path(__file__).resolve().parents[1] / "nginx"
 for name in ("nginx.conf", "routes.conf"):
-    (dest / name).write_text(Template((src / name).read_text()).safe_substitute(settings))
-with (dest / "upstreams.conf").open("w") as f:
-    for name in ("web", "static", "api", "auth", "billing", "image", "gray", "fallback"):
-        f.write(f"upstream {name}_origin {{ server {endpoint(name.upper() + '_UPSTREAM')}; keepalive 16; }}\n")
+    template = (source / name).read_text()
+    # Nginx uses $variables. Only substitute documented braced deployment variables.
+    config = re.sub(r"\$\{([A-Z_]+)\}", lambda match: settings[match[1]], template)
+    (options.directory / name).write_text(config)

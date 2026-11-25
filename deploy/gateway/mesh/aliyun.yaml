@@ -9,9 +9,9 @@ x-socket: &socket
   restart: unless-stopped
   volumes: [/var/lib/player-edge/mesh:/mesh]
 services:
-  edge-web:
+  edge-reader-api:
     <<: *socket
-    command: ["UNIX-LISTEN:/mesh/web.sock,mode=0600,unlink-early,fork", "TCP4:${GZ_MESH_IP:?required}:${MESH_WEB_PORT:?required},connect-timeout=3"]
+    command: ["UNIX-LISTEN:/mesh/reader-api.sock,mode=0600,unlink-early,fork", "TCP4:${GZ_MESH_IP:?required}:${MESH_READER_API_PORT:?required},connect-timeout=3"]
   edge-api:
     <<: *socket
     command: ["UNIX-LISTEN:/mesh/api.sock,mode=0600,unlink-early,fork", "TCP4:${GZ_MESH_IP:?required}:${MESH_API_PORT:?required},connect-timeout=3"]

@@ -37,13 +37,12 @@ services:
       interval: 10s
       timeout: 4s
       retries: 6
-  web:
-    build: {context: ../.., dockerfile: apps/web/Dockerfile}
+  reader-api:
+    build: {context: ../.., dockerfile: apps/web/Dockerfile, target: reader-api}
     restart: unless-stopped
     environment:
       KNOWLEDGE_API_URL: http://api:4311
-      PLAYER_PUBLIC_ONLY: "true"
-      WEB_TRUSTED_PROXY_IP: ${GZ_EDGE_BRIDGE_IP:?Mesh connector address on dedicated edge bridge}
+      READER_API_TRUSTED_PROXY_IP: ${GZ_EDGE_BRIDGE_IP:?Mesh connector address on dedicated edge bridge}
     depends_on:
       api: {condition: service_healthy}
     networks: [reader, edge]
@@ -60,7 +59,6 @@ services:
     volumes:
       - image-data:/data
     environment:
-      IMAGE_LEGACY_DIR: ""
       IMAGE_AI_WORKERS: "0"
   research-agent:
     profiles: [workers]
@@ -148,11 +146,12 @@ services:
     profiles: [release]
     build: {context: ../.., dockerfile: apps/sync/Dockerfile}
     command: [reader-release, receive]
-    env_file: ${RELEASE_ENV_FILE:?reader publication role DSN}
+    env_file: ${RELEASE_ENV_FILE:?reader publication role DSN and IMAGE_API_TOKEN}
     environment:
       KNOWLEDGE_ARCHIVE_DIR: /archive
+      IMAGE_ADMIN_URL: http://image:14580
     volumes: [reader-archive:/archive]
-    networks: [db]
+    networks: [db, media]
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]

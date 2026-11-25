@@ -88,7 +88,6 @@ func TestP1CurationProtectsPublishedWorld(t *testing.T) {
 		"worlds/cowboy-bebop-tv/scenes/cb-scene-1",
 		"worlds/cowboy-bebop-tv/scenes/phase2-extension-scene-3",
 		"works/" + world,
-		"episode-scenes/" + digest + ".jpg",
 	}
 	readPublic := func(t *testing.T) map[string][]byte {
 		t.Helper()
@@ -119,7 +118,7 @@ func TestP1CurationProtectsPublishedWorld(t *testing.T) {
 	}
 
 	baseline := readPublic(t)
-	if !bytes.Equal(baseline[publicPaths[len(publicPaths)-1]], pic.Bytes()) ||
+	if !bytes.Contains(baseline[publicPaths[4]], []byte(digest)) ||
 		!bytes.Contains(baseline[publicPaths[0]], []byte(`"format": "series"`)) ||
 		!bytes.Contains(baseline[publicPaths[3]], []byte("#passage-cb-scene-1")) {
 		t.Fatal("fixture lacks the public format, anchor or selected JPEG")

@@ -1,3 +1,4 @@
+import { imageUrl } from '../../lib/images'
 import { ArrowRight, Mail, Send, Sparkles } from 'lucide-react'
 import { WorkbenchChat } from './chat'
 import { WorkbenchSidebar } from './shared/shell'
@@ -183,7 +184,7 @@ export function EditorDesk({ accountView = false, chatView = false, embedded = f
       {!list ? (
         <section className="ed-login-layout" aria-labelledby="workbench-login-title">
           <div className="ed-login-art">
-            <img src="/art/night-post.webp" alt="" />
+            <img src={imageUrl("/art/night-post.webp")} alt="" />
             <a href="/">Folio 时光</a>
           </div>
           <div className="ed-login-body">

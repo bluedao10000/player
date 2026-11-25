@@ -18,7 +18,6 @@ docker compose logs image
 
 Compose 在宿主机回环发布 14680，容器内监听 14580。实例在独立的 `folio-image_image-data` 卷内持久化，容器 UID/GID 为 10001。单卷运行一个写入实例，服务启动时获取独占锁。若使用独立 SSD/NVMe 绑定挂载，提前让该 UID 可写并使用同一文件系统承载 `objects`、`scratch` 和 `derivatives`。通过 `RUST_LOG` 设置日志级别。原生构建使用 Rust 1.95、libvips 8.16 及具备 AV1 编码和解码的 libheif，默认监听 127.0.0.1:14580。
 
-保留广州原部署时，可在原工作目录仅启动清单模式。配置 `IMAGE_DATA_DIR` 启用新 API。用 `IMAGE_LEGACY_DIR` 指向只读清单卷，也可在原工作目录自动发现 `manifest.txt`。旧卷包含 `manifest.txt`、`preview.key` 和 `library/`。部署旧 systemd 二进制前，需要在广州目标系统匹配 libvips 动态库和构建基线。新 Compose 默认可独立在 14680 验收，线上仍沿现有 Nginx 和 Mesh。参见[灰度运行说明](../sync/ops/image-import/README.md)。
 
 ## REST API
 
@@ -50,7 +49,7 @@ curl -fsS -H "Authorization: Bearer $IMAGE_API_TOKEN" \
   "$base/v1/assets/$asset_id/sign?w=800&h=800&fit=cover&format=webp&q=85"
 ```
 
-新签名包含路径、资产内容版本、规范化变换和到期时间。返回的 URL 是本站相对路径。旧预览按既有路径和到期时间验签。公开原图缓存一年并标记 immutable，公开衍生图缓存一天，私有图和管理响应使用 `private, no-store`。反代应绕过带 `exp` 或 `sig` 的请求及 `/image-preview/`，缓存键包含完整路径和变换查询串。
+签名包含路径、资产内容版本、规范化变换和到期时间。管理接口返回以图片域名为基准的相对路径。公开原件可使用资产 UUID 或 SHA-256，私有图由 UUID 签名读取。公开原图缓存一年并标记 immutable，公开衍生图缓存一天，私有图和管理响应使用 `private, no-store`。反代应绕过带 `exp` 或 `sig` 的请求，缓存键包含完整路径和变换查询串。
 
 ## 转换与资源
 
@@ -68,7 +67,7 @@ OpenAI 图片生成和编辑复用 Agent 的 `MEDIA_AI_*` 与 Magpie 图像路�
 
 ## 备份与恢复
 
-在线备份用 SQLite backup API 取一致性快照。备份脚本根据快照复制每个引用的原图并校验 SHA-256。可以将新目录放在独立备份卷，成功以 `COMPLETE` 为准。另行备份密钥和旧灰度卷，衍生缓存可重建。
+在线备份用 SQLite backup API 取一致性快照。备份脚本根据快照复制每个引用的原图并校验 SHA-256。可以将新目录放在独立备份卷，成功以 `COMPLETE` 为准。另行备份签名密钥，衍生缓存可重建。
 
 ```sh
 docker compose build image

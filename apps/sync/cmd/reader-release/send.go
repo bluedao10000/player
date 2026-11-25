@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -98,13 +99,13 @@ func deliver(ctx context.Context, db *pgx.Conn, topic string, origin int64) (int
 	if err != nil || id < 1 {
 		return 0, href, errors.New("invalid release receipt")
 	}
-	return id, href, verifyPublic(ctx, a, sha)
+	return id, href, verifyPublic(ctx, a, sha, imageOrigin)
 }
-func verifyPublic(ctx context.Context, a acceptance, sha string) error {
+func verifyPublic(ctx context.Context, a acceptance, sha, imageBase string) error {
 	base := strings.TrimRight(os.Getenv("READER_PUBLIC_URL"), "/")
 	client := http.Client{Timeout: 20 * time.Second}
-	get := func(path string) ([]byte, error) {
-		req, err := http.NewRequestWithContext(ctx, "GET", base+path, nil)
+	get := func(origin, path string) ([]byte, error) {
+		req, err := http.NewRequestWithContext(ctx, "GET", origin+path, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -122,22 +123,41 @@ func verifyPublic(ctx context.Context, a acceptance, sha string) error {
 	work := "/work/" + a.World
 	chapter := work + "/chapter/" + p.Chapter
 	api := "/ios-data/v1/works/" + a.World
-	h, err := get(chapter)
-	if err != nil {
-		return err
-	}
 	anchor := "passage-" + p.Anchor
-	if !bytes.Contains(h, []byte(`id="`+anchor+`"`)) {
-		return errors.New("public chapter lacks anchor")
+	for _, path := range []string{chapter, work + "/scene/" + p.Anchor} {
+		html, err := get(base, path)
+		if err != nil {
+			return err
+		}
+		if !bytes.Contains(html, []byte(`id="app"`)) {
+			return errors.New("public H5 entry is missing")
+		}
 	}
-	h, err = get(work + "/scene/" + p.Anchor)
+	readAPI := "/api/v1/knowledge/worlds/" + a.World
+	scenePage, err := get(base, readAPI+"/scenes/"+p.Anchor)
 	if err != nil {
 		return err
 	}
-	if !bytes.Contains(h, []byte(`href="`+chapter+"#"+anchor+`"`)) {
+	var h5Scene struct {
+		ReturnTo struct{ Href string } `json:"return_to"`
+	}
+	if json.Unmarshal(scenePage, &h5Scene) != nil || h5Scene.ReturnTo.Href != chapter+"#"+anchor {
 		return errors.New("public scene lacks return link")
 	}
-	data, err := get(api + "/scenes/" + p.Anchor)
+	chapterPage, err := get(base, readAPI+"/chapters/"+p.Chapter)
+	if err != nil {
+		return err
+	}
+	var h5Chapter struct {
+		Passages []block `json:"reader_passages"`
+	}
+	if json.Unmarshal(chapterPage, &h5Chapter) != nil ||
+		!slices.EqualFunc(h5Chapter.Passages, a.Copy[p.Chapter], func(actual, expected block) bool {
+			return actual.Key == expected.Key && actual.Text == expected.Text && slices.Equal(actual.Anchors, expected.Anchors)
+		}) {
+		return errors.New("public chapter passages differ")
+	}
+	data, err := get(base, api+"/scenes/"+p.Anchor)
 	if err != nil {
 		return err
 	}
@@ -148,7 +168,7 @@ func verifyPublic(ctx context.Context, a acceptance, sha string) error {
 	if json.Unmarshal(data, &scene) != nil || scene.Anchor != anchor || scene.Chapter.Href != chapter {
 		return errors.New("iOS scene target mismatch")
 	}
-	data, err = get(api + "/chapters/" + p.Chapter)
+	data, err = get(base, api+"/chapters/"+p.Chapter)
 	if err != nil {
 		return err
 	}
@@ -159,7 +179,7 @@ func verifyPublic(ctx context.Context, a acceptance, sha string) error {
 		}
 		Illustrations []struct{ Image string }
 	}
-	if json.Unmarshal(data, &ch) != nil || len(ch.Blocks) != len(a.Copy[p.Chapter]) || len(ch.Illustrations) != 1 || ch.Illustrations[0].Image != p.Image {
+	if json.Unmarshal(data, &ch) != nil || len(ch.Blocks) != len(a.Copy[p.Chapter]) || len(ch.Illustrations) != 1 || ch.Illustrations[0].Image != imageBase+"/i/"+sha {
 		return errors.New("iOS final differs")
 	}
 	found := false
@@ -179,7 +199,7 @@ func verifyPublic(ctx context.Context, a acceptance, sha string) error {
 	if !found {
 		return errors.New("iOS chapter lacks return anchor")
 	}
-	image, err := get(p.Image)
+	image, err := get(imageBase, "/i/"+sha)
 	if err != nil {
 		return err
 	}

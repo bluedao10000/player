@@ -12,7 +12,7 @@ services:
     environment:
       GZ_MESH_IP: ${GZ_MESH_IP:?required}
       ALI_MESH_IP: ${ALI_MESH_IP:?required}
-      MESH_WEB_PORT: ${MESH_WEB_PORT:?required}
+      MESH_READER_API_PORT: ${MESH_READER_API_PORT:?required}
       MESH_API_PORT: ${MESH_API_PORT:?required}
       MESH_IMAGE_PORT: ${MESH_IMAGE_PORT:?required}
       NGINX_ENVSUBST_FILTER: ^(GZ_MESH_IP|ALI_MESH_IP|MESH_.*_PORT)$

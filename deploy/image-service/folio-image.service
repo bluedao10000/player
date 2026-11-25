@@ -5,6 +5,9 @@ After=network.target
 [Service]
 User=folio-image
 WorkingDirectory=/var/lib/folio-image
+Environment=IMAGE_DATA_DIR=/var/lib/folio-image
+EnvironmentFile=/etc/folio-image/settings
+StateDirectory=folio-image
 ExecStart=/usr/local/bin/folio-image
 Restart=on-failure
 ProtectSystem=strict

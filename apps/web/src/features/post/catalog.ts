@@ -1,3 +1,4 @@
+import { storyImage } from '../../lib/images'
 export type Story = {
   slug: string
   title: string
@@ -79,4 +80,4 @@ export const stories: Story[] = [
 ]
 export const catalog = [feature, ...stories]
 export const storyUrl = (story: Story) => '/story/' + story.slug
-export const artUrl = (story: Story) => '/art/' + story.image + '.webp'
+export const artUrl = (story: Story) => storyImage(story.image)

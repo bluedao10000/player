@@ -2,7 +2,6 @@ mod ai;
 mod assets;
 mod delivery;
 mod images;
-mod legacy;
 mod processing;
 pub mod storage;
 
@@ -223,34 +222,19 @@ impl Drop for Service {
     }
 }
 
-pub async fn service(
-    config: Option<Config>,
-    legacy_dir: Option<PathBuf>,
-) -> anyhow::Result<Service> {
-    let legacy = match legacy_dir {
-        Some(directory) => legacy::Library::open(directory).await?.router(),
-        None => Router::new(),
-    };
-    let mut workers = Vec::new();
-    let app = if let Some(config) = config {
-        let count = config.ai_workers;
-        let state = open(config, ai::Providers::load()?).await?;
-        for _ in 0..count {
-            workers.push(tokio::spawn(ai::worker(state.clone())));
-        }
-        modern(state)
-    } else {
-        Router::new()
-            .route("/healthz", get(health))
-            .route("/readyz", get(health))
-    };
+pub async fn service(config: Config) -> anyhow::Result<Service> {
+    let count = config.ai_workers;
+    let state = open(config, ai::Providers::load()?).await?;
+    let workers = (0..count)
+        .map(|_| tokio::spawn(ai::worker(state.clone())))
+        .collect();
     Ok(Service {
-        router: legacy.merge(app),
+        router: router(state),
         workers,
     })
 }
 
-fn modern(state: Shared) -> Router {
+fn router(state: Shared) -> Router {
     let management = Router::new()
         .route("/v1/assets/upload", post(assets::upload))
         .route("/v1/assets", get(assets::list))

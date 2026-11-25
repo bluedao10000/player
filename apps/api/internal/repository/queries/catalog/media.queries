@@ -1,5 +1,0 @@
--- name: IsPublishedPortrait
-SELECT EXISTS(SELECT FROM edition_reader_art WHERE kind='character' AND image=$1)
-
--- name: IsPublishedScene
-SELECT EXISTS(SELECT FROM visible_reader_scopes s, jsonb_array_elements(s.picks) p WHERE p->>'image'=$1)
