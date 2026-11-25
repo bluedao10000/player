@@ -12,7 +12,6 @@ import (
 	"unicode/utf8"
 
 	"anime-agent/api/internal/repository/database"
-	knowledgeread "anime-agent/api/internal/repository/queries/knowledge"
 	ops "anime-agent/api/internal/repository/queries/ops"
 	domain "anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/testsupport"
@@ -456,32 +455,7 @@ func TestOpsDailySnapshotIsIdempotent(t *testing.T) {
 	if worldDefinition != 2 || len(worldCompletenessRaw) == 0 {
 		t.Fatalf("world snapshot definition=%d completeness=%s", worldDefinition, worldCompletenessRaw)
 	}
-	payload, err := knowledgeread.OpsKnowledgeSummary(ctx, db, 7)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var summary struct {
-		Trend struct {
-			Points []struct {
-				Day             string
-				Definition      int
-				ActiveWorks     int `json:"active_works"`
-				PublishedWorlds int `json:"published_worlds"`
-				Completeness    json.RawMessage
-			}
-		}
-	}
-	if err := json.Unmarshal(payload, &summary); err != nil {
-		t.Fatal(err)
-	}
-	points := summary.Trend.Points
-	if len(points) != 2 || points[0].Day != legacyDay.Format("2006-01-02") ||
-		points[0].Definition != 1 || string(points[0].Completeness) != "null" ||
-		points[1].Day != day.Format("2006-01-02") || points[1].Definition != 2 ||
-		points[1].ActiveWorks != 4 || points[1].PublishedWorlds != 2 ||
-		len(points[1].Completeness) == 0 || string(points[1].Completeness) == "null" {
-		t.Fatalf("unexpected snapshot trend: %+v", points)
-	}
+
 }
 
 func TestBeijingSnapshotDayAcrossMidnight(t *testing.T) {

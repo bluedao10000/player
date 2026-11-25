@@ -19,7 +19,3 @@ ON CONFLICT(world_slug,source_record_id,topic) WHERE resolved_at IS NULL
 DO UPDATE SET last_run_id=excluded.last_run_id,previous_version_id=excluded.previous_version_id,
  source_version_id=excluded.source_version_id,changes=excluded.changes,updated_at=excluded.updated_at
 WHERE knowledge_source_review_marks.last_run_id<>excluded.last_run_id
-
--- name: ResolveSourceReview
-UPDATE knowledge_source_review_marks SET resolved_at=now(),resolved_by=$3
-WHERE id=$1 AND last_run_id=$2 AND resolved_at IS NULL

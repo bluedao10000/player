@@ -135,7 +135,7 @@ func advanceMedia(ctx context.Context, conn *pgx.Conn, j mediaJob, reply mediaRe
 		}
 		if next == "passed" && (j.Batch == "bebop-portrait" || art.Kind == "portrait") {
 			// Publish the derivative for this reviewed round in the same commit as
-			// the pass. The source PNG and rejected rounds stay workbench-only.
+			// the pass. The source PNG and rejected rounds remain private.
 			tag, err := tx.Exec(ctx, queries.PublishPortrait, j.Slot, j.Step, j.Attempt)
 			if err != nil {
 				return err

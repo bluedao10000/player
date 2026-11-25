@@ -28,9 +28,6 @@ SELECT w.revision,array_agg(a.person ORDER BY a.person) FROM published_worlds w 
 -- name: ArtCompleteness
 SELECT has_hero,portraits,chapter_images FROM work_knowledge_status WHERE work_id=$1
 
--- name: TidepostVersion
-SELECT work_id::text,version_id FROM work_worlds WHERE slug='tidepost'
-
 -- name: OpsWorldMappingCount
 SELECT count(*)::int FROM ops_media_batch_worlds
 
@@ -39,15 +36,3 @@ SELECT count(*)::int FROM ops_media_batch_worlds WHERE batch='mio' AND world_slu
 
 -- name: ForceWorldReimport
 UPDATE knowledge_sources SET current_version='ops-forced-reimport' WHERE name='tidepost-original'
-
--- name: RemoveSceneCast
-DELETE FROM scene_appearances WHERE v=$1
-
--- name: RemoveHomeSlot
-DELETE FROM home_world_slots WHERE work_id=$1
-
--- name: RemoveOpsWorldMapping
-DELETE FROM ops_media_batch_worlds WHERE world_slug=(SELECT slug FROM work_worlds WHERE work_id=$1)
-
--- name: RemoveWorld
-DELETE FROM work_worlds WHERE work_id=$1

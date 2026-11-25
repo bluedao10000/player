@@ -9,11 +9,11 @@ var completenessSource string
 var completenessQueries = resources.Statements(completenessSource)
 
 var (
+	ReadCompletenessResults              = completenessQueries["ReadCompletenessResults"]
 	SeedCompletenessExamples             = completenessQueries["SeedCompletenessExamples"]
 	SeedCompletenessCatalogOnly          = completenessQueries["SeedCompletenessCatalogOnly"]
 	SeedCompletenessP0Contracts          = completenessQueries["SeedCompletenessP0Contracts"]
 	SetCowboyType                        = completenessQueries["SetCowboyType"]
-	SeedPrivateMediaCandidate            = completenessQueries["SeedPrivateMediaCandidate"]
 	AddWhitespaceCompletenessLocation    = completenessQueries["AddWhitespaceCompletenessLocation"]
 	RemoveWhitespaceCompletenessLocation = completenessQueries["RemoveWhitespaceCompletenessLocation"]
 	DuplicateCompletenessLocation        = completenessQueries["DuplicateCompletenessLocation"]
@@ -26,11 +26,10 @@ var (
 	DeactivateCompletenessCatalogOnly    = completenessQueries["DeactivateCompletenessCatalogOnly"]
 	CompletenessRuleCount                = completenessQueries["CompletenessRuleCount"]
 	CompletenessResultCount              = completenessQueries["CompletenessResultCount"]
-	OpsKnowledgeExpectedSummary          = completenessQueries["OpsKnowledgeExpectedSummary"]
-	CountCompletenessRuleForWorld        = completenessQueries["CountCompletenessRuleForWorld"]
-	OpsLegacySnapshot                    = completenessQueries["OpsLegacySnapshot"]
-	OpsSnapshotCompleteness              = completenessQueries["OpsSnapshotCompleteness"]
-	OpsWorldSnapshotCompleteness         = completenessQueries["OpsWorldSnapshotCompleteness"]
-	OpsLegacySnapshotState               = completenessQueries["OpsLegacySnapshotState"]
-	OpsSnapshotActiveWorks               = completenessQueries["OpsSnapshotActiveWorks"]
+
+	OpsLegacySnapshot            = completenessQueries["OpsLegacySnapshot"]
+	OpsSnapshotCompleteness      = completenessQueries["OpsSnapshotCompleteness"]
+	OpsWorldSnapshotCompleteness = completenessQueries["OpsWorldSnapshotCompleteness"]
+	OpsLegacySnapshotState       = completenessQueries["OpsLegacySnapshotState"]
+	OpsSnapshotActiveWorks       = completenessQueries["OpsSnapshotActiveWorks"]
 )

@@ -10,12 +10,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	catalog "anime-agent/api/internal/model/knowledge"
-	"anime-agent/api/internal/repository/workbench"
+	"anime-agent/api/internal/repository/administration"
 	domain "anime-agent/api/internal/service/knowledge"
 )
 
-func AdminRoutes(r *gin.Engine, g *gin.RouterGroup, db *pgxpool.Pool) {
-	editorRoutes(r, db)
+func AdminRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 	matchAIRoutes(g, db)
 	usageRoutes(g, db)
 	g.POST("/quality", func(c *gin.Context) {
@@ -35,7 +34,7 @@ func AdminRoutes(r *gin.Engine, g *gin.RouterGroup, db *pgxpool.Pool) {
 	g.GET("/versions", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()
-		body, err := workbench.Versions(ctx, db, c.Query("source"))
+		body, err := administration.Versions(ctx, db, c.Query("source"))
 		writeJSON(c, body, err)
 	})
 	g.GET("/matches", func(c *gin.Context) {
@@ -43,26 +42,26 @@ func AdminRoutes(r *gin.Engine, g *gin.RouterGroup, db *pgxpool.Pool) {
 		if n > 0 {
 			ctx, cancel := readContext(c)
 			defer cancel()
-			body, err := workbench.Matches(ctx, db, n)
+			body, err := administration.Matches(ctx, db, n)
 			writeJSON(c, body, err)
 		}
 	})
 	g.GET("/matches/:id", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()
-		body, err := workbench.Match(ctx, db, c.Param("id"))
+		body, err := administration.Match(ctx, db, c.Param("id"))
 		writeJSON(c, body, err)
 	})
 	g.GET("/works/:id/issues", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()
-		body, err := workbench.Issues(ctx, db, c.Param("id"))
+		body, err := administration.Issues(ctx, db, c.Param("id"))
 		writeJSON(c, body, err)
 	})
 	g.GET("/works/:id/history", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()
-		body, err := workbench.History(ctx, db, c.Param("id"))
+		body, err := administration.History(ctx, db, c.Param("id"))
 		writeJSON(c, body, err)
 	})
 	g.POST("/actions", func(c *gin.Context) {

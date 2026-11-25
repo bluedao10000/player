@@ -21,8 +21,8 @@ func MailConfigured() bool {
 	return os.Getenv("READER_LOCAL_MAIL") == "mailpit" || (os.Getenv("AUTH_RESEND_API_KEY") != "" && os.Getenv("AUTH_EMAIL_FROM") != "")
 }
 
-func SendLoginCode(ctx context.Context, email, code string, workbench bool) error {
-	subject, plain, rich := loginCodeEmail(code, workbench)
+func SendLoginCode(ctx context.Context, email, code string) error {
+	subject, plain, rich := loginCodeEmail(code)
 	if os.Getenv("READER_LOCAL_MAIL") == "mailpit" {
 		address := os.Getenv("READER_LOCAL_SMTP_ADDR")
 		if address == "" {
@@ -55,13 +55,9 @@ func SendLoginCode(ctx context.Context, email, code string, workbench bool) erro
 	return nil
 }
 
-func loginCodeEmail(code string, workbench bool) (subject, plain, rich string) {
+func loginCodeEmail(code string) (subject, plain, rich string) {
 	title := "登录验证码"
 	destination := "Folio 时光登录页"
-	if workbench {
-		title = "工作台验证码"
-		destination = "Folio 时光工作台登录页"
-	}
 	subject = "Folio 时光 · " + title
 	instruction := "请将下方验证码填入" + destination + "。"
 	reminder := "验证码 5 分钟内有效。如非本人操作，请忽略此邮件。"

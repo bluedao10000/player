@@ -1,4 +1,4 @@
-// Public knowledge client used by readers and the Pi worker.
+// Public knowledge client used by the reader apps.
 export type WorkSummary = {
   id: string
   canonical_title: string
@@ -101,41 +101,6 @@ type Attribution = { uri: string; locator: string }
 export type EpisodeIllustration = {
   name: string; chapter: string; block: string; anchor: string; image: string
 }
-export type ProductionUsage = {
-  world: string
-  title: string
-  edition: string
-  registered_at: string
-  started_at: string | null
-  published_at: string | null
-  last_media_at: string | null
-  failed_research: number
-  episodes?: {
-    number: number
-    source_number: number | null
-    started_at: string | null
-    published_at: string | null
-    failed_research: number
-  }[]
-  operations: {
-    number?: number | null
-    purpose: string
-    operation: string
-    model: string
-    calls: number
-    errors: number
-    unmetered: number
-    tokens: number | null
-    images: number | null
-    seconds: number | null
-  }[]
-}
-export type ScopeAcceptance = {
-  id: number; world: string; edition_title: string; first: number; last: number; version: number; rule: number; checked_at: string
-  previous_gaps?: {id:number; items:string[]} | null
-  published: boolean; passed: boolean; picks: (EpisodeIllustration & {variant: number; round: number})[]
-  checks: {name: string; items: {label: string; evidence?: string; source?: string; gap?: string}[]}[]
-}
 export type WorldOverview = {
   world_setting?: string
   completed_scope: {first: number; last: number; picks: EpisodeIllustration[]} | null
@@ -163,25 +128,6 @@ export type ResearchParagraph = {
   kind: 'motive' | 'turn' | 'cause'
   text: string
   cites: { id: string; url: string; locator: string; quote: string }[]
-}
-export type ResearchRun = {
-  edition_title?: string
-  id: string
-  started_at: string
-  finished_at: string | null
-  stage: 'collect' | 'write' | 'ready' | 'failed'
-  attempt: number
-  policy: number
-  current_policy: boolean
-  model: string | null
-  error: string | null
-  world_slug: string
-  first_episode: number
-  last_episode: number
-  version_id: number
-  paragraphs: number | null
-  documents: {id: string; url: string; locator: string; sha256: string; fetched_at: string}[] | null
-  events: {at: string; message: string}[] | null
 }
 export type ChapterDetail = {
   accepted_art: EpisodeIllustration[] | null
@@ -222,50 +168,3 @@ export const worldChapter = (work: string, slug: string) =>
   request<ChapterDetail>(`worlds/${worldKey(work)}/chapters/${worldKey(slug)}`)
 export const worldScene = (work: string, slug: string) =>
   request<SceneDetail>(`worlds/${worldKey(work)}/scenes/${worldKey(slug)}`)
-
-/** Inventory of the current public version; counts are independent of quality acceptance. */
-export type WorkKnowledgeStatus = {
-  work_id: string
-  title: string
-  release_status: string | null
-  total_episodes: number | null
-  slug: string | null
-  edition: string | null
-  revision: number | null
-  version_id: number | null
-  published_at: string | null
-  maturity: 'basic' | 'linked'
-  visibility: 'catalog' | 'sample'
-  characters: number
-  characters_in_scenes: number
-  chapters: number
-  readable_episodes: number[]
-  storylines: number
-  scenes: number
-  settings: number
-  has_hero: boolean
-  portraits: number
-  chapter_images: number
-}
-
-export type MediaStage = 'reference'|'queued'|'generate'|'review'|'recrop'|'recheck'|'passed'|'held'|'failed'
-export type MediaStep = {
-  attempt:number
-  round:number
-  step:MediaStage
-  started_at:string
-  finished_at:string|null
-  error:string|null
-  result:{
-    source?:string;firstOpinion?:string;secondModel?:string;reference?:string;image?:string;phone?:string;sha?:string;reference_sha?:string;model?:string
-    decision?:'pass'|'recrop'|'redraw';reason?:string;focus?:number
-    checks?:Record<'identity'|'scene'|'anatomy'|'clean'|'crop',boolean>
-  }|null
-}
-export type MediaCandidate = {
-  world_slug?: string | null;
-  reader_href?: string | null;
-  character_slug?: string | null;
-  art?: {kind:"scene"|"portrait";series:string;title:string;episode:number}; batch:string;position:number;reference_sha:string;
-  slot:number;scene:string;variant:number;stage:MediaStage;round:number;reason:string;steps:MediaStep[]
-}

@@ -37,7 +37,7 @@ test('Agent reports media steps and keeps legacy aggregate keys compatible', asy
   stopPlanning()
   stopPlanning()
   stopConfiguration()
-  assert.deepEqual(counters.snapshot(), { research: 0, editorial: 0, planning: 0, configuration: 0 })
+  assert.deepEqual(counters.snapshot(), { research: 0, planning: 0, configuration: 0 })
 })
 
 test('Agent status accepts mixed legacy and detailed execution fields without changing legacy totals', async () => {

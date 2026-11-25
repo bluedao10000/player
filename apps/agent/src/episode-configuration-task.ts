@@ -1,5 +1,5 @@
 import { compileEpisode, locateEpisode, type Template } from './episode-config.ts'
-import { editText } from './editor.ts'
+import { runProductionModel } from './production-model.ts'
 import { page } from './research.ts'
 
 export async function prepareEpisodeConfiguration(dir: string, call: string, input: {
@@ -22,7 +22,7 @@ export async function prepareEpisodeConfiguration(dir: string, call: string, inp
   } catch (err) {
     return { tokens: 0, error: err instanceof Error ? err.message : '分集来源定位失败' }
   }
-  const output = await editText(dir, call, 1, 1, 'configuration', JSON.stringify({
+  const output = await runProductionModel(dir, call, 1, 1, 'configuration', JSON.stringify({
     brief,
     title: located.source.guideTitle,
     sources: located.docs.map(d => d.sentences),

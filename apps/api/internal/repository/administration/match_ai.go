@@ -1,4 +1,4 @@
-package workbench
+package administration
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"anime-agent/api/internal/repository/database"
-	queries "anime-agent/api/internal/repository/queries/workbench"
+	queries "anime-agent/api/internal/repository/queries/administration"
 )
 
 func Assessments(ctx context.Context, db *pgxpool.Pool, id string) ([]byte, error) {

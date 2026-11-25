@@ -3,12 +3,11 @@ import type { Harness } from '@earendil-works/pi-durable'
 
 export const MEDIA_TASK_KIND = 'tidepost.media-candidate'
 
-export type ExecutionKind = 'research' | 'editorial' | 'planning' | 'configuration'
+export type ExecutionKind = 'research' | 'planning' | 'configuration'
 
 export class ExecutionCounters {
   private readonly counts: Record<ExecutionKind, number> = {
     research: 0,
-    editorial: 0,
     planning: 0,
     configuration: 0,
   }
@@ -75,7 +74,7 @@ export async function readAgentStatus(
       // Legacy aggregate keys remain intact for Phase 0 and Phase 1 readers.
       media: mediaTasks.length,
       research: active.research,
-      editorial: active.editorial,
+      editorial: 0,
       configuration: active.planning + active.configuration,
       // Version 2 detail keys are additive; configuration_detail is the exact configuration count.
       media_reference: media.reference,

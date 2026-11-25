@@ -18,12 +18,7 @@ var (
 	SetSupplementURL            = worldSourceQueries["SetSupplementURL"]
 	PublishedCast               = worldSourceQueries["PublishedCast"]
 	ArtCompleteness             = worldSourceQueries["ArtCompleteness"]
-	TidepostVersion             = worldSourceQueries["TidepostVersion"]
 	OpsWorldMappingCount        = worldSourceQueries["OpsWorldMappingCount"]
 	TidepostOpsMappingCount     = worldSourceQueries["TidepostOpsMappingCount"]
 	ForceWorldReimport          = worldSourceQueries["ForceWorldReimport"]
-	RemoveSceneCast             = worldSourceQueries["RemoveSceneCast"]
-	RemoveHomeSlot              = worldSourceQueries["RemoveHomeSlot"]
-	RemoveOpsWorldMapping       = worldSourceQueries["RemoveOpsWorldMapping"]
-	RemoveWorld                 = worldSourceQueries["RemoveWorld"]
 )

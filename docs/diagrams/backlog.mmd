@@ -55,9 +55,9 @@ flowchart LR
 %% expand | episodeSources 依赖 Naruto 官网页面结构及维基分集表；目录 API 按标题与别名查作品，接入另一种来源和剧情向量检索仍需开发。 | apps/agent/src/episode-plan.ts
 %% picks | 热度榜 20 项按 Bangumi ID 命中本地目录，其中 19 项符合现有 TV 与年份校验。 | docs/知识库构建流程.md
 %% pilot | 计划先验证续季集号与集内短篇，四集验收后用真实模型回执核算成本。《黑暗召唤师在地下恋爱中》的 TV/ONA 归属待核。 | docs/知识库构建流程.md
-%% edit | 审稿人提交一句话，在同一任务对照来源、手机预览并按任务发布章节、场景、人物介绍或世界观。 | apps/web/src/features/workbench/editor-desk.tsx
+%% edit | 审稿人提交一句话，在同一任务对照来源、手机预览并按任务发布章节、场景、人物介绍或世界观。 | docs/运营中心重构审计.md
 %% cms | 两个样板已支持人物与世界观修订；更多作品、互动片段与首页推荐待开发。 | docs/产品架构.md
-%% desk | 工作台 feed 汇集同步、质检、作品、研究、图片与范围记录，暂未消费管理端用量接口。 | apps/web/src/features/workbench/feed.ts
+%% desk | 工作台 feed 汇集同步、质检、作品、研究、图片与范围记录，暂未消费管理端用量接口。 | docs/运营中心重构审计.md
 %% console | 当前由已授权的 Gin 请求触发判同、部分质检和重算；跨云时数据服务需要异步命令和结果协议。 | apps/api/internal/service/knowledge/curation.go
 %% seo | 静态站提供页面元信息与 sitemap，需复查主要爬虫对客户端渲染的支持。 | apps/web/src/routes
 %% growth | 补齐可索引公开内容的 sitemap、统一结构化数据与传播摘要；索引和引用由搜索平台决定。 | docs/功能地图.md

@@ -13,13 +13,11 @@ pg_dump 与逐表计数使用同一导出快照。任务写入独立快照卷，
 
 备份覆盖业务数据库中的表、序列、视图、函数、索引和数据。恢复演练在独立 PostgreSQL 中使用本地属主；重建生产权限时另行配置集群角色。硅谷图片文件、Pi 执行卷和阿里云读者数据各有独立存储，本任务仅覆盖广州数据库。快照与恢复库分卷，底层均在 BACKUP_LAN_HOST 的本地磁盘。
 
-## 工作台的备份记录
+## 备份回执
 
-在内部工作台选择「数据运行 → 广州制作库备份」。顶部显示最近一次通过恢复校验的完成时间、归档大小和整个 Job 耗时。展开执行记录可查看精确字节数、逐表校验数量或失败原因。页面使用北京时间。运行列表显示最近 30 次，顶部的最近成功从全部记录中独立查询。
+`backup-report` 每三分钟从本命名空间读取 `guangzhou-backup` 的 Job 与容器结果，以 Kubernetes Job UID 写入广州制作库的 `backup_runs`。执行明细根据 Job 注解区分定时与手动触发，同一 Job 的 Kubernetes 重试算作一次执行。每个失败容器的结束时间与原因独立保存，后续重试成功仍可展开查看。新备份完成归档校验、独立库恢复、行数比对和切换后，由备份容器写入结构化回执。旧归档可在核对 Job 日志中的快照目录、校验和及两份行数清单后，将实测结果写入对应 Job 的 `folio.codeiy.com/verified-archive` 注解。核对成功 Job 时，同时检查是否收到校验回执。
 
-`backup-report` 每三分钟从本命名空间读取 `guangzhou-backup` 的 Job 与容器结果，以 Kubernetes Job UID 写入广州制作库的 `backup_runs`。执行明细根据 Job 注解区分定时与手动触发，同一 Job 的 Kubernetes 重试算作一次执行。每个失败容器的结束时间与原因独立保存，后续重试成功仍可展开查看。新备份完成归档校验、独立库恢复、行数比对和切换后，由备份容器写入结构化回执。旧归档可在核对 Job 日志中的快照目录、校验和及两份行数清单后，将实测结果写入对应 Job 的 `folio.codeiy.com/verified-archive` 注解。无校验回执的成功 Job 在页面显示「缺少校验回执」。
-
-采集心跳随记录一起提交。超过十分钟没有采集，页面标注延迟。Mesh 或广州数据库中断时，采集器恢复后会补传 K3s 仍保留的 Job。若中断跨越 Job 的保留窗口，已被 Kubernetes 清理且未曾采集的执行需用节点归档单独核查。采集器只读取日志末尾并归类失败原因，原始日志保留在 Kubernetes。
+采集心跳随记录一起提交。可用心跳时间核对采集延迟。Mesh 或广州数据库中断时，采集器恢复后会补传 K3s 仍保留的 Job。若中断跨越 Job 的保留窗口，已被 Kubernetes 清理且未曾采集的执行需用节点归档单独核查。采集器只读取日志末尾并归类失败原因，原始日志保留在 Kubernetes。
 
 ### 部署采集器
 
@@ -39,7 +37,7 @@ pg_dump 与逐表计数使用同一导出快照。任务写入独立快照卷，
    kubectl -n folio-pg-backup create job --from=cronjob/backup-report report-check-$(date +%s)
    ```
 
-4. 部署新版内部 Gin 与 H5，确认后台接口 `GET /api/v1/admin/knowledge/backup-status` 需要管理员鉴权。查看 `kubectl -n folio-pg-backup get jobs` 并核对页面的最近采集和任务时间。
+4. 用 `kubectl -n folio-pg-backup get jobs` 核对采集任务，在广州制作库读取 `backup_runs` 并比对任务及校验时间。
 
 ## 广州图片包与读者库
 

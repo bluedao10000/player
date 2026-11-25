@@ -27,7 +27,6 @@ services:
       API_HOST: 0.0.0.0
       PGDATABASE: ${READER_DB:?required}
       PGUSER: ${READER_USER:?required}
-      WORKBENCH_LOCAL_ENABLED: "false"
     depends_on:
       postgres: {condition: service_healthy}
     networks: [db, reader, edge]

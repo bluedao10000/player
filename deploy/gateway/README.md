@@ -1,6 +1,6 @@
 # Folio 公网 Nginx
 
-`www.codeiy.com` 提供 Vite 构建的 SPA，`img.codeiy.com` 提供广州图片库。两个域名使用同一份 Nginx 配置和同一份正式构建。Gin 读 API 和读者业务接口走私网。图片管理、工作台和编辑接口只在受限网络使用。
+`www.codeiy.com` 提供 Vite 构建的 SPA，`img.codeiy.com` 提供广州图片库。两个域名使用同一份 Nginx 配置和同一份正式构建。Gin 读 API 和读者业务接口走私网。图片管理只在受限网络使用。旧工作台和编辑路径返回 404。
 
 ## 部署前准备
 

@@ -15,7 +15,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
+
 	catalog "anime-agent/api/internal/model/knowledge"
+	routing "anime-agent/api/internal/router"
 	"anime-agent/api/internal/testsupport"
 	fixture "anime-agent/api/internal/testsupport/fixtures"
 )
@@ -80,7 +83,10 @@ func TestP1CurationProtectsPublishedWorld(t *testing.T) {
 	}
 	exec(q["SetPublishedImage"], "/art/episode-scenes/"+digest+".jpg")
 
-	router := completenessRouter(t, db)
+	t.Setenv("KNOWLEDGE_ADMIN_TOKEN", "12345678901234567890123456789012")
+	t.Setenv("KNOWLEDGE_ADMIN_OPERATOR", "fixture")
+	router := gin.New()
+	routing.Register(router, db)
 	publicPaths := []string{
 		"worlds/cowboy-bebop-tv",
 		"worlds/cowboy-bebop-tv/chapters/cb-chapter-1",

@@ -8,7 +8,6 @@ var worldsSource string
 
 var (
 	worldsSourceQueries = resources.Statements(worldsSource)
-	ScopeAcceptances    = worldsSourceQueries["ScopeAcceptances"]
 	Discovery           = worldsSourceQueries["Discovery"]
 	HomeWorlds          = worldsSourceQueries["HomeWorlds"]
 	World               = worldsSourceQueries["World"]

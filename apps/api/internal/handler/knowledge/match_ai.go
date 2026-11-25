@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"anime-agent/api/internal/repository/workbench"
+	"anime-agent/api/internal/repository/administration"
 	"anime-agent/api/internal/service/matching"
 )
 
@@ -18,7 +18,7 @@ func matchAIRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 	g.GET("/matches/:id/assessments", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()
-		body, err := workbench.Assessments(ctx, db, c.Param("id"))
+		body, err := administration.Assessments(ctx, db, c.Param("id"))
 		writeJSON(c, body, err)
 	})
 	g.POST("/matches/:id/assessments", func(c *gin.Context) {

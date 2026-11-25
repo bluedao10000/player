@@ -38,7 +38,7 @@ func New(db *pgxpool.Pool, logger *zap.Logger) *gin.Engine {
 // Register installs public, authenticated reader, and operator routes.
 func Register(r *gin.Engine, db *pgxpool.Pool) {
 	admin := adminGroup(r)
-	knowledge.AdminRoutes(r, admin, db)
+	knowledge.AdminRoutes(admin, db)
 	billing.AdminRoutes(admin, db)
 	reader.AdminRoutes(admin, db)
 	billing.PaymentRoutes(r, db)

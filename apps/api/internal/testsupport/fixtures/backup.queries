@@ -1,4 +1,0 @@
--- name: SeedBackupHistory
-INSERT INTO backup_runs VALUES(gen_random_uuid(),'verified',now()-interval '32 days',now()-interval '31 days','success',123,92,NULL);
- INSERT INTO backup_runs SELECT gen_random_uuid(),'failed-'||i,now()-make_interval(days=>i),now()-make_interval(days=>i),'failed',NULL,NULL,'连接中断' FROM generate_series(1,31) i;
- INSERT INTO backup_failed_attempts SELECT gen_random_uuid(),job_uid,started_at,'快照导出失败' FROM backup_runs WHERE job_name='failed-1';

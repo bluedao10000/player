@@ -13,7 +13,7 @@
 ## 对审计稿的两处更正
 
 - 编辑任务 worker（`ProcessEditorial`）运行在 `apps/sync` 的调度进程里，不在 Go API 里。见[同步调度](../apps/sync/internal/service/scheduler/sync.go)。
-- Agent 不是每个节点只有一份 Pi Durable 存储。图片任务用进程级 Harness（`agent.sqlite`）；取证和编辑每次运行各开一份独立存储（`research-<run>.sqlite`、`<name>.sqlite`），在一次 HTTP 请求内跑完。见[取证](../apps/agent/src/research.ts)、[编辑](../apps/agent/src/editor.ts)。这决定了下文心跳里执行数的统计方式。
+- Agent 不是每个节点只有一份 Pi Durable 存储。图片任务用进程级 Harness（`agent.sqlite`）；取证和编辑每次运行各开一份独立存储（`research-<run>.sqlite`、`<name>.sqlite`），在一次 HTTP 请求内跑完。见[取证](../apps/agent/src/research.ts)、[编辑](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/agent/src/editor.ts)。这决定了下文心跳里执行数的统计方式。
 
 ## 三层模型
 

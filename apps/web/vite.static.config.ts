@@ -6,7 +6,7 @@ export default defineConfig({
   publicDir: false,
   plugins: [
     tanstackRouter({
-      routeFileIgnorePattern: '^(workbench|editor-|art\\.|ios-|reader-auth|api\\.|robots|sitemap|healthz)',
+      routeFileIgnorePattern: '^(art\\.|ios-|reader-auth|api\\.|robots|sitemap|healthz)',
       generatedRouteTree: './src/routeTree.public.gen.js',
       disableTypes: true,
       autoCodeSplitting: true,

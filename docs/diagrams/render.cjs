@@ -8,7 +8,6 @@ const views = [
   ['features', '功能地图', 'diagrams/features.mmd'],
   ['business', '知识库构建流程', 'diagrams/business.mmd'],
   ['technology', '当前技术架构', 'architecture.mmd'],
-  ['workbench', '本地工作台', 'diagrams/workbench.mmd'],
   ['deployment', '当前网络与部署', 'diagrams/deployment.mmd'],
   ['media-platform', '目标图片架构', 'diagrams/media-platform.mmd'],
   ['target-deployment', '目标部署', 'diagrams/target-deployment.mmd'],
@@ -31,7 +30,7 @@ async function build() {
     const workbenchOnly = process.argv[2] === 'workbench'
     const backlogOnly = process.argv[2] === 'backlog'
     const deliveryOnly = process.argv[2] === 'delivery'
-    const selected = workbenchOnly ? [['workbench','本地工作台','diagrams/workbench.mmd']] : backlogOnly ? [['backlog', '待开发功能', 'diagrams/backlog.mmd']] : deliveryOnly ? [['delivery-2026-11', '2026-11 交付', 'diagrams/delivery-2026-11.mmd']] : views
+    const selected = workbenchOnly ? [['workbench','旧工作台（历史）','diagrams/workbench.mmd']] : backlogOnly ? [['backlog', '待开发功能', 'diagrams/backlog.mmd']] : deliveryOnly ? [['delivery-2026-11', '2026-11 交付', 'diagrams/delivery-2026-11.mmd']] : views
     const atlas=[]
     for (const [key,title,source] of selected) {
       const code=fs.readFileSync(path.join(docs,source),'utf8')

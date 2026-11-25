@@ -18,7 +18,7 @@
 
 ### 1.3 跨作品与跨版本身份
 
-同一 Work UUID 可持多条 `world_releases`。角色跨版本没有身份 FK，`external_id` 仅在各 `v` 内唯一，slug 复用属于页面约定。`work_sources` 有 Work FK 和 provider ID 索引。`importBatch → Merge` 用 `(provider,external_id)` 匹配，拒绝矛盾和歧义，保护已有归属。`Projection` 提供同名同年候选。`work_relations` 用 `work_related_urls.url = work_sources.url` 反查，未解析为 NULL。`chattools.readWork` 提供目录关联摘要。Work M3，角色、地点与组织跨范围身份 M0。[目录 DDL](../database/migrations/init.sql#L54) · [同步](../apps/api/internal/service/knowledge/sync.go#L217) · [匹配 SQL](../apps/api/internal/repository/queries/knowledge/queries.queries#L12) · [工具](../apps/api/internal/service/knowledge/chattools/registry.go#L237)
+同一 Work UUID 可持多条 `world_releases`。角色跨版本没有身份 FK，`external_id` 仅在各 `v` 内唯一，slug 复用属于页面约定。`work_sources` 有 Work FK 和 provider ID 索引。`importBatch → Merge` 用 `(provider,external_id)` 匹配，拒绝矛盾和歧义，保护已有归属。`Projection` 提供同名同年候选。`work_relations` 用 `work_related_urls.url = work_sources.url` 反查，未解析为 NULL。`chattools.readWork` 提供目录关联摘要。Work M3，角色、地点与组织跨范围身份 M0。[目录 DDL](../database/migrations/init.sql#L54) · [同步](../apps/api/internal/service/knowledge/sync.go#L217) · [匹配 SQL](../apps/api/internal/repository/queries/knowledge/queries.queries#L12) · [工具](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/service/knowledge/chattools/registry.go#L237)
 
 ### 1.4 别名、译名、原名
 
@@ -36,11 +36,11 @@
 
 `knowledge_source_records` 按 `(source_id,record_key)` 唯一，FK 到来源、来源版本和 Work。`importBatch → Merge → Projection → SaveSourceReviews` 更新原始及规范化记录，保留变更前后的快照标识和差异。`world_evidence(v,key)` FK 到世界版本，存 `uri/locator/digest`；角色、章节、场景和出场各用一个复合 FK 指向它。`ResearchIfDue → NextResearchTopic → validateClaims → SaveEvidence / FinishResearch` 写入 `research_runs.documents/claims`；运行 FK 到主题、版本，`(topic,v,policy,attempt)` 唯一。`ImportEpisodeCapture → SaveCapture` 通过计划 `spec` 匹配，以 `topic` 为 PK/FK 保存采集文档。[来源 DDL](../database/migrations/init.sql#L30) · [图证据](../database/migrations/init.sql#L158) · [研究 DDL](../database/migrations/init.sql#L250) · [采集 DDL](../database/migrations/init.sql#L1238) · [研究 SQL](../apps/api/internal/repository/queries/knowledge/research.queries#L7) · [采集 SQL](../apps/api/internal/repository/queries/knowledge/capture.queries#L5)
 
-`knowledge_source_review_marks` 引用世界、来源记录、同步运行、前后版本和可选计划，未关闭项按 `(world_slug,source_record_id,topic)` 去重。目录同步当前写空 topic。`sourceReviewRoutes → ResolveSourceReview` 以 `id + last_run_id` 比较更新，旧读数返回 409。`knowledge_quality_issues(entity_id,rule_id)` 的 entity 仍为 Work FK；`knowledge_completeness_results(work_id,version_id,rule_code,rule_version)` 分别引用 Work、世界 slug、版本和规则，当前读按发布指针取值。`QualityIfDue → Quality → RecalculateCompleteness → CalculateCompleteness`，派生统计和异常各有入口。现有来源、证据及复核链路 M3，逐条事实的多证据和反向影响链 M0。[同步](../apps/api/internal/service/knowledge/sync.go#L217) · [复核 DDL](../database/migrations/init.sql#L2114) · [复核 SQL](../apps/api/internal/repository/queries/knowledge/source_review.queries#L1) · [关闭入口](../apps/api/internal/handler/knowledge/source_review.go#L14) · [质量 DDL](../database/migrations/init.sql#L93) · [完整度 DDL](../database/migrations/init.sql#L2038) · [调度](../apps/api/internal/service/knowledge/quality_schedule.go#L15) · [运营查询](../apps/api/internal/repository/queries/knowledge/ops_completeness.queries#L86)
+`knowledge_source_review_marks` 引用世界、来源记录、同步运行、前后版本和可选计划，未关闭项按 `(world_slug,source_record_id,topic)` 去重。目录同步当前写空 topic。`sourceReviewRoutes → ResolveSourceReview` 以 `id + last_run_id` 比较更新，旧读数返回 409。`knowledge_quality_issues(entity_id,rule_id)` 的 entity 仍为 Work FK；`knowledge_completeness_results(work_id,version_id,rule_code,rule_version)` 分别引用 Work、世界 slug、版本和规则，当前读按发布指针取值。`QualityIfDue → Quality → RecalculateCompleteness → CalculateCompleteness`，派生统计和异常各有入口。现有来源、证据及复核链路 M3，逐条事实的多证据和反向影响链 M0。[同步](../apps/api/internal/service/knowledge/sync.go#L217) · [复核 DDL](../database/migrations/init.sql#L2114) · [复核 SQL](../apps/api/internal/repository/queries/knowledge/source_review.queries#L1) · [关闭入口](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/handler/knowledge/source_review.go#L14) · [质量 DDL](../database/migrations/init.sql#L93) · [完整度 DDL](../database/migrations/init.sql#L2038) · [调度](../apps/api/internal/service/knowledge/quality_schedule.go#L15) · [运营查询](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/repository/queries/knowledge/ops_completeness.queries#L86)
 
 ### 1.8 已接入能力与设计占位
 
-M3 包括 Work 同步与判同、受保护的治理、来源复核、World 发布、完整度、运营拓扑和用户选定作品的只读比较。知识资产列表有来源复核筛选，详情显示具体开放标记。`chatRoutes → runChatInference → chattools.Snapshot / Execute` 读取现有作品、分集和运行回执。`061.sql` 的六条 `no_data` 规则（M1）为人物关系、组织、设定类型、时间线事件、关联章节、时间线顺序。Registry、版本化语义边及逐条事实的审核发布为 M0。相关 FK 和 SQL 见本章 1.1–1.7。[完整度规则](../database/migrations/init.sql#L2022) · [运营接口 SQL](../apps/api/internal/repository/queries/knowledge/ops_completeness.queries#L271) · [知识资产列表](../apps/web/src/features/workbench/knowledge-center.tsx#L26) · [作品详情](../apps/web/src/features/workbench/knowledge-detail.tsx#L89) · [对话执行](../apps/api/internal/handler/knowledge/chat.go#L220) · [Agent 指令](../apps/agent/src/editor.ts#L32)
+M3 包括 Work 同步与判同、受保护的治理、来源复核、World 发布、完整度、运营拓扑和用户选定作品的只读比较。知识资产列表有来源复核筛选，详情显示具体开放标记。`chatRoutes → runChatInference → chattools.Snapshot / Execute` 读取现有作品、分集和运行回执。`061.sql` 的六条 `no_data` 规则（M1）为人物关系、组织、设定类型、时间线事件、关联章节、时间线顺序。Registry、版本化语义边及逐条事实的审核发布为 M0。相关 FK 和 SQL 见本章 1.1–1.7。[完整度规则](../database/migrations/init.sql#L2022) · [运营接口 SQL](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/repository/queries/knowledge/ops_completeness.queries#L271) · [知识资产列表](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/web/src/features/workbench/knowledge-center.tsx#L26) · [作品详情](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/web/src/features/workbench/knowledge-detail.tsx#L89) · [对话执行](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/handler/knowledge/chat.go#L220) · [Agent 指令](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/agent/src/editor.ts#L32)
 
 ### 1.9 可复用的治理能力
 
@@ -393,7 +393,7 @@ P0 角色映射复用 `world_evidence`，P1 再增加边级冻结引用。初期
 
 ## 7. Agent Retrieval 设计
 
-Go 继续持有查询与授权。当前 `chattools.Manifest` 经 `go -C apps/api run ./cmd/knowledge-tools` 生成共享 TS；`knowledge.ts` 的独立工具只挂公开目录，`editor.ts` 的对话入口消费服务端能力清单，Go 最多执行一轮 `read_calls`。现有可调用参数只支持一个字符串，新工具用显式的多字段类型和版本合同，保留旧工具校验行为。新增能力先限定在工作台对话，不挂到公众 Agent 扩展。[Go 登记](../apps/api/internal/service/knowledge/chattools/registry.go#L82) · [生成器](../apps/api/cmd/knowledge-tools/main.go#L15) · [Agent 扩展](../apps/agent/src/knowledge.ts#L8) · [对话执行](../apps/api/internal/handler/knowledge/chat.go#L220)
+Go 继续持有查询与授权。当前 `chattools.Manifest` 经 `go -C apps/api run ./cmd/knowledge-tools` 生成共享 TS；`knowledge.ts` 的独立工具只挂公开目录，`editor.ts` 的对话入口消费服务端能力清单，Go 最多执行一轮 `read_calls`。现有可调用参数只支持一个字符串，新工具用显式的多字段类型和版本合同，保留旧工具校验行为。新增能力先限定在工作台对话，不挂到公众 Agent 扩展。[Go 登记](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/service/knowledge/chattools/registry.go#L82) · [生成器](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/cmd/knowledge-tools/main.go#L15) · [Agent 扩展](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/agent/src/knowledge.ts#L8) · [对话执行](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/handler/knowledge/chat.go#L220)
 
 | 工具 | 输入（另含经 Go 校验的范围） | 返回与上限 | 阶段 |
 | --- | --- | --- | --- |
@@ -406,13 +406,13 @@ Go 继续持有查询与授权。当前 `chattools.Manifest` 经 `go -C apps/api
 
 每项结果有 `work_id / world_slug / version_id`、实体 UUID 或带类型的局部资源键、`origin_class`、可信／审核状态、证据引用及可见范围。没有规范身份的场景、章节返回局部键。历史公开记录若只有来源引用，标「有来源记录」，不推断它经过逐条核实。`truncated / next_cursor` 区分截断和未发现。正文引用只返回短摘要，并保留返回作品标识。
 
-Go 从已验证的当前作品与本轮最多一部显式选定作品产生范围。跨作品查询返回范围内的版本，未经选择的私有作品及候选总量也不可借计数泄漏。同一作品的历史快照需显式授权；对照版本二元组先验证其均在许可范围再查。默认工作台仅查已核实的有效读模型，有相应审核权限且明确选中审核范围才返回候选与 AI 待验证内容。每批最多 3 次、3 秒、单结果 24 KiB、总计 36 KiB，沿用当前上限；SQL 用参数绑定及只读事务。数据库凭证只在 Go 侧。[实际限额](../apps/api/internal/service/knowledge/chattools/registry.go#L20) · [选定范围校验](../apps/api/internal/service/knowledge/chattools/registry.go#L278)
+Go 从已验证的当前作品与本轮最多一部显式选定作品产生范围。跨作品查询返回范围内的版本，未经选择的私有作品及候选总量也不可借计数泄漏。同一作品的历史快照需显式授权；对照版本二元组先验证其均在许可范围再查。默认工作台仅查已核实的有效读模型，有相应审核权限且明确选中审核范围才返回候选与 AI 待验证内容。每批最多 3 次、3 秒、单结果 24 KiB、总计 36 KiB，沿用当前上限；SQL 用参数绑定及只读事务。数据库凭证只在 Go 侧。[实际限额](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/service/knowledge/chattools/registry.go#L20) · [选定范围校验](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/service/knowledge/chattools/registry.go#L278)
 
-写入沿用工作台的提案、展示差异、明确确认、所有者校验和审计流程。当前 `resolveChat` 对应制作计划，P0 可先从治理候选入口提交人工确认。若后续从对话提出身份或关系建议，采用新的类型化提案分支调用实体治理服务，操作权限和并发复核均在 Go。读取与写入提案仍分轮，Agent 无批准权限。[现有确认](../apps/api/internal/handler/knowledge/chat.go#L459)
+写入沿用工作台的提案、展示差异、明确确认、所有者校验和审计流程。当前 `resolveChat` 对应制作计划，P0 可先从治理候选入口提交人工确认。若后续从对话提出身份或关系建议，采用新的类型化提案分支调用实体治理服务，操作权限和并发复核均在 Go。读取与写入提案仍分轮，Agent 无批准权限。[现有确认](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/handler/knowledge/chat.go#L459)
 
 ## 8. Operations Center 指标设计
 
-知识资产中心显示全局库存、作品钻取和来源待复核。运营总览沿用当前快照，异常与决策集中显示需人工处理的事项，运营拓扑保留运行和队列语义。AI 执行候选生成、重算和影响定位，人工看证据与差异后决定。[工作台入口](../apps/api/internal/handler/knowledge/usage.go#L17) · [现有查询](../apps/api/internal/repository/queries/knowledge/ops_completeness.queries#L1) · [快照](../apps/api/internal/repository/queries/ops/ops.queries#L93) · [文案规则](界面文案规范.md)
+知识资产中心显示全局库存、作品钻取和来源待复核。运营总览沿用当前快照，异常与决策集中显示需人工处理的事项，运营拓扑保留运行和队列语义。AI 执行候选生成、重算和影响定位，人工看证据与差异后决定。[工作台入口](../apps/api/internal/handler/knowledge/usage.go#L17) · [现有查询](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/repository/queries/knowledge/ops_completeness.queries#L1) · [快照](../apps/api/internal/repository/queries/ops/ops.queries#L93) · [文案规则](界面文案规范.md)
 
 | 指标 | 口径与钻取 |
 | --- | --- |
@@ -442,7 +442,7 @@ Web、iOS 和公开 Gin 继续使用 `published_worlds`、角色、章节、场�
 
 ### Production
 
-保持 `episode_policies`、计划 `spec`、分集准入、取证缓存、验收指纹、定稿和发布回执的合同。新增建议附知识修订和证据快照，在现有计划确认后才作为新的生产输入。已有运行继续读已固定的输入。测试来源变化、身份合并与设置差异都不改变已批准章节、选图或制作预算。对硬撤回的新知识输入暂停后续采用，已发布内容走原审稿和更正链。[研究入口](../apps/api/internal/repository/queries/knowledge/research.queries#L7) · [验收事务](../apps/api/internal/service/knowledge/acceptance.go#L383) · [编辑发布](../apps/api/internal/service/knowledge/editor.go#L101)
+保持 `episode_policies`、计划 `spec`、分集准入、取证缓存、验收指纹、定稿和发布回执的合同。新增建议附知识修订和证据快照，在现有计划确认后才作为新的生产输入。已有运行继续读已固定的输入。测试来源变化、身份合并与设置差异都不改变已批准章节、选图或制作预算。对硬撤回的新知识输入暂停后续采用，已发布内容走原审稿和更正链。[研究入口](../apps/api/internal/repository/queries/knowledge/research.queries#L7) · [验收事务](../apps/api/internal/service/knowledge/acceptance.go#L383) · [编辑发布](https://github.com/bluedao10000/player/blob/2414d3fae5bd47c2ed9765a4510bb1d9e4ee3b53/apps/api/internal/service/knowledge/editor.go#L101)
 
 ## 10. 差距与风险
 

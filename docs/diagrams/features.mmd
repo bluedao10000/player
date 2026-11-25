@@ -1,5 +1,5 @@
 ---
-title: Folio 时光 · 功能地图 · 2026-11-22
+title: Folio 时光 · 功能地图 · 2026-11-25
 config:
   flowchart:
     wrappingWidth: 320
@@ -11,18 +11,18 @@ flowchart LR
   user["账户与会员"] ~~~ account["已完成 · H5 账户与书架<br/>访客收藏、登录合并、跨设备续读"] ~~~ payment["部分完成 · 读者会员<br/>已接订单与积分入账，实付验收待完成"]
   mobile["iOS"] ~~~ ios["已完成 · SwiftUI 原生阅读<br/>作品、章节、插图与场景回跳"] ~~~ store["待配置验收 · 微信与内购<br/>已有接入代码，移动凭据及商店商品待配"]
   data["知识库生产"] ~~~ sync["已完成 · 目录同步与作品判同<br/>来源归一、匹配、作品查询"] ~~~ publish["已完成 · 按集生产与发布<br/>同版缺口自动登记、五维验收与正式投递"]
-  ops["编辑与运营"] ~~~ desk["已完成 · 数据工作台与模型计量<br/>对话确认、配置回执、用量与返工"] ~~~ edit["部分完成 · AI 编辑<br/>章节、人物与世界观审发已跑通两个样板"]
+  ops["运营"] ~~~ desk["重构中 · 数据工作台"]
   finance["财务对账"] ~~~ ledger["已完成 · 模型用量与账单核对<br/>调用回执、日账单导入、差额查询"] ~~~ bills["待开发 · 供应商账单自动拉取"]
   media["图片库"] ~~~ delivery["已完成 · 独立图片域名<br/>Nginx 代理、缓存与私有签名"] ~~~ assets["已完成 · 图片目录与管理 API<br/>上传、尺寸变换与裁剪"]
-  infra["部署与运维"] ~~~ backup["已完成 · Mesh 与数据库备份<br/>跨节点发布、每日恢复校验、工作台回执"] ~~~ cloud["部分完成 · 后端集中广州<br/>图片链路已通，业务 API 与 Agent 待迁"]
+  infra["部署与运维"] ~~~ backup["已完成 · Mesh 与数据库备份<br/>跨节点发布、每日恢复校验及回执"] ~~~ cloud["部分完成 · 后端集中广州<br/>图片链路已通，业务 API 与 Agent 待迁"]
   classDef done fill:#e5f2e9,stroke:#55856c,color:#153b2c
   classDef partial fill:#fff1d7,stroke:#b3833d,color:#50371c
   classDef todo fill:#f0eaf8,stroke:#917bab,color:#412d56
   classDef pending fill:#e9effb,stroke:#7189ae,color:#233752
-  class library,account,ios,sync,publish,desk,backup,ledger,assets,delivery done
-  class play,payment,edit,cloud partial
+  class library,account,ios,sync,publish,backup,ledger,assets,delivery done
+  class play,payment,cloud partial
   class store pending
-  class bills todo
+  class bills,desk todo
 %% read | 读者从公开作品页进入人物、章节和场景。 | docs/功能地图.md
 %% library | 首页和目录支持多作品，静态站使用客户端 canonical、JSON-LD 与服务端 sitemap。 | docs/架构实现核验.md
 %% play | 原创角色支持预设剧情行动与本地存档。读者自由输入、持久角色状态与跨设备续玩待接入。 | apps/web/src/features/post/roleplay-controls.tsx
@@ -35,9 +35,8 @@ flowchart LR
 %% data | 知识库以 PostgreSQL 保存来源、业务作品和定稿指针。 | docs/knowledge-base.md
 %% sync | 目录按版本同步，规则归并与 AI 辅助判同支持候选审计。 | apps/api/internal/service/knowledge/curation.go
 %% publish | 数据服务按分集配置调度 Pi；通过五维验收后按定稿指纹投递并校验公开路径。 | apps/sync/cmd/reader-release
-%% ops | 内部工作台区分内容审稿与运行观察。 | apps/web/src/routes/workbench.tsx
-%% desk | 本地对话确认结构化计划差异，并显示配置、模型回执和失败记录。 | apps/web/src/features/workbench/editor-desk.tsx
-%% edit | 两个样板支持一句话修订章节、场景、人物及世界观，手机预览后整项审发。 | docs/功能地图.md
+%% ops | 运营任务的运行记录由数据库保存。 | docs/运维手册.md
+%% desk | 旧工作台页面及专用接口已下线。 | docs/功能地图.md
 %% finance | 按供应商、用途和模型追踪实际调用与账务差异。 | docs/模型用量与计费.md
 %% ledger | 已支持导入日账单并按币种核对。 | apps/api/internal/repository/queries/billing/queries.queries
 %% bills | 供应商日账单仍需导入。 | docs/模型用量与计费.md
@@ -45,5 +44,5 @@ flowchart LR
 %% delivery | 图片域名经 Nginx 连接广州 Axum，支持公开缓存及私有签名。 | deploy/gateway/nginx/nginx.conf
 %% assets | 独立实例提供目录、上传、变换和私有签名。 | apps/image/README.md
 %% infra | 四个 Mesh 节点分别承担公网入口、制作、媒体与备份。 | docs/部署架构.md
-%% backup | 每日广州数据库快照在 K3s 恢复并逐表核对，内部面板保留成功回执、大小、耗时和失败原因。 | deploy/pg-backup/README.md
+%% backup | 每日广州数据库快照在 K3s 恢复并逐表核对，制作库保留成功回执、大小、耗时和失败原因。 | deploy/pg-backup/README.md
 %% cloud | 目标为阿里云前端和网关、广州业务与 Pi、硅谷轻量模型出口。静态站与独立图片域名已完成公网切换。 | docs/部署架构.md

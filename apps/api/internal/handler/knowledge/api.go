@@ -43,7 +43,6 @@ func writeJSON(c *gin.Context, result []byte, err error) {
 func Routes(r *gin.Engine, db *pgxpool.Pool) {
 	g := r.Group("/api/v1/knowledge")
 	worldRoutes(g, db)
-	mediaRoutes(g, db)
 	g.GET("/works", func(c *gin.Context) {
 		n := limit(c)
 		if n == 0 {
@@ -71,63 +70,10 @@ func Routes(r *gin.Engine, db *pgxpool.Pool) {
 		body, err := reads.Work(ctx, db, id)
 		writeJSON(c, body, err)
 	})
-	// The workbench lists public world revisions. Catalog-only works can also
-	// be inspected directly by their canonical UUID.
-	g.GET("/research-runs", func(c *gin.Context) {
-		n := limit(c)
-		if n == 0 {
-			return
-		}
-		ctx, cancel := readContext(c)
-		defer cancel()
-		body, err := reads.ResearchRuns(ctx, db, n)
-		writeJSON(c, body, err)
-	})
-	g.GET("/world-statuses", func(c *gin.Context) {
-		n := limit(c)
-		if n == 0 {
-			return
-		}
-		ctx, cancel := readContext(c)
-		defer cancel()
-		body, err := reads.WorldStatuses(ctx, db, n)
-		writeJSON(c, body, err)
-	})
-	g.GET("/works/:id/status", func(c *gin.Context) {
-		id := c.Param("id")
-		if !catalog.ValidUUID(id) {
-			c.JSON(400, gin.H{"error": "invalid work id"})
-			return
-		}
-		ctx, cancel := readContext(c)
-		defer cancel()
-		body, err := reads.WorkStatus(ctx, db, id)
-		writeJSON(c, body, err)
-	})
 	g.GET("/sources", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()
 		body, err := reads.Sources(ctx, db)
-		writeJSON(c, body, err)
-	})
-	g.GET("/quality-runs", func(c *gin.Context) {
-		n := limit(c)
-		if n == 0 {
-			return
-		}
-		ctx, cancel := readContext(c)
-		defer cancel()
-		body, err := reads.QualityRuns(ctx, db, n)
-		writeJSON(c, body, err)
-	})
-	g.GET("/sync-runs", func(c *gin.Context) {
-		n := limit(c)
-		if n == 0 {
-			return
-		}
-		ctx, cancel := readContext(c)
-		defer cancel()
-		body, err := reads.SyncRuns(ctx, db, c.Query("source"), n)
 		writeJSON(c, body, err)
 	})
 	g.GET("/match-candidates", func(c *gin.Context) {

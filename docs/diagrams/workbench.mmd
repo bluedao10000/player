@@ -11,13 +11,13 @@ flowchart LR
   desk --> edit["编辑审稿 · 手机预览与人工审核"]
   desk --> ops["运行监控 · 同步、备份与恢复"]
   desk --> assets["知识库 · 取证、候选图和验图"]
-%% auth | 首次验证邮箱会建号，也可使用已设置的登录密码。 | apps/web/src/features/workbench/editor-desk.tsx
-%% desk | Web 路由只允许本地访问，正式站拒绝工作台请求。 | apps/web/src/features/workbench/local.ts
-%% account | 通过邮箱验证后设置或修改密码，并重新登录。 | apps/web/src/features/workbench/editor-desk.tsx
-%% chat | 对话保留会话与操作历史，查询真实计划、候选和执行状态。 | apps/web/src/features/workbench/chat.tsx
-%% confirm | 更新须经鉴权、版本校验和幂等检查。 | apps/api/internal/handler/knowledge/chat.go
+%% auth | 首次验证邮箱会建号，也可使用已设置的登录密码。 | docs/运营中心重构审计.md
+%% desk | Web 路由只允许本地访问，正式站拒绝工作台请求。 | docs/运营中心重构审计.md
+%% account | 通过邮箱验证后设置或修改密码，并重新登录。 | docs/运营中心重构审计.md
+%% chat | 对话保留会话与操作历史，查询真实计划、候选和执行状态。 | docs/运营中心重构审计.md
+%% confirm | 更新须经鉴权、版本校验和幂等检查。 | docs/运营中心重构审计.md
 %% config | Pi 根据已登记的同版来源生成分集配置，Go 校验与登记。 | apps/api/internal/service/knowledge/episode_configuration.go
-%% track | 在计划页汇总配置尝试、模型回执、验收及发布状态。 | apps/web/src/features/workbench/editor-desk.tsx
-%% edit | 章节、人物与世界观沿用手机预览与按任务审核。 | apps/api/internal/service/knowledge/editor.go
-%% ops | 汇总同步、质检及恢复校验。 | apps/web/src/features/workbench/feed.ts
-%% assets | 展示实际候选、原图、手机裁切、验图和各维度缺项。 | apps/web/src/features/workbench/scope-report.tsx
+%% track | 在计划页汇总配置尝试、模型回执、验收及发布状态。 | docs/运营中心重构审计.md
+%% edit | 章节、人物与世界观沿用手机预览与按任务审核。 | docs/运营中心重构审计.md
+%% ops | 汇总同步、质检及恢复校验。 | docs/运营中心重构审计.md
+%% assets | 展示实际候选、原图、手机裁切、验图和各维度缺项。 | docs/运营中心重构审计.md

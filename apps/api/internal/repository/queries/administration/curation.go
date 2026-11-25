@@ -1,4 +1,4 @@
-package workbench
+package administration
 
 import _ "embed"
 import resources "anime-agent/api/internal/repository/queries"

@@ -152,19 +152,6 @@ FROM knowledge_source_records WHERE record_key='phase2-tidepost'
 UPDATE works SET type=$1,updated_at=now()
 WHERE id=(SELECT work_id FROM work_worlds WHERE slug='cowboy-bebop-tv')
 
--- name: SeedPrivateMediaCandidate
-WITH candidate AS (
- INSERT INTO media_candidates(slot,batch,position,scene,variant,stage,round)
- VALUES (23,'phase2-private',1,'private image fixture',1,'held',1)
- RETURNING slot
-), step AS (
- INSERT INTO media_steps(slot,round,step,finished_at,result)
- SELECT slot,1,'generate',now(),jsonb_build_object('image','/media/phase2-private.png') FROM candidate
- RETURNING slot
-)
-INSERT INTO media_withdrawals(slot,round,reason)
-SELECT slot,1,'fixture withdrawn private candidate' FROM step
-
 -- name: AddWhitespaceCompletenessLocation
 INSERT INTO work_settings(v,name)
 SELECT version_id,'   ' FROM work_worlds WHERE slug='cowboy-bebop-tv'
@@ -253,25 +240,6 @@ SELECT count(*)::int FROM knowledge_completeness_rules WHERE rule_version=1 AND 
 -- name: CompletenessResultCount
 SELECT count(*)::int FROM knowledge_completeness_results
 
--- name: OpsKnowledgeExpectedSummary
-SELECT jsonb_build_object(
- 'active_works',(SELECT count(*)::int FROM works WHERE active),
- 'published_worlds',(SELECT count(*)::int FROM published_worlds),
- 'release_versions',(SELECT count(*)::int FROM world_releases),
- 'people',(SELECT coalesce(sum((card->>'characters')::int),0)::int FROM reader_knowledge_inventory),
- 'storylines',(SELECT coalesce(sum((card->>'storylines')::int),0)::int FROM reader_knowledge_inventory),
- 'chapters',(SELECT coalesce(sum((card->>'chapters')::int),0)::int FROM reader_knowledge_inventory),
- 'episodes_expected',(SELECT coalesce(sum(CASE WHEN k.type IN ('TV','ONA','OVA','SPECIAL') THEN coalesce(k.episodes,0) ELSE 0 END),0)::int FROM published_worlds w JOIN works k ON k.id=w.work_id),
- 'episodes_covered',(SELECT coalesce(sum(jsonb_array_length(card->'readable_episodes')),0)::int FROM reader_knowledge_inventory),
- 'scenes',(SELECT coalesce(sum((card->>'scenes')::int),0)::int FROM reader_knowledge_inventory),
- 'locations',(SELECT coalesce(sum((card->>'settings')::int),0)::int FROM reader_knowledge_inventory),
- 'main_visuals',(SELECT count(*)::int FROM published_worlds WHERE nullif(card->>'hero_asset_key','') IS NOT NULL),
- 'portraits',(SELECT coalesce(sum((card->>'portraits')::int),0)::int FROM reader_knowledge_inventory),
- 'chapter_images',(SELECT coalesce(sum((card->>'chapter_images')::int),0)::int FROM reader_knowledge_inventory))
-
--- name: CountCompletenessRuleForWorld
-SELECT count(*)::int FROM knowledge_completeness_results WHERE world_slug=$1 AND rule_code=$2
-
 -- name: OpsLegacySnapshot
 INSERT INTO ops_daily_snapshots(day,scope,definition,metrics) VALUES($1::date,'all',1,'{"legacy":true}'::jsonb)
 ON CONFLICT(day,scope) DO NOTHING
@@ -287,3 +255,13 @@ SELECT definition,metrics->>'legacy' FROM ops_daily_snapshots WHERE day=$1::date
 
 -- name: OpsSnapshotActiveWorks
 SELECT (metrics->>'activeWorks')::int FROM ops_daily_snapshots WHERE day=$1::date AND scope='all'
+
+-- name: ReadCompletenessResults
+SELECT jsonb_object_agg(dimension,items)
+FROM (
+ SELECT r.dimension,jsonb_object_agg(r.item_code,to_jsonb(r)) AS items
+ FROM knowledge_completeness_results r
+ JOIN published_worlds w ON (w.work_id,w.version_id)=(r.work_id,r.version_id)
+ WHERE w.slug=$1
+ GROUP BY r.dimension
+) dimensions

@@ -18,11 +18,8 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ShelfRouteImport } from './routes/shelf'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StoriesRouteImport } from './routes/stories'
-import { Route as WorkbenchRouteImport } from './routes/workbench'
 import { Route as WorksRouteImport } from './routes/works'
 import { Route as CharacterMioRouteImport } from './routes/character.mio'
-import { Route as EditorApiSplatRouteImport } from './routes/editor-api.$'
-import { Route as EditorPreviewIdRouteImport } from './routes/editor-preview.$id'
 import { Route as IosAccountSplatRouteImport } from './routes/ios-account.$'
 import { Route as IosDataSplatRouteImport } from './routes/ios-data.$'
 import { Route as KnowledgeIndexRouteImport } from './routes/knowledge.index'
@@ -30,19 +27,7 @@ import { Route as KnowledgeIdRouteImport } from './routes/knowledge.$id'
 import { Route as PlaySlugRouteImport } from './routes/play.$slug'
 import { Route as ReaderAuthSplatRouteImport } from './routes/reader-auth.$'
 import { Route as StorySlugRouteImport } from './routes/story.$slug'
-import { Route as WorkbenchArtFileRouteImport } from './routes/workbench-art.$file'
-import { Route as WorkbenchHeroFileRouteImport } from './routes/workbench-hero.$file'
-import { Route as WorkbenchIndexRouteImport } from './routes/workbench.index'
-import { Route as WorkbenchAnalyticsRouteImport } from './routes/workbench.analytics'
-import { Route as WorkbenchAssistantRouteImport } from './routes/workbench.assistant'
-import { Route as WorkbenchExceptionsRouteImport } from './routes/workbench.exceptions'
-import { Route as WorkbenchKnowledgeRouteImport } from './routes/workbench.knowledge'
-import { Route as WorkbenchMeRouteImport } from './routes/workbench.me'
-import { Route as WorkbenchOperationsRouteImport } from './routes/workbench.operations'
-import { Route as WorkbenchProjectsRouteImport } from './routes/workbench.projects'
 import { Route as WorkWorkIndexRouteImport } from './routes/work.$work.index'
-import { Route as WorkbenchKnowledgeIndexRouteImport } from './routes/workbench.knowledge.index'
-import { Route as WorkbenchKnowledgeWorkRouteImport } from './routes/workbench.knowledge.$work'
 import { Route as ApiBillingAlipayNotifyRouteImport } from './routes/api.billing.alipay.notify'
 import { Route as WorkWorkKindSlugRouteImport } from './routes/work.$work.$kind.$slug'
 
@@ -91,11 +76,6 @@ const StoriesRoute = StoriesRouteImport.update({
   path: '/stories',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WorkbenchRoute = WorkbenchRouteImport.update({
-  id: '/workbench',
-  path: '/workbench',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
   path: '/works',
@@ -104,16 +84,6 @@ const WorksRoute = WorksRouteImport.update({
 const CharacterMioRoute = CharacterMioRouteImport.update({
   id: '/character/mio',
   path: '/character/mio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EditorApiSplatRoute = EditorApiSplatRouteImport.update({
-  id: '/editor-api/$',
-  path: '/editor-api/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EditorPreviewIdRoute = EditorPreviewIdRouteImport.update({
-  id: '/editor-preview/$id',
-  path: '/editor-preview/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IosAccountSplatRoute = IosAccountSplatRouteImport.update({
@@ -151,70 +121,10 @@ const StorySlugRoute = StorySlugRouteImport.update({
   path: '/story/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WorkbenchArtFileRoute = WorkbenchArtFileRouteImport.update({
-  id: '/workbench-art/$file',
-  path: '/workbench-art/$file',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WorkbenchHeroFileRoute = WorkbenchHeroFileRouteImport.update({
-  id: '/workbench-hero/$file',
-  path: '/workbench-hero/$file',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WorkbenchIndexRoute = WorkbenchIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => WorkbenchRoute,
-} as any)
-const WorkbenchAnalyticsRoute = WorkbenchAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => WorkbenchRoute,
-} as any)
-const WorkbenchAssistantRoute = WorkbenchAssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
-  getParentRoute: () => WorkbenchRoute,
-} as any)
-const WorkbenchExceptionsRoute = WorkbenchExceptionsRouteImport.update({
-  id: '/exceptions',
-  path: '/exceptions',
-  getParentRoute: () => WorkbenchRoute,
-} as any)
-const WorkbenchKnowledgeRoute = WorkbenchKnowledgeRouteImport.update({
-  id: '/knowledge',
-  path: '/knowledge',
-  getParentRoute: () => WorkbenchRoute,
-} as any)
-const WorkbenchMeRoute = WorkbenchMeRouteImport.update({
-  id: '/me',
-  path: '/me',
-  getParentRoute: () => WorkbenchRoute,
-} as any)
-const WorkbenchOperationsRoute = WorkbenchOperationsRouteImport.update({
-  id: '/operations',
-  path: '/operations',
-  getParentRoute: () => WorkbenchRoute,
-} as any)
-const WorkbenchProjectsRoute = WorkbenchProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => WorkbenchRoute,
-} as any)
 const WorkWorkIndexRoute = WorkWorkIndexRouteImport.update({
   id: '/work/$work/',
   path: '/work/$work/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const WorkbenchKnowledgeIndexRoute = WorkbenchKnowledgeIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => WorkbenchKnowledgeRoute,
-} as any)
-const WorkbenchKnowledgeWorkRoute = WorkbenchKnowledgeWorkRouteImport.update({
-  id: '/$work',
-  path: '/$work',
-  getParentRoute: () => WorkbenchKnowledgeRoute,
 } as any)
 const ApiBillingAlipayNotifyRoute = ApiBillingAlipayNotifyRouteImport.update({
   id: '/api/billing/alipay/notify',
@@ -237,31 +147,16 @@ export interface FileRoutesByFullPath {
   '/shelf': typeof ShelfRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
-  '/workbench': typeof WorkbenchRouteWithChildren
   '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
-  '/editor-api/$': typeof EditorApiSplatRoute
-  '/editor-preview/$id': typeof EditorPreviewIdRoute
   '/ios-account/$': typeof IosAccountSplatRoute
   '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-auth/$': typeof ReaderAuthSplatRoute
   '/story/$slug': typeof StorySlugRoute
-  '/workbench-art/$file': typeof WorkbenchArtFileRoute
-  '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
-  '/workbench/analytics': typeof WorkbenchAnalyticsRoute
-  '/workbench/assistant': typeof WorkbenchAssistantRoute
-  '/workbench/exceptions': typeof WorkbenchExceptionsRoute
-  '/workbench/knowledge': typeof WorkbenchKnowledgeRouteWithChildren
-  '/workbench/me': typeof WorkbenchMeRoute
-  '/workbench/operations': typeof WorkbenchOperationsRoute
-  '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge/': typeof KnowledgeIndexRoute
-  '/workbench/': typeof WorkbenchIndexRoute
-  '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work/': typeof WorkWorkIndexRoute
-  '/workbench/knowledge/': typeof WorkbenchKnowledgeIndexRoute
   '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
@@ -277,27 +172,14 @@ export interface FileRoutesByTo {
   '/stories': typeof StoriesRoute
   '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
-  '/editor-api/$': typeof EditorApiSplatRoute
-  '/editor-preview/$id': typeof EditorPreviewIdRoute
   '/ios-account/$': typeof IosAccountSplatRoute
   '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-auth/$': typeof ReaderAuthSplatRoute
   '/story/$slug': typeof StorySlugRoute
-  '/workbench-art/$file': typeof WorkbenchArtFileRoute
-  '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
-  '/workbench/analytics': typeof WorkbenchAnalyticsRoute
-  '/workbench/assistant': typeof WorkbenchAssistantRoute
-  '/workbench/exceptions': typeof WorkbenchExceptionsRoute
-  '/workbench/me': typeof WorkbenchMeRoute
-  '/workbench/operations': typeof WorkbenchOperationsRoute
-  '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge': typeof KnowledgeIndexRoute
-  '/workbench': typeof WorkbenchIndexRoute
-  '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work': typeof WorkWorkIndexRoute
-  '/workbench/knowledge': typeof WorkbenchKnowledgeIndexRoute
   '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
@@ -312,31 +194,16 @@ export interface FileRoutesById {
   '/shelf': typeof ShelfRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
-  '/workbench': typeof WorkbenchRouteWithChildren
   '/works': typeof WorksRoute
   '/character/mio': typeof CharacterMioRoute
-  '/editor-api/$': typeof EditorApiSplatRoute
-  '/editor-preview/$id': typeof EditorPreviewIdRoute
   '/ios-account/$': typeof IosAccountSplatRoute
   '/ios-data/$': typeof IosDataSplatRoute
   '/knowledge/$id': typeof KnowledgeIdRoute
   '/play/$slug': typeof PlaySlugRoute
   '/reader-auth/$': typeof ReaderAuthSplatRoute
   '/story/$slug': typeof StorySlugRoute
-  '/workbench-art/$file': typeof WorkbenchArtFileRoute
-  '/workbench-hero/$file': typeof WorkbenchHeroFileRoute
-  '/workbench/analytics': typeof WorkbenchAnalyticsRoute
-  '/workbench/assistant': typeof WorkbenchAssistantRoute
-  '/workbench/exceptions': typeof WorkbenchExceptionsRoute
-  '/workbench/knowledge': typeof WorkbenchKnowledgeRouteWithChildren
-  '/workbench/me': typeof WorkbenchMeRoute
-  '/workbench/operations': typeof WorkbenchOperationsRoute
-  '/workbench/projects': typeof WorkbenchProjectsRoute
   '/knowledge/': typeof KnowledgeIndexRoute
-  '/workbench/': typeof WorkbenchIndexRoute
-  '/workbench/knowledge/$work': typeof WorkbenchKnowledgeWorkRoute
   '/work/$work/': typeof WorkWorkIndexRoute
-  '/workbench/knowledge/': typeof WorkbenchKnowledgeIndexRoute
   '/api/billing/alipay/notify': typeof ApiBillingAlipayNotifyRoute
   '/work/$work/$kind/$slug': typeof WorkWorkKindSlugRoute
 }
@@ -352,31 +219,16 @@ export interface FileRouteTypes {
     | '/shelf'
     | '/sitemap.xml'
     | '/stories'
-    | '/workbench'
     | '/works'
     | '/character/mio'
-    | '/editor-api/$'
-    | '/editor-preview/$id'
     | '/ios-account/$'
     | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-auth/$'
     | '/story/$slug'
-    | '/workbench-art/$file'
-    | '/workbench-hero/$file'
-    | '/workbench/analytics'
-    | '/workbench/assistant'
-    | '/workbench/exceptions'
-    | '/workbench/knowledge'
-    | '/workbench/me'
-    | '/workbench/operations'
-    | '/workbench/projects'
     | '/knowledge/'
-    | '/workbench/'
-    | '/workbench/knowledge/$work'
     | '/work/$work/'
-    | '/workbench/knowledge/'
     | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -392,27 +244,14 @@ export interface FileRouteTypes {
     | '/stories'
     | '/works'
     | '/character/mio'
-    | '/editor-api/$'
-    | '/editor-preview/$id'
     | '/ios-account/$'
     | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-auth/$'
     | '/story/$slug'
-    | '/workbench-art/$file'
-    | '/workbench-hero/$file'
-    | '/workbench/analytics'
-    | '/workbench/assistant'
-    | '/workbench/exceptions'
-    | '/workbench/me'
-    | '/workbench/operations'
-    | '/workbench/projects'
     | '/knowledge'
-    | '/workbench'
-    | '/workbench/knowledge/$work'
     | '/work/$work'
-    | '/workbench/knowledge'
     | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   id:
@@ -426,31 +265,16 @@ export interface FileRouteTypes {
     | '/shelf'
     | '/sitemap.xml'
     | '/stories'
-    | '/workbench'
     | '/works'
     | '/character/mio'
-    | '/editor-api/$'
-    | '/editor-preview/$id'
     | '/ios-account/$'
     | '/ios-data/$'
     | '/knowledge/$id'
     | '/play/$slug'
     | '/reader-auth/$'
     | '/story/$slug'
-    | '/workbench-art/$file'
-    | '/workbench-hero/$file'
-    | '/workbench/analytics'
-    | '/workbench/assistant'
-    | '/workbench/exceptions'
-    | '/workbench/knowledge'
-    | '/workbench/me'
-    | '/workbench/operations'
-    | '/workbench/projects'
     | '/knowledge/'
-    | '/workbench/'
-    | '/workbench/knowledge/$work'
     | '/work/$work/'
-    | '/workbench/knowledge/'
     | '/api/billing/alipay/notify'
     | '/work/$work/$kind/$slug'
   fileRoutesById: FileRoutesById
@@ -465,19 +289,14 @@ export interface RootRouteChildren {
   ShelfRoute: typeof ShelfRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoriesRoute: typeof StoriesRoute
-  WorkbenchRoute: typeof WorkbenchRouteWithChildren
   WorksRoute: typeof WorksRoute
   CharacterMioRoute: typeof CharacterMioRoute
-  EditorApiSplatRoute: typeof EditorApiSplatRoute
-  EditorPreviewIdRoute: typeof EditorPreviewIdRoute
   IosAccountSplatRoute: typeof IosAccountSplatRoute
   IosDataSplatRoute: typeof IosDataSplatRoute
   KnowledgeIdRoute: typeof KnowledgeIdRoute
   PlaySlugRoute: typeof PlaySlugRoute
   ReaderAuthSplatRoute: typeof ReaderAuthSplatRoute
   StorySlugRoute: typeof StorySlugRoute
-  WorkbenchArtFileRoute: typeof WorkbenchArtFileRoute
-  WorkbenchHeroFileRoute: typeof WorkbenchHeroFileRoute
   KnowledgeIndexRoute: typeof KnowledgeIndexRoute
   WorkWorkIndexRoute: typeof WorkWorkIndexRoute
   ApiBillingAlipayNotifyRoute: typeof ApiBillingAlipayNotifyRoute
@@ -549,13 +368,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/workbench': {
-      id: '/workbench'
-      path: '/workbench'
-      fullPath: '/workbench'
-      preLoaderRoute: typeof WorkbenchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/works': {
       id: '/works'
       path: '/works'
@@ -568,20 +380,6 @@ declare module '@tanstack/react-router' {
       path: '/character/mio'
       fullPath: '/character/mio'
       preLoaderRoute: typeof CharacterMioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/editor-api/$': {
-      id: '/editor-api/$'
-      path: '/editor-api/$'
-      fullPath: '/editor-api/$'
-      preLoaderRoute: typeof EditorApiSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/editor-preview/$id': {
-      id: '/editor-preview/$id'
-      path: '/editor-preview/$id'
-      fullPath: '/editor-preview/$id'
-      preLoaderRoute: typeof EditorPreviewIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ios-account/$': {
@@ -633,96 +431,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/workbench-art/$file': {
-      id: '/workbench-art/$file'
-      path: '/workbench-art/$file'
-      fullPath: '/workbench-art/$file'
-      preLoaderRoute: typeof WorkbenchArtFileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/workbench-hero/$file': {
-      id: '/workbench-hero/$file'
-      path: '/workbench-hero/$file'
-      fullPath: '/workbench-hero/$file'
-      preLoaderRoute: typeof WorkbenchHeroFileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/workbench/': {
-      id: '/workbench/'
-      path: '/'
-      fullPath: '/workbench/'
-      preLoaderRoute: typeof WorkbenchIndexRouteImport
-      parentRoute: typeof WorkbenchRoute
-    }
-    '/workbench/analytics': {
-      id: '/workbench/analytics'
-      path: '/analytics'
-      fullPath: '/workbench/analytics'
-      preLoaderRoute: typeof WorkbenchAnalyticsRouteImport
-      parentRoute: typeof WorkbenchRoute
-    }
-    '/workbench/assistant': {
-      id: '/workbench/assistant'
-      path: '/assistant'
-      fullPath: '/workbench/assistant'
-      preLoaderRoute: typeof WorkbenchAssistantRouteImport
-      parentRoute: typeof WorkbenchRoute
-    }
-    '/workbench/exceptions': {
-      id: '/workbench/exceptions'
-      path: '/exceptions'
-      fullPath: '/workbench/exceptions'
-      preLoaderRoute: typeof WorkbenchExceptionsRouteImport
-      parentRoute: typeof WorkbenchRoute
-    }
-    '/workbench/knowledge': {
-      id: '/workbench/knowledge'
-      path: '/knowledge'
-      fullPath: '/workbench/knowledge'
-      preLoaderRoute: typeof WorkbenchKnowledgeRouteImport
-      parentRoute: typeof WorkbenchRoute
-    }
-    '/workbench/me': {
-      id: '/workbench/me'
-      path: '/me'
-      fullPath: '/workbench/me'
-      preLoaderRoute: typeof WorkbenchMeRouteImport
-      parentRoute: typeof WorkbenchRoute
-    }
-    '/workbench/operations': {
-      id: '/workbench/operations'
-      path: '/operations'
-      fullPath: '/workbench/operations'
-      preLoaderRoute: typeof WorkbenchOperationsRouteImport
-      parentRoute: typeof WorkbenchRoute
-    }
-    '/workbench/projects': {
-      id: '/workbench/projects'
-      path: '/projects'
-      fullPath: '/workbench/projects'
-      preLoaderRoute: typeof WorkbenchProjectsRouteImport
-      parentRoute: typeof WorkbenchRoute
-    }
     '/work/$work/': {
       id: '/work/$work/'
       path: '/work/$work'
       fullPath: '/work/$work/'
       preLoaderRoute: typeof WorkWorkIndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/workbench/knowledge/': {
-      id: '/workbench/knowledge/'
-      path: '/'
-      fullPath: '/workbench/knowledge/'
-      preLoaderRoute: typeof WorkbenchKnowledgeIndexRouteImport
-      parentRoute: typeof WorkbenchKnowledgeRoute
-    }
-    '/workbench/knowledge/$work': {
-      id: '/workbench/knowledge/$work'
-      path: '/$work'
-      fullPath: '/workbench/knowledge/$work'
-      preLoaderRoute: typeof WorkbenchKnowledgeWorkRouteImport
-      parentRoute: typeof WorkbenchKnowledgeRoute
     }
     '/api/billing/alipay/notify': {
       id: '/api/billing/alipay/notify'
@@ -741,45 +455,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface WorkbenchKnowledgeRouteChildren {
-  WorkbenchKnowledgeWorkRoute: typeof WorkbenchKnowledgeWorkRoute
-  WorkbenchKnowledgeIndexRoute: typeof WorkbenchKnowledgeIndexRoute
-}
-
-const WorkbenchKnowledgeRouteChildren: WorkbenchKnowledgeRouteChildren = {
-  WorkbenchKnowledgeWorkRoute: WorkbenchKnowledgeWorkRoute,
-  WorkbenchKnowledgeIndexRoute: WorkbenchKnowledgeIndexRoute,
-}
-
-const WorkbenchKnowledgeRouteWithChildren =
-  WorkbenchKnowledgeRoute._addFileChildren(WorkbenchKnowledgeRouteChildren)
-
-interface WorkbenchRouteChildren {
-  WorkbenchAnalyticsRoute: typeof WorkbenchAnalyticsRoute
-  WorkbenchAssistantRoute: typeof WorkbenchAssistantRoute
-  WorkbenchExceptionsRoute: typeof WorkbenchExceptionsRoute
-  WorkbenchKnowledgeRoute: typeof WorkbenchKnowledgeRouteWithChildren
-  WorkbenchMeRoute: typeof WorkbenchMeRoute
-  WorkbenchOperationsRoute: typeof WorkbenchOperationsRoute
-  WorkbenchProjectsRoute: typeof WorkbenchProjectsRoute
-  WorkbenchIndexRoute: typeof WorkbenchIndexRoute
-}
-
-const WorkbenchRouteChildren: WorkbenchRouteChildren = {
-  WorkbenchAnalyticsRoute: WorkbenchAnalyticsRoute,
-  WorkbenchAssistantRoute: WorkbenchAssistantRoute,
-  WorkbenchExceptionsRoute: WorkbenchExceptionsRoute,
-  WorkbenchKnowledgeRoute: WorkbenchKnowledgeRouteWithChildren,
-  WorkbenchMeRoute: WorkbenchMeRoute,
-  WorkbenchOperationsRoute: WorkbenchOperationsRoute,
-  WorkbenchProjectsRoute: WorkbenchProjectsRoute,
-  WorkbenchIndexRoute: WorkbenchIndexRoute,
-}
-
-const WorkbenchRouteWithChildren = WorkbenchRoute._addFileChildren(
-  WorkbenchRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CharactersRoute: CharactersRoute,
@@ -790,19 +465,14 @@ const rootRouteChildren: RootRouteChildren = {
   ShelfRoute: ShelfRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoriesRoute: StoriesRoute,
-  WorkbenchRoute: WorkbenchRouteWithChildren,
   WorksRoute: WorksRoute,
   CharacterMioRoute: CharacterMioRoute,
-  EditorApiSplatRoute: EditorApiSplatRoute,
-  EditorPreviewIdRoute: EditorPreviewIdRoute,
   IosAccountSplatRoute: IosAccountSplatRoute,
   IosDataSplatRoute: IosDataSplatRoute,
   KnowledgeIdRoute: KnowledgeIdRoute,
   PlaySlugRoute: PlaySlugRoute,
   ReaderAuthSplatRoute: ReaderAuthSplatRoute,
   StorySlugRoute: StorySlugRoute,
-  WorkbenchArtFileRoute: WorkbenchArtFileRoute,
-  WorkbenchHeroFileRoute: WorkbenchHeroFileRoute,
   KnowledgeIndexRoute: KnowledgeIndexRoute,
   WorkWorkIndexRoute: WorkWorkIndexRoute,
   ApiBillingAlipayNotifyRoute: ApiBillingAlipayNotifyRoute,

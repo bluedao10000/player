@@ -71,22 +71,22 @@ SELECT work_id,'mal','987651','https://myanimelist.net/anime/987651' FROM work_w
 -- name: OpenReviews
 SELECT count(*) FROM knowledge_source_review_marks WHERE resolved_at IS NULL
 
--- name: ClosedReviews
-SELECT count(*) FROM knowledge_source_review_marks WHERE resolved_by=$1 AND resolved_at IS NOT NULL
-
 -- name: CatalogWork
 SELECT w.active,w.type,w.episodes FROM works w JOIN knowledge_source_records r ON r.work_id=w.id WHERE r.record_key=$1
 
 -- name: AllowSourceWithdrawal
 UPDATE knowledge_sources SET min_retained_ratio=0.4 WHERE name='anime-offline-database'
 
--- name: FixtureEpisodeReview
-INSERT INTO knowledge_source_review_marks(world_slug,source_record_id,topic,last_run_id,previous_version_id,source_version_id,changes)
-SELECT world_slug,source_record_id,'phase2-cowboy-3',last_run_id,previous_version_id,source_version_id,changes
-FROM knowledge_source_review_marks WHERE id=$1
-
 -- name: SuccessfulQualityRuns
 SELECT count(*) FROM knowledge_quality_runs WHERE status='success'
 
 -- name: DeactivateCatalogWork
 UPDATE works SET active=false WHERE id=$1
+
+-- name: OpenCatalogReview
+SELECT id::text,last_run_id::text,previous_version_id,source_version_id,changes
+FROM knowledge_source_review_marks
+WHERE world_slug=$1 AND resolved_at IS NULL AND topic IS NULL
+
+-- name: MarkFixtureReviewResolved
+UPDATE knowledge_source_review_marks SET resolved_at=now(),resolved_by='fixture' WHERE id=$1

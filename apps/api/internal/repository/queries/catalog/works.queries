@@ -22,32 +22,9 @@ SELECT to_jsonb(w)||jsonb_build_object(
     FROM knowledge_source_records r JOIN knowledge_sources s ON s.id=r.source_id JOIN knowledge_source_versions v ON v.id=r.version_id WHERE r.active AND r.work_id=w.id),'[]')
    ) FROM works w LEFT JOIN published_worlds ww ON ww.work_id=w.id WHERE w.id=$1 AND w.active
 
--- name: ResearchRuns
-SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.started_at DESC),'[]') FROM (
-			SELECT r.id,r.started_at,r.finished_at,r.stage,r.attempt,r.policy,r.policy=t.policy AS current_policy,r.model,r.error,w.name||' · '||w.edition AS edition_title,t.world_slug,t.first_episode,t.last_episode,r.v AS version_id,
-			(SELECT jsonb_agg(d-'text'-'sentences' ORDER BY d->>'id') FROM jsonb_array_elements(r.documents) d) AS documents,
-			(SELECT jsonb_agg(jsonb_build_object('at',e.at,'message',e.message) ORDER BY e.id) FROM research_events e WHERE e.run_id=r.id) AS events,
-			jsonb_array_length(r.claims) AS paragraphs
-			FROM research_runs r JOIN research_topics t ON t.id=r.topic JOIN work_worlds w ON w.slug=t.world_slug ORDER BY r.started_at DESC LIMIT $1)x
-
--- name: WorldStatuses
-SELECT coalesce(jsonb_agg(s.card ORDER BY s.slug),'[]')
-			FROM (SELECT slug,card FROM reader_knowledge_inventory WHERE slug IS NOT NULL ORDER BY slug LIMIT $1) s
-
--- name: WorkStatus
-SELECT card FROM reader_knowledge_inventory WHERE work_id=$1
-
 -- name: Sources
 SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM
   (SELECT id,name,type,repository_url,enabled,sync_interval::text,last_checked_at,last_synced_at,current_version FROM knowledge_sources) x
-
--- name: QualityRuns
-SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY started_at DESC),'[]') FROM
- (SELECT id,started_at,finished_at,status,report FROM knowledge_quality_runs ORDER BY started_at DESC LIMIT $1)x
-
--- name: SyncRuns
-SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY started_at DESC),'[]') FROM
-  (SELECT r.*,s.name AS source FROM knowledge_sync_runs r JOIN knowledge_sources s ON r.source_id=s.id WHERE $1='' OR s.name=$1 ORDER BY started_at DESC LIMIT $2)x
 
 -- name: MatchCandidates
 SELECT coalesce(jsonb_agg(to_jsonb(x)),'[]') FROM

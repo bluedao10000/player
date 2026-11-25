@@ -5,7 +5,6 @@
   "exports": {
     ".": "./health.ts",
     "./knowledge": "./knowledge.ts",
-    "./knowledge-tools": "./knowledge-tools.generated.ts",
     "./media": "./media.ts"
   }
 }

@@ -38,19 +38,6 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 	}
 	if !options.Once && !options.Research {
 		base := cfg.AgentURL
-		if base != "" {
-			reporter := newLoopReporter(db, node, "sync", "editorial", 2*time.Second, false)
-			jobs.Go(func() {
-				for ctx.Err() == nil {
-					reportLoop(ctx, reporter, "editorial", knowledge.ProcessEditorial(ctx, db, base))
-					select {
-					case <-ctx.Done():
-						return
-					case <-time.After(2 * time.Second):
-					}
-				}
-			})
-		}
 		if base != "" && os.Getenv("EPISODE_BUDGET_BIND") != "" {
 			jobs.Go(func() {
 				if err := serveBudget(ctx, db); err != nil && ctx.Err() == nil {

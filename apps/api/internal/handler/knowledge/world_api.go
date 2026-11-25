@@ -8,12 +8,6 @@ import (
 )
 
 func worldRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
-	g.GET("/scope-acceptances", func(c *gin.Context) {
-		ctx, cancel := readContext(c)
-		defer cancel()
-		body, err := reads.ScopeAcceptances(ctx, db)
-		writeJSON(c, body, err)
-	})
 	g.GET("/discovery", func(c *gin.Context) {
 		ctx, cancel := readContext(c)
 		defer cancel()

@@ -9,10 +9,6 @@ import (
 	queries "anime-agent/api/internal/repository/queries/catalog"
 )
 
-func ScopeAcceptances(ctx context.Context, db *pgxpool.Pool) ([]byte, error) {
-	return database.ReadJSON(ctx, db, queries.ScopeAcceptances)
-}
-
 func Discovery(ctx context.Context, db *pgxpool.Pool) ([]byte, error) {
 	return database.ReadJSON(ctx, db, queries.Discovery)
 }

@@ -23,6 +23,6 @@
 
 ## 管理、回放与读取
 
-- 查询作品走 `GET /api/v1/knowledge/works?q=名称` 和 `/works/{UUID}`；`/sources`、`/sync-runs`、`/quality-runs` 是同步与质检观察入口。定时质量扫描与分集的五维验收使用不同的记录与指标。[目录 API](../apps/api/internal/handler/knowledge/api.go) · [质量调度](../apps/api/internal/service/knowledge/quality_schedule.go)
+- 查询作品走 `GET /api/v1/knowledge/works?q=名称` 和 `/works/{UUID}`；`/sources` 列出已登记数据源；同步与质检记录保存在 PostgreSQL。定时质量扫描与分集的五维验收使用不同的记录与指标。[目录 API](../apps/api/internal/handler/knowledge/api.go) · [质量调度](../apps/api/internal/service/knowledge/quality_schedule.go)
 - 管理前缀为 `/api/v1/admin/knowledge`。候选的 assessments 接口可经 OpenAI 兼容服务或原生 TypeSafe Jev 返回判同依据。正式合并、拆分、覆盖与撤销经治理 action 写入审计记录。评估应结合对应候选的当前输入版本读取。[治理操作](../apps/api/internal/service/knowledge/curation.go) · [Jev 适配器](../apps/api/internal/service/matching/jev.go)
 - 归档比对、重建与重投影由 `knowledge diff`、`knowledge rebuild`、`knowledge project` 提供。后两者会写库，恢复演练用隔离库和对应版本的归档。所需参数见 [CLI](../apps/sync/cmd/knowledge/main.go) 与[运维手册](运维手册.md)。

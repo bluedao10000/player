@@ -36,18 +36,15 @@ const stops = [
   },
 ]
 
-export function CharacterHero({ name, role, preview }: {
-  name: string; role: string; preview?: {src:string;focus:number}
-}) {
+function CharacterHero({ name, role }: { name: string; role: string }) {
   return (
     <header className="mio-arrival" aria-labelledby="mio-name">
       <img
         className="mio-key-art"
-        src={preview?.src ?? imageUrl("/art/mio-invitation.webp")}
-        style={preview ? {objectPosition: "65% "+preview.focus+"%"} : undefined}
+        src={imageUrl("/art/mio-invitation.webp")}
         width="1672"
         height="941"
-        alt={preview ? "阿澪场景候选图" : "白帆港的夜色里，阿澪站在亮着灯的邮局门前，向你递出一封信。"}
+        alt="白帆港的夜色里，阿澪站在亮着灯的邮局门前，向你递出一封信。"
         fetchPriority="high"
       />
       <div className="mio-voice">

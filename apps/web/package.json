@@ -5,12 +5,11 @@
   "scripts": {
     "dev": "vite",
     "build": "node generate-images.mjs --check && vite build --config vite.static.config.ts",
-    "check": "tsc --noEmit && node --test test/*.test.mjs",
+    "check": "tsc --noEmit",
     "build:reader-api": "node generate-images.mjs --check && vite build --config vite.reader-api.config.ts"
   },
   "dependencies": {
     "@anime/shared": "*",
-    "@assistant-ui/react": "0.15.37",
     "@astryxdesign/core": "0.7.17",
     "@astryxdesign/theme-neutral": "0.7.17",
     "@stylexjs/stylex": "0.19.0",

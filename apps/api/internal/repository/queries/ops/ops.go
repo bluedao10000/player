@@ -27,18 +27,6 @@ type Heartbeat struct {
 	Executions      []byte
 }
 
-func Overview(ctx context.Context, db *pgxpool.Pool) ([]byte, error) {
-	var body []byte
-	err := db.QueryRow(ctx, opsQueries["Overview"]).Scan(&body)
-	return body, err
-}
-
-func Attention(ctx context.Context, db *pgxpool.Pool) ([]byte, error) {
-	var body []byte
-	err := db.QueryRow(ctx, opsQueries["Attention"]).Scan(&body)
-	return body, err
-}
-
 func WriteHeartbeatSuccess(ctx context.Context, db *pgxpool.Pool, beat Heartbeat) error {
 	_, err := db.Exec(ctx, opsQueries["HeartbeatSuccess"],
 		beat.WorkerID, beat.Loop, beat.Role, beat.Node, beat.Version,

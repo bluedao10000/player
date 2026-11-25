@@ -9,5 +9,4 @@ var sourceReviewSource string
 var (
 	sourceReviewQueries = resources.Statements(sourceReviewSource)
 	SaveSourceReviews   = sourceReviewQueries["SaveSourceReviews"]
-	ResolveSourceReview = sourceReviewQueries["ResolveSourceReview"]
 )

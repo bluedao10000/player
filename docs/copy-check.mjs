@@ -15,7 +15,6 @@ const reader = [
   'apps/web/src/site.ts',
   'apps/ios/Folio',
 ]
-const workbench = ['apps/web/src/features/workbench']
 const web = ['apps/web/src', 'apps/ios/server']
 
 // [pattern, what to write instead]
@@ -35,7 +34,6 @@ const readerTerms = [
   [/读者服务|我的读者账户/, '读者账户'],
   [/您/, '你'],
 ]
-const workbenchTerms = [[/\bUTC\b/, '工作台统一显示北京时间，用 shared/format.ts 的格式化函数']]
 const logicTerms = [
   [/edition_label\??\.(endsWith|startsWith|includes)\(/, '作品卡片的 format 字段'],
   [/active=["'{][^"'}]*[\u4e00-\u9fff]/, 'Layout 的 NavKey（discover、works、cast、stories、me）'],
@@ -70,7 +68,6 @@ function scan(paths, rules) {
 }
 
 scan(reader, readerTerms)
-scan(workbench, workbenchTerms)
 scan(web, logicTerms)
 
 if (problems.length) {

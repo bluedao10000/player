@@ -21,16 +21,10 @@ import {
 
 const nightImage = '/art/night-post.webp'
 const nightAlt = '夜班邮差阿澪提着灯，回望月光下的白帆港'
-export function Reader({
-  page,
-  preview = false,
-}: {
-  page: ChapterDetail
-  preview?: boolean
-}) {
+export function Reader({ page }: { page: ChapterDetail }) {
   const { chapter, work, blocks, scenes } = page
   const story = catalog.find((s) => s.slug === chapter.slug)
-  if (!story) return <ChapterPage {...page} preview={preview} />
+  if (!story) return <ChapterPage {...page} />
   const next =
     catalog[
       (catalog.findIndex((s) => s.slug === story.slug) + 1) % catalog.length
@@ -38,14 +32,12 @@ export function Reader({
   const isFeature = story.slug === feature.slug
   return (
     <Layout active="stories">
-      {!preview && (
-        <ReadingProgress
-          slug={story.slug}
-          href={chapter.href}
-          title={chapter.title}
-          work={work.title}
-        />
-      )}
+      <ReadingProgress
+        slug={story.slug}
+        href={chapter.href}
+        title={chapter.title}
+        work={work.title}
+      />
       <WorldTrail work={work} />
       <article className="reading">
         <header className="reading-cover">
@@ -67,13 +59,7 @@ export function Reader({
           <div className="byline">
             <CharacterChip />
             <ContentMeta story={story} />
-            {!preview && (
-              <Save
-                href={chapter.href}
-                title={chapter.title}
-                work={work.title}
-              />
-            )}
+            <Save href={chapter.href} title={chapter.title} work={work.title} />
           </div>
           <ReadingBlocks blocks={blocks} />
           {scenes.map((scene) => (

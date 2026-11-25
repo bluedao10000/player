@@ -361,12 +361,11 @@ export function ChapterPage({
   next_chapter,
   scenes,
   attribution,
-  preview = false,
-}: ChapterDetail & { preview?: boolean }) {
+}: ChapterDetail) {
   return (
     <Layout active="stories">
       <WorldTrail work={work} />
-      {!preview && <ReadingProgress slug={chapter.href} href={chapter.href} title={chapter.title} work={work.title} containerId="chapter-body" />}
+      <ReadingProgress slug={chapter.href} href={chapter.href} title={chapter.title} work={work.title} containerId="chapter-body" />
       {accepted_art?.length ? (
         <header className="column episode-heading">
           <small className="world-kicker">
@@ -394,7 +393,7 @@ export function ChapterPage({
         />
       )}
       <article className="column world-reading" id="chapter-body">
-        {!preview && <Save href={chapter.href} title={chapter.title} work={work.title} />}
+        <Save href={chapter.href} title={chapter.title} work={work.title} />
         {reader_passages && (
           <ReadingBlocks
             blocks={reader_passages}

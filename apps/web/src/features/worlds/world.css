@@ -432,14 +432,3 @@
 .episode-plate figcaption {margin-top:8px;color:var(--dim);font-size:13px;}
 .episode-heading h1 {font:650 clamp(36px,6vw,66px)/1.1 var(--display);margin:12px 0;}
 .episode-heading p {color:var(--muted);}
-
-.editor-preview-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem 1rem;
-  padding: .7rem 1rem;
-  background: #161825;
-  font-size: .875rem;
-}
-.editor-preview-tabs a { color: #c6bfdc; }
-.editor-preview-tabs a[aria-current] { color: white; font-weight: 650; }

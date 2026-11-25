@@ -10,7 +10,7 @@ import (
 )
 
 // Reframing a valid original keeps the original version. An unfixable defect
-// gets one new original; a second rejection stays in the workbench for inspection.
+// gets one new original; a second rejection is held with its review reason.
 func TestMediaReworkBudget(t *testing.T) {
 	db := testsupport.Database(t)
 	ctx := context.Background()
