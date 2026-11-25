@@ -1,7 +1,7 @@
 [Unit]
-Description=Check published works against current episode schedules every four hours
+Description=Check published works against current episode schedules every 30 minutes
 [Timer]
-OnCalendar=*-*-* 02/4:00:00 Asia/Shanghai
+OnCalendar=*-*-* *:00,30:00 Asia/Shanghai
 Persistent=true
 Unit=folio-refresh@inventory.service
 [Install]
