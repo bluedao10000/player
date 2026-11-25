@@ -1,6 +1,7 @@
 import { compileEpisode, locateEpisode, type Template } from './episode-config.ts'
 import { runProductionModel } from './production-model.ts'
 import { page } from './research.ts'
+import { readEpisodeDocuments } from './episode-plan.ts'
 
 export async function prepareEpisodeConfiguration(dir: string, call: string, input: {
   previous: Template
@@ -8,17 +9,23 @@ export async function prepareEpisodeConfiguration(dir: string, call: string, inp
   brief: string
 }) {
   const { previous, number, brief } = input
-  let located: Awaited<ReturnType<typeof locateEpisode>>
+  let located: Parameters<typeof compileEpisode>[1]
   try {
-    const official = new URL(previous.official)
-    const guide = new URL(previous.guide)
-    if (official.protocol !== 'https:' || official.username || official.password ||
-        guide.origin !== 'https://en.wikipedia.org' || !guide.pathname.startsWith('/wiki/') ||
-        previous.sourceRules?.guide !== 'wiki-episode' || !Number.isSafeInteger(number) || number < 1) {
-      throw Error('尚无可用于自动定位的官方页与分集指南')
+    if (previous.sourceBundle) {
+      const source = previous.sourceBundle
+      if (source.number !== number || source.sourceRules?.guide !== 'paired') throw Error('分集与已核对的来源不一致')
+      located = { source, docs: await readEpisodeDocuments(source, page) }
+    } else {
+      const official = new URL(previous.official)
+      const guide = new URL(previous.guide)
+      if (official.protocol !== 'https:' || official.username || official.password ||
+          guide.origin !== 'https://en.wikipedia.org' || !guide.pathname.startsWith('/wiki/') ||
+          previous.sourceRules?.guide !== 'wiki-episode' || !Number.isSafeInteger(number) || number < 1) {
+        throw Error('尚无可用于自动定位的官方页与分集指南')
+      }
+      const [site, recap] = await Promise.all([page(official.href), page(guide.origin + guide.pathname)])
+      located = await locateEpisode(previous, number, site, recap)
     }
-    const [site, recap] = await Promise.all([page(official.href), page(guide.origin + guide.pathname)])
-    located = await locateEpisode(previous, number, site, recap)
   } catch (err) {
     return { tokens: 0, error: err instanceof Error ? err.message : '分集来源定位失败' }
   }

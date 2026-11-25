@@ -1,0 +1,72 @@
+-- name: LockDecisionSource
+SELECT 1 FROM knowledge_source_review_marks m
+JOIN workbench_inbox d ON d.source_review_id=m.id WHERE d.id=$1 FOR UPDATE OF m;
+
+-- name: LockDecision
+SELECT revision,status,COALESCE(expires_at<=clock_timestamp(),false),action_type,
+ plan_id::text,source_review_id,source_run_id::text,work_id::text
+FROM workbench_inbox WHERE id=$1 FOR UPDATE;
+
+-- name: UpdatePlanStatus
+UPDATE workbench_knowledge_plans SET status=$2,revision=revision+1
+WHERE id=$1 AND status='pending_approval';
+
+-- name: CloseSourceReview
+UPDATE knowledge_source_review_marks SET resolved_at=clock_timestamp(),resolved_by=$3
+WHERE id=$1 AND last_run_id=$2 AND resolved_at IS NULL;
+
+-- name: ApprovalRun
+INSERT INTO workbench_runs(work_id,task_name,task_type,status,started_at,finished_at,result_summary)
+VALUES($1,$2,$3,'completed',statement_timestamp(),statement_timestamp(),$4) RETURNING id::text;
+
+-- name: SaveDecision
+UPDATE workbench_inbox SET status=$2,revision=revision+1,run_id=$3,resolved_by=$4,resolution_note=nullif($5,'')
+WHERE id=$1 RETURNING revision;
+
+-- name: AuditDecision
+INSERT INTO workbench_decision_actions(decision_id,revision,operator,action,note)
+VALUES($1,$2,$3,$4,nullif($5,''));
+
+-- name: CreateConversation
+INSERT INTO workbench_conversations(operator) VALUES ($1) RETURNING id::text;
+
+-- name: StartRun
+INSERT INTO workbench_runs(conversation_id,work_id,task_name,task_type,status)
+VALUES($1,nullif($2,'')::uuid,$3,'agent.chat','running') RETURNING id::text;
+
+-- name: RecordEvent
+INSERT INTO workbench_run_events(run_id,sequence,payload) VALUES($1,$2,$3);
+
+-- name: FinishRun
+UPDATE workbench_runs SET status=$2,finished_at=clock_timestamp(),input_tokens=$3,output_tokens=$4,
+ tool_count=$5,result_summary=nullif($6,''),error_summary=nullif($7,''),cost_usd=$8::text::numeric
+WHERE id=$1 AND status='running';
+
+-- name: CreatePlan
+INSERT INTO workbench_knowledge_plans(work_id,run_id,title,objective,status,milestones,tasks)
+VALUES($1,$2,$3,$4,'pending_approval',$5,$6) RETURNING id::text;
+
+-- name: CreatePlanDecision
+INSERT INTO workbench_inbox(work_id,plan_id,title,description,risk_level,action_type,assessment,diff,expires_at)
+VALUES($1,$2,'审批知识计划 · '||$3,$4,'L1','plan.approve',
+ '审批会将此计划登记为已批准，计划任务仍需按实际制作流程执行。',
+ jsonb_build_array(jsonb_build_object('field','plan.status','kind','mod','before','pending_approval','after','approved')),
+ now()+interval '72 hours') RETURNING id::text;
+
+-- name: FinishPlanProposal
+UPDATE workbench_runs r SET status='completed',
+ result_summary=CASE WHEN p.status='approved' THEN '知识计划已批准。' ELSE '知识计划已驳回。' END
+FROM workbench_knowledge_plans p WHERE p.id=$1 AND p.run_id=r.id AND r.status='waiting_approval';
+
+-- name: RequestCancel
+UPDATE workbench_runs r SET cancel_requested_at=clock_timestamp()
+FROM workbench_conversations c
+WHERE r.id=$1 AND r.conversation_id=c.id AND c.operator=$2
+ AND r.status='running' AND r.cancel_requested_at IS NULL;
+
+-- name: LockRunCancellation
+SELECT cancel_requested_at IS NOT NULL FROM workbench_runs WHERE id=$1 FOR UPDATE;
+
+-- name: SaveArtifactResult
+INSERT INTO workbench_artifact_results(id,kind,run_id,payload)
+VALUES(coalesce(nullif($1,'')::uuid,gen_random_uuid()),$2,$3,$4) RETURNING id::text;

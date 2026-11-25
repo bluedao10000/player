@@ -1,0 +1,10 @@
+[Unit]
+Description=Dispatch at most five Guangzhou episode requests
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+User=root
+StandardInput=file:/srv/folio-data/dispatch-aired-episodes.sql
+ExecStart=/usr/bin/docker exec -i folio-postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d folio

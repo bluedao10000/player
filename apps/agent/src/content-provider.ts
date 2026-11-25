@@ -4,9 +4,9 @@ import { createProvider } from '@earendil-works/pi-ai/models'
 import { openaiProvider } from '@earendil-works/pi-ai/providers/openai'
 import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.lazy'
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy'
-import { profile, streamFetch } from './model-api.ts'
+import { profile, streamFetch, type ModelCallReceipt } from './model-api.ts'
 
-export function contentProvider(run: string, phase: string, scope = 'research', structured = false) {
+export function contentProvider(run: string, phase: string, scope = 'research', structured = false, onReceipt?: (receipt: ModelCallReceipt) => void) {
   const p = profile('content')
   const arkKimi = p.gateway && p.model === 'volcengine/kimi-k3.1-pro'
   const protocol = p.gateway ? 'chat-completions' : process.env.CONTENT_AI_PROTOCOL || 'responses'
@@ -39,7 +39,7 @@ export function contentProvider(run: string, phase: string, scope = 'research', 
     ...p,
     subject: scope + ':' + run,
     operation: phase,
-  })
+  }, onReceipt)
   // Ark Kimi defaults to thinking and can spend the entire output budget before
   // emitting the structured draft. These tasks already carry a sourced outline.
   const transport = <T extends StreamOptions>(options?: T) => ({

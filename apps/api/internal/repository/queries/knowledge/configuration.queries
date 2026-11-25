@@ -15,9 +15,9 @@ LEFT JOIN LATERAL (
    FROM edition_reader_art a WHERE a.world_slug=p.world_slug AND a.kind='character'
     AND a.image ~ '^/art/portraits/[a-f0-9]{64}\.webp$'
     AND p.spec->'people' @> jsonb_build_array(jsonb_build_object('slug',a.item_slug))
- ),'{}')) AS spec
+ ),'{}'), 'sourceBundle', r.production_policy->'source_bundle') AS spec
  FROM episode_plans p WHERE p.world_slug=r.world AND p.number<next.number
- AND p.spec->'sourceRules'->>'guide'='wiki-episode' AND p.spec ? 'art'
+ AND (p.spec->'sourceRules'->>'guide'='wiki-episode' OR r.production_policy ? 'source_bundle') AND p.spec ? 'art'
  ORDER BY p.number DESC LIMIT 1
 ) template ON true
 WHERE r.stage='plan_validated' AND NOT r.operator_paused AND r.paused_reason IS NULL
@@ -26,6 +26,16 @@ ORDER BY r.created_at FOR UPDATE OF r SKIP LOCKED LIMIT 1
 
 -- name: Reserve
 SELECT reserve_episode_call($1,$2,'configuration',16000)
+
+-- name: AttachSourceBundle
+UPDATE episode_production_requests r
+SET production_policy=jsonb_set(r.production_policy,'{source_bundle}',$3::jsonb),
+    stage='inventory',operator_paused=true,paused_reason='等待广州批次',
+    revision=r.revision+1,updated_at=now()
+WHERE r.world=$1 AND r.first_episode=$2 AND r.last_episode=$2
+  AND r.production_policy ? 'queue' AND r.stage IN ('inventory','blocked') AND r.operator_paused
+  AND r.paused_reason IN ('等待广州批次','待补可复用的同版本来源模板') AND r.reserved=0
+  AND r.production_policy->'source_bundle' IS DISTINCT FROM $3::jsonb;
 
 -- name: Start
 INSERT INTO episode_configuration_attempts(id,request_id,revision,number) VALUES($1,$2,$3,$4)

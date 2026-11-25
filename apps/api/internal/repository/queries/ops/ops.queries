@@ -160,6 +160,7 @@ WITH inventory_totals AS (
   'workTypes',(SELECT coalesce(jsonb_agg(jsonb_build_object('type',type,'count',total)
                        ORDER BY type NULLS LAST),'[]'::jsonb) FROM type_totals),
   'publishedWorlds',(SELECT count(*) FROM published_worlds),
+  'verifiedItems',(SELECT sum(verified_items) FROM workbench_verified_knowledge),
   'knowledge',inventory_totals.metrics,
   'completeness',global_completeness.metrics
  ) AS metrics

@@ -144,7 +144,7 @@ function start(m: Meta, idempotencyKey?: string | null) {
     complete = true,
     providerFailed = false,
   ) => {
-    append({
+    const result = {
       ...event,
       finished: new Date().toISOString(),
       outcome:
@@ -164,7 +164,9 @@ function start(m: Meta, idempotencyKey?: string | null) {
         m.purpose === 'image' && Array.isArray(body?.data)
           ? body.data.length
           : undefined,
-    })
+    }
+    append(result)
+    return result
   }
 }
 
@@ -237,7 +239,8 @@ export async function modelJSON(
 
 // Pi can perform multiple turns and transport retries for one durable step.
 // Observe each actual HTTP dispatch, including a final streaming usage receipt.
-export function streamFetch(meta: Meta): typeof fetch {
+export type ModelCallReceipt = ReturnType<ReturnType<typeof start>>
+export function streamFetch(meta: Meta, onReceipt?: (receipt: ModelCallReceipt) => void): typeof fetch {
   let sent = false
   return async (input, init) => {
     if (meta.subject.startsWith('plan:')) {
@@ -323,7 +326,8 @@ export function streamFetch(meta: Meta): typeof fetch {
       if (!closed) {
         closed = true
         await settle(receipt,terminal)
-        finish(res, receipt, terminal, providerFailed)
+        const recorded = finish(res, receipt, terminal, providerFailed)
+        if (terminal) onReceipt?.(recorded)
       }
     }
     const body = new ReadableStream<Uint8Array>({

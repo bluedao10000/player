@@ -156,11 +156,13 @@ async function decodeImage(
 async function configuredReference(j: Job): Promise<Result> {
   const a = j.art!,
     url = new URL(a.referenceURL)
+  const publishedPortrait = url.host === 'www.codeiy.com' && /^\/art\/portraits\/[a-f0-9]{64}\.webp$/.test(url.pathname) &&
+    url.pathname.endsWith('/' + a.sourceSHA + '.webp')
   if (
     url.protocol !== 'https:' ||
     url.username || url.password ||
     !((url.href === 'https://www.codeiy.com/art/bebop/spike.webp' && a.series === '星际牛仔')
-      || (url.host === 'www.codeiy.com' && /^\/art\/portraits\/[a-f0-9]{64}\.webp$/.test(url.pathname) && url.pathname.endsWith('/' + a.sourceSHA + '.webp'))
+      || publishedPortrait
       || ['cmsapi-frontend.naruto-official.com', 'lain.bgm.tv'].includes(url.host)
       || (url.host === 'img2.animatetimes.com' && /^\/2026\/(07|09|10|11)\//.test(url.pathname))
       || (url.host === 'nama-anaru.com' && (/^\/teaser_assets\/img\/(episode|chara)\//.test(url.pathname) || /^\/episode\/SYS\/CONTENTS\/story_\d+_photo_\d+$/.test(url.pathname)))
@@ -179,11 +181,18 @@ async function configuredReference(j: Job): Promise<Result> {
   )
     throw Error('参考图来源无效')
   const reference = configuredRef(j)
+  let source = url
   if (!(await cached(join(dir, reference)))) {
-    const res = await fetch(url, {
+    const request = (address: URL) => fetch(address, {
       redirect: 'error',
       signal: AbortSignal.timeout(30000),
     })
+    let res = await request(source)
+    if (res.status === 404 && publishedPortrait) {
+      await res.body?.cancel()
+      source = new URL('https://img.codeiy.com/i/' + a.sourceSHA)
+      res = await request(source)
+    }
     if (!res.ok) throw Error('参考图 HTTP ' + res.status)
     const data = Buffer.from(await res.arrayBuffer())
     if (hash(data) !== a.sourceSHA) throw Error('参考图来源指纹变化')
@@ -201,7 +210,7 @@ async function configuredReference(j: Job): Promise<Result> {
     await save(reference, await im.png().toBuffer())
   }
   return {
-    source: url.href,
+    source: source.href,
     reference,
     reference_sha: hash(await readFile(join(dir, reference))),
   }

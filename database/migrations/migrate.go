@@ -49,7 +49,7 @@ func versions() []migration {
 			return tx.Exec(section(version)).Error
 		}})
 	}
-	return steps
+	return append(steps, migration{"066.sql", addWorkbench}, migration{"067.sql", addWorkbenchData})
 }
 
 // Apply and the previous pgx migrator share a lock and immutable version IDs.

@@ -1,4 +1,9 @@
 services:
+  api:
+    environment:
+      WORKBENCH_CONTRACT_PATH: /workbench-docs/api-contract.md
+    volumes:
+      - ../docs/api-contract.md:/workbench-docs/api-contract.md:ro
   sync:
     environment:
       OPS_NODE_NAME: ${OPS_NODE_NAME:-local}

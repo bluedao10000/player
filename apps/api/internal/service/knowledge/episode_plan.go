@@ -23,7 +23,18 @@ type planCast struct {
 	ReusePortrait    bool
 	Portrait         json.RawMessage
 }
-type sourceRules struct{ Entry, Heading, Attribute, Body, Guide string }
+type sourceRules struct {
+	Entry, Heading, Attribute, Body, Guide string
+	Version                                int
+	OfficialRule, GuideRule                *episodeSourceRule
+}
+
+type episodeSourceRule struct {
+	Kind, Episode, Title, Heading, Body string
+}
+
+var episodeJSONField = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
 type episodeSpec struct {
 	SourceRules                                                                                 *sourceRules
 	Number, SceneBeat, SourceNumber                                                             int
@@ -499,6 +510,22 @@ func (e episodeSpec) validateRules() error {
 	default:
 		return errors.New("未登记的来源站点")
 	}
+	if r.Guide == "paired" {
+		guide, err := url.Parse(e.Guide)
+		if err != nil || guide.Scheme != "https" || guide.User != nil || guide.Host == official.Host || guide.Fragment != "" || guide.RawQuery != "" || guide.Path == "" {
+			return errors.New("独立分集来源无效")
+		}
+		switch guide.Host {
+		case "skypenguin.net", "2jigen-otaku.com", "sayo.blog", "ani-chara.net", "tv-times.jp", "saisokustory.com", "animenoyakata.com", "anime-no-mikata.com", "mahoyaku.net", "biwaochan-blog.com":
+		default:
+			return errors.New("未登记的分集资料站点")
+		}
+		if r.Version != 1 || !r.OfficialRule.valid() || !r.GuideRule.valid() || len(e.GuideParagraphs) != 0 ||
+			strings.TrimSpace(e.OfficialTitle) == "" || r.Entry != "" || r.Heading != "" || r.Attribute != "" || r.Body != "" {
+			return errors.New("分集采集规则无效")
+		}
+		return nil
+	}
 	for _, s := range []string{r.Entry, r.Heading, r.Body, e.OfficialTitle} {
 		if len(s) == 0 || len(s) > 512 {
 			return errors.New("缺少来源定位或标题")
@@ -541,4 +568,19 @@ func (e episodeSpec) validateRules() error {
 		return errors.New("未知分集资料解析规则")
 	}
 	return nil
+}
+
+func (r *episodeSourceRule) valid() bool {
+	if r == nil || strings.TrimSpace(r.Body) == "" || len(r.Body) > 256 {
+		return false
+	}
+	switch r.Kind {
+	case "json_episode_list":
+		return r.Heading == "" && len(r.Episode) <= 256 && len(r.Title) <= 256 &&
+			episodeJSONField.MatchString(r.Episode) && episodeJSONField.MatchString(r.Title) && episodeJSONField.MatchString(r.Body)
+	case "html_episode_article":
+		return r.Episode == "" && r.Title == "" && strings.TrimSpace(r.Heading) != "" && len(r.Heading) <= 256
+	default:
+		return false
+	}
 }

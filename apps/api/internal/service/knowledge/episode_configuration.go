@@ -46,9 +46,22 @@ func RegisterEpisodeConfiguration(ctx context.Context, tx pgx.Tx, request string
 	if json.Unmarshal(result.Spec, &spec) != nil || json.Unmarshal(template, &previous) != nil || spec.Number != number {
 		return errors.New("分集配置与盘点集号不一致")
 	}
-	expectedGuide, _, _ := strings.Cut(previous.Guide, "#")
-	if spec.Official != previous.Official || spec.Guide != fmt.Sprintf("%s#ep%d", expectedGuide, number) ||
-		!reflect.DeepEqual(spec.SourceRules, previous.SourceRules) || spec.SourceRules == nil || spec.SourceNumber != 0 {
+	var input struct{ SourceBundle *episodeSpec }
+	if err := json.Unmarshal(template, &input); err != nil {
+		return err
+	}
+	expectedSource := previous
+	if input.SourceBundle != nil {
+		expectedSource = *input.SourceBundle
+		if expectedSource.Number != number || spec.GuideTitle != expectedSource.GuideTitle || spec.OfficialTitle != expectedSource.OfficialTitle {
+			return errors.New("分集来源与已核对的规则不一致")
+		}
+	} else {
+		base, _, _ := strings.Cut(previous.Guide, "#")
+		expectedSource.Guide = fmt.Sprintf("%s#ep%d", base, number)
+	}
+	if spec.Official != expectedSource.Official || spec.Guide != expectedSource.Guide ||
+		!reflect.DeepEqual(spec.SourceRules, expectedSource.SourceRules) || spec.SourceRules == nil || spec.SourceNumber != 0 {
 		return errors.New("来源超出已登记的同版本规则")
 	}
 	if err := spec.validate(); err != nil {

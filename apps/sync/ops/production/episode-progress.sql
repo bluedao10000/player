@@ -46,8 +46,15 @@ LEFT JOIN LATERAL (
   WHERE request_id = r.id
   ORDER BY started_at DESC LIMIT 1
 ) attempt ON true
+WHERE r.production_policy->>'queue' IS DISTINCT FROM 'gz-20-aired-20261125'
 GROUP BY r.id, attempt.error
 ORDER BY r.created_at DESC;
+
+SELECT stage, paused_reason, count(*) AS episodes
+FROM episode_production_requests
+WHERE production_policy->>'queue'='gz-20-aired-20261125'
+GROUP BY stage, paused_reason
+ORDER BY stage, paused_reason;
 
 SELECT world_slug, status, count(*) AS episodes, sum(measured_tokens) AS tokens
 FROM episode_policy_queue

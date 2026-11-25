@@ -12,9 +12,9 @@ import (
 
 	catalog "anime-agent/api/internal/model/knowledge"
 	"anime-agent/api/internal/repository/database"
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 	"anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/service/modelusage"
-	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
 func main() {
@@ -30,6 +30,15 @@ func main() {
 	switch os.Args[1] {
 	case "episode-register":
 		err = knowledge.RegisterProductionPlan(ctx, db, os.Stdin)
+	case "episode-source-rule-attach":
+		if len(os.Args) != 3 {
+			log.Fatal("usage: knowledge episode-source-rule-attach WORLD < verified-rule.json")
+		}
+		var attached int64
+		attached, err = knowledge.AttachEpisodeSourceBundle(ctx, db, os.Args[2], os.Stdin)
+		if err == nil {
+			fmt.Println(attached)
+		}
 	case "episode-capture-claim":
 		err = knowledge.ClaimCapture(ctx, db, os.Stdout)
 	case "episode-plan-load":

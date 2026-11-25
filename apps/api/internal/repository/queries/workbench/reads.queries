@@ -1,0 +1,421 @@
+-- name: RunProjection
+WITH workbench_run_summary AS (
+SELECT r.id::text AS run_id,r.task_name,r.task_type,
+ CASE WHEN r.status='running' AND r.cancel_requested_at IS NOT NULL THEN 'cancelled'
+      WHEN r.status='running' AND r.started_at<statement_timestamp()-interval '5 minutes' THEN 'failed'
+      ELSE r.status END AS status,r.started_at,coalesce(r.finished_at,r.cancel_requested_at) AS finished_at,
+ floor(extract(epoch FROM coalesce(r.finished_at,r.cancel_requested_at)-r.started_at)*1000)::bigint AS duration_ms,
+ r.input_tokens,r.output_tokens,r.tool_count,
+ CASE WHEN r.task_type='agent.chat' THEN 'workbench:'||r.id END AS billing_subject,
+ r.work_id AS related_work_id,coalesce(approval.id,proposed.id) AS related_decision_id,
+ r.result_summary,CASE WHEN r.status='running' AND r.started_at<statement_timestamp()-interval '5 minutes'
+   THEN '未收到执行终态。' ELSE r.error_summary END AS error_summary
+FROM workbench_runs r
+LEFT JOIN workbench_inbox approval ON approval.run_id=r.id
+LEFT JOIN workbench_knowledge_plans p ON p.run_id=r.id
+LEFT JOIN workbench_inbox proposed ON proposed.plan_id=p.id
+UNION ALL
+SELECT r.run_key,coalesce(w.name||' · ','')||stage.title||' · '||r.subject,r.stage,
+ CASE WHEN r.status IN ('success','skipped') THEN 'completed' ELSE r.status END,r.started_at,r.finished_at,
+ floor(extract(epoch FROM r.finished_at-r.started_at)*1000)::bigint,
+ NULL,NULL,NULL,CASE
+  WHEN r.source_table IN ('research_runs','media_steps') THEN r.run_key
+  WHEN r.source_table='episode_configuration_attempts' AND EXISTS(
+   SELECT 1 FROM episode_call_reservations reservation WHERE reservation.call_id::text=r.source_id)
+   THEN 'plan:'||r.source_id END,w.work_id,NULL,
+ CASE WHEN r.stage='acceptance' AND r.outcome='rejected' THEN '验收未通过'
+      WHEN r.outcome='passed' THEN '验收通过'
+      WHEN r.status='skipped' THEN '已跳过' END,r.error
+FROM ops_task_runs r JOIN ops_stages stage ON stage.id=r.stage
+LEFT JOIN work_worlds w ON w.slug=r.world_slug
+WHERE r.status IN ('success','skipped','running','failed','cancelled','queued')
+)
+
+-- name: DisableCatalogJIT
+SET LOCAL jit = off;
+
+-- name: Works
+WITH filtered AS MATERIALIZED (
+ SELECT x.* FROM workbench_work_summary x
+ WHERE ($1='' OR strpos(lower(x.title),lower($1))>0 OR strpos(lower(x.original_title),lower($1))>0)
+ AND ($2='' OR x.work_type=CASE $2 WHEN 'TV' THEN 'TV 动画' WHEN 'MOVIE' THEN '剧场版'
+       WHEN 'SPECIAL' THEN '特别篇' ELSE $2 END) AND ($3='' OR x.publication_status=$3)
+ AND ($7::text[] IS NULL OR x.work_id::text=ANY($7))
+), page AS (
+ SELECT filtered.*, row_number() OVER (ORDER BY
+  CASE WHEN $4='gap' THEN gap_count END DESC NULLS LAST,
+  CASE WHEN $4='coverage' THEN coverage END DESC NULLS LAST,updated_at DESC,work_id) AS position
+ FROM filtered ORDER BY position LIMIT $5 OFFSET $6
+)
+SELECT jsonb_build_object('rows',coalesce(jsonb_agg((to_jsonb(page)-'position')||
+ jsonb_build_object('updated_at',workbench_time(page.updated_at),'verified_entity_count',p.verified_entity_count,
+  'workbench_profile',jsonb_build_object('completeness',p.completeness,
+   'verified_entity_count',p.verified_entity_count,'gap_count',page.gap_count)) ORDER BY page.position),'[]'),
+ 'total',(SELECT count(*) FROM filtered)) FROM page LEFT JOIN workbench_profiles p USING(work_id);
+
+-- name: Work
+SELECT to_jsonb(w)||jsonb_build_object('updated_at',workbench_time(w.updated_at),
+ 'verified_entity_count',p.verified_entity_count,'workbench_profile',jsonb_build_object(
+  'completeness',p.completeness,'verified_entity_count',p.verified_entity_count,'gap_count',w.gap_count))
+FROM workbench_work_summary w LEFT JOIN workbench_profiles p USING(work_id)
+WHERE w.work_id=$1;
+
+-- name: WorkGaps
+SELECT coalesce(jsonb_agg(to_jsonb(x)-'work_id' ORDER BY
+ CASE x.severity WHEN 'high' THEN 1 WHEN 'mid' THEN 2 ELSE 3 END,x.id),'[]')
+FROM workbench_work_gaps x WHERE x.work_id=$1;
+
+-- name: WorkRecommendations
+SELECT coalesce(jsonb_agg(jsonb_build_object(
+ 'id','recommend:'||id,
+ 'action',CASE kind WHEN 'source_conflict' THEN '核对上游来源变动'
+  WHEN 'weak_evidence' THEN '核验证据 · '||label WHEN 'timeline_anomaly' THEN '核对时间线 · '||label
+  ELSE '补齐 · '||label END,
+ 'rationale',detail,'estimated_cost',NULL,'currency',NULL) ORDER BY id),'[]')
+FROM workbench_work_gaps WHERE work_id=$1;
+
+-- name: Decisions
+SELECT coalesce(jsonb_agg(to_jsonb(d)-'diff'-'assessment'||jsonb_build_object(
+ 'created_at',workbench_time(created_at),'expires_at',workbench_time(expires_at)) ORDER BY created_at DESC,id),'[]')
+FROM workbench_decision_items d WHERE ($1='' OR status=$1) AND ($2='' OR risk_level=$2);
+
+-- name: Decision
+SELECT to_jsonb(d)||jsonb_build_object('created_at',workbench_time(created_at),'expires_at',workbench_time(expires_at))
+FROM workbench_decision_items d WHERE id=$1;
+
+-- name: Runs
+SELECT coalesce(jsonb_agg(workbench_run_json(to_jsonb(r),r.started_at,r.finished_at,c.cost_usd,
+ coalesce(r.input_tokens,c.input_tokens),coalesce(r.output_tokens,c.output_tokens)) ORDER BY r.started_at DESC,r.run_id),'[]')
+FROM workbench_run_summary r LEFT JOIN workbench_usd_subjects c ON c.subject=r.billing_subject
+WHERE ($1='' OR r.status=$1) AND ($2='' OR r.run_id=$2);
+
+-- name: Run
+SELECT workbench_run_json(to_jsonb(r),r.started_at,r.finished_at,c.cost_usd,coalesce(r.input_tokens,c.input_tokens),coalesce(r.output_tokens,c.output_tokens))
+FROM workbench_run_summary r LEFT JOIN workbench_usd_subjects c ON c.subject=r.billing_subject WHERE r.run_id=$1;
+
+-- name: AgentRun
+SELECT workbench_run_json(to_jsonb(r),r.started_at,r.finished_at,u.cost_usd,coalesce(r.input_tokens,u.input_tokens),coalesce(r.output_tokens,u.output_tokens))
+FROM workbench_run_summary r JOIN workbench_runs a ON a.id::text=r.run_id
+JOIN workbench_conversations c ON c.id=a.conversation_id
+LEFT JOIN workbench_usd_subjects u ON u.subject=r.billing_subject
+WHERE a.id=$1 AND c.operator=$2;
+
+-- name: RunEvents
+WITH events AS (
+ SELECT e.run_id::text AS run_id,e.run_id::text||':'||e.sequence AS event_id,e.sequence,e.timestamp,
+  CASE e.payload->>'type' WHEN 'thinking_step' THEN 'thinking' WHEN 'tool_call' THEN 'tool_call'
+       WHEN 'tool_result' THEN 'tool_result' WHEN 'artifact' THEN 'decision' WHEN 'error' THEN 'error' ELSE 'note' END AS type,
+  e.payload->>'tool' AS tool_name,
+  CASE e.payload->>'type' WHEN 'error' THEN 'failed' ELSE
+   CASE e.payload->>'status' WHEN 'error' THEN 'failed' ELSE 'ok' END END AS status,
+  coalesce(e.payload->>'t',e.payload->>'label',e.payload->>'message',e.payload->>'summary',e.payload->>'type') AS summary,
+  (e.payload->>'duration_ms')::bigint AS duration_ms,
+  CASE WHEN e.payload ? 'artifact' THEN jsonb_build_array(e.payload->'artifact'->>'ref') ELSE '[]' END AS artifact_refs
+ FROM workbench_run_events e JOIN workbench_runs r ON r.id=e.run_id WHERE e.run_id::text=$1
+ AND e.payload->>'type'<>'request'
+ UNION ALL
+ SELECT 'research:'||r.run_id::text,'research-event:'||r.id,row_number() OVER(ORDER BY r.id)::int,r.at,
+  'note',NULL,'ok',r.message,NULL,'[]'::jsonb
+ FROM research_events r WHERE 'research:'||r.run_id::text=$1
+)
+SELECT coalesce(jsonb_agg(to_jsonb(e)||jsonb_build_object('timestamp',workbench_time(timestamp)) ORDER BY sequence),'[]') FROM events e;
+
+-- name: Evidence
+WITH items AS (
+ SELECT 'source:'||m.id AS id,'source' AS kind,'上游来源快照变动' AS title,
+        '快照 '||m.source_version_id||' · '||(m.changes->>'kind') AS detail,d.id::text AS ref,m.updated_at AS timestamp
+ FROM workbench_inbox d JOIN knowledge_source_review_marks m ON m.id=d.source_review_id
+ UNION ALL
+ SELECT 'gap:'||g.work_id||':'||g.id,'query',g.label,g.detail,g.work_id::text,w.updated_at
+ FROM workbench_work_gaps g JOIN works w ON w.id=g.work_id AND w.active
+ LEFT JOIN work_worlds p ON p.work_id=g.work_id
+ WHERE p.work_id IS NOT NULL
+ UNION ALL
+ SELECT 'release:'||r.id,'receipt','独立读者站发布回执',r.href,'release:'||r.id,r.finished_at
+ FROM reader_release_attempts r WHERE r.target_id IS NOT NULL AND r.href IS NOT NULL AND r.error IS NULL AND r.finished_at IS NOT NULL
+ UNION ALL
+ SELECT 'acceptance:'||a.id,'receipt','五维范围验收',
+  a.edition_slug||' · 第 '||a.scope_first||'–'||a.scope_last||' 集 · '||CASE WHEN a.passed THEN '通过' ELSE '待补齐' END,
+  'acceptance:'||a.id,a.checked_at FROM scope_acceptances a
+)
+SELECT coalesce(jsonb_agg(to_jsonb(x)||jsonb_build_object('timestamp',workbench_time(timestamp)) ORDER BY timestamp DESC,id),'[]')
+FROM items x;
+
+-- name: Plan
+SELECT jsonb_build_object('plan_id',p.id,'title',p.title,'status',p.status,
+ 'objective',p.objective,'target_work_ids',jsonb_build_array(work_id),'estimated_cost',NULL,'currency',NULL,
+ 'milestones',p.milestones,'tasks',p.tasks,'expected_revision',p.revision)
+FROM workbench_knowledge_plans p WHERE p.id=$1;
+
+-- name: Briefing
+, run_facts AS MATERIALIZED (
+ SELECT * FROM workbench_run_summary
+ WHERE started_at >= $2::timestamptz - interval '30 days' AND started_at<$2::timestamptz
+), daily AS (
+ SELECT count(*) AS observed,count(*) FILTER (WHERE status='completed' AND finished_at<$2::timestamptz) AS completed,
+  count(*) FILTER (WHERE status='failed' AND finished_at<$2::timestamptz) AS failed,
+  count(*) FILTER (WHERE status='cancelled' AND finished_at<$2::timestamptz) AS cancelled
+ FROM run_facts WHERE started_at>=$1::timestamptz
+), active AS (
+ SELECT count(*) AS observed,count(DISTINCT related_work_id) AS works
+ FROM run_facts WHERE task_type IN ('research','media_generate','media_review','acceptance','release')
+ AND status='completed' AND finished_at<$2::timestamptz AND related_work_id IS NOT NULL
+), verified_current AS (
+ SELECT CASE WHEN $3::boolean THEN (SELECT sum(verified_items) FROM workbench_verified_knowledge)
+  ELSE (SELECT (metrics->>'verifiedItems')::numeric FROM ops_daily_snapshots
+   WHERE scope='all' AND day=($1::timestamptz AT TIME ZONE 'Asia/Shanghai')::date) END AS value
+), verified AS (
+ SELECT present.value,CASE WHEN present.value IS NOT NULL AND baseline.value IS NOT NULL
+  THEN present.value-baseline.value END AS delta
+ FROM verified_current present LEFT JOIN LATERAL (
+  SELECT (metrics->>'verifiedItems')::numeric AS value FROM ops_daily_snapshots
+  WHERE scope='all' AND day=($1::timestamptz AT TIME ZONE 'Asia/Shanghai')::date
+   +CASE WHEN $3::boolean THEN 0 ELSE 1 END
+ ) baseline ON true
+), execution_types AS (
+ SELECT task_type,status,count(*) AS n FROM run_facts WHERE started_at>=$1::timestamptz GROUP BY task_type,status
+), execution_by_type AS (
+ SELECT task_type,sum(n)::int AS total,jsonb_object_agg(status,n ORDER BY status) AS by_status
+ FROM execution_types GROUP BY task_type
+), outstanding AS (
+ SELECT d.id,d.title,d.description,d.risk_level,d.created_at,
+  (SELECT source_review_id FROM workbench_inbox i WHERE i.id=d.id) AS source_review_id
+ FROM workbench_decision_items d
+ WHERE $3::boolean AND status IN ('pending','snoozed') AND created_at<$2::timestamptz
+ ORDER BY risk_level DESC,created_at DESC,id LIMIT 8
+), recommended_gaps AS (
+ SELECT g.id,g.work_id,g.label,g.detail,w.canonical_title
+ FROM workbench_work_gaps g JOIN works w ON w.id=g.work_id AND w.active
+ JOIN published_worlds p ON p.work_id=g.work_id
+ WHERE $3::boolean AND g.kind<>'source_conflict'
+ ORDER BY CASE g.severity WHEN 'high' THEN 1 WHEN 'mid' THEN 2 ELSE 3 END,p.published_at DESC,g.work_id,g.id
+ LIMIT 4
+), actions AS (
+ SELECT 'review:'||id AS id,id AS decision_id,title,description AS rationale,'说明这条决策的影响：'||title AS intent,
+  CASE WHEN source_review_id IS NOT NULL THEN jsonb_build_array('source:'||source_review_id) ELSE '[]' END AS evidence_refs,
+  1 AS priority FROM outstanding
+ UNION ALL
+ SELECT 'repair:'||work_id||':'||id,NULL,'梳理知识缺口 · '||label,detail,
+  '根据已有证据，为「'||canonical_title||'」制定计划，优先处理“'||label||'”。',
+  jsonb_build_array('gap:'||work_id||':'||id),2 FROM recommended_gaps
+), failures AS (
+ SELECT min(run_id) AS run_id,task_name,task_type,error_summary,count(*)::int AS occurrences,max(finished_at) AS finished_at
+ FROM run_facts
+ WHERE status='failed' AND finished_at>=$1::timestamptz AND finished_at<$2::timestamptz
+ GROUP BY task_name,task_type,error_summary
+ ORDER BY max(finished_at) DESC,min(run_id) LIMIT 5
+), risk_items AS (
+ SELECT 'decision:'||id AS id,id AS decision_id,
+  CASE risk_level WHEN 'L3' THEN 'high' WHEN 'L2' THEN 'mid' ELSE 'low' END AS level,
+  title,description AS detail,CASE risk_level WHEN 'L3' THEN 3 WHEN 'L2' THEN 2 ELSE 1 END AS priority,
+  created_at AS observed_at,NULL::text AS error_summary,1 AS occurrences FROM outstanding
+ UNION ALL
+ SELECT 'failed:'||run_id,NULL,'mid',task_name,coalesce(error_summary,'此项执行失败，请在执行记录中核对结果。'),
+  2,finished_at,error_summary,occurrences FROM failures
+)
+SELECT jsonb_build_object(
+ 'generated_at',workbench_time(statement_timestamp()),'data_until',workbench_time($2::timestamptz),
+ 'observed',daily.observed,'completed',daily.completed,'failed',daily.failed,'cancelled',daily.cancelled,
+ 'execution',jsonb_build_object('total',daily.observed,'by_type',coalesce((
+  SELECT jsonb_agg(jsonb_build_object('task_type',task_type,'total',total,'by_status',by_status) ORDER BY total DESC,task_type)
+  FROM execution_by_type),'[]')),
+ 'metrics',jsonb_build_array(
+  jsonb_build_object('key','active_works','label','活跃作品','value',CASE WHEN active.observed>0 THEN active.works END,
+   'note','截至简报时点，过去 30 天有取证、出图、验收或发布完成回执的作品数。','drillTo',jsonb_build_object('page','knowledge','params','{}'::jsonb)),
+  jsonb_build_object('key','verified_items','label','已验证知识项','value',(SELECT value FROM verified),
+   'delta',(SELECT CASE WHEN delta>=0 THEN '+'||delta ELSE delta::text END FROM verified),
+   'deltaGood',(SELECT CASE WHEN delta IS NOT NULL THEN delta>=0 END FROM verified),
+   'note','当前已发布版本中带证据的角色、章节、场景及有据出场关系。','drillTo',jsonb_build_object('page','knowledge','params','{}'::jsonb)),
+  jsonb_build_object('key','completed_runs','label','执行完成','value',CASE WHEN daily.observed>0 THEN daily.completed END,
+   'note','北京时间当日开始，并在简报时点前完成的已记录执行。','drillTo',jsonb_build_object('page','activity','params','{}'::jsonb)),
+  jsonb_build_object('key','failed_runs','label','执行失败','value',CASE WHEN daily.observed>0 THEN daily.failed END,
+   'note','北京时间当日开始，并在简报时点前失败的已记录执行。','drillTo',jsonb_build_object('page','activity','params','{}'::jsonb))
+ ),
+ 'risks',coalesce((SELECT jsonb_agg(jsonb_build_object('id',id,'decision_id',decision_id,
+  'level',level,'title',title,'detail',detail,'error_summary',error_summary,'occurrences',occurrences)
+  ORDER BY priority DESC,observed_at DESC,id) FROM risk_items),'[]'),
+ 'actions',coalesce((SELECT jsonb_agg(jsonb_strip_nulls(jsonb_build_object('id',id,'decision_id',decision_id,
+  'title',title,'rationale',rationale,'intent',intent,'evidence_refs',evidence_refs)) ORDER BY priority,id) FROM actions),'[]')
+) FROM daily,active;
+
+-- name: Conversation
+SELECT id::text FROM workbench_conversations WHERE id=$1 AND operator=$2;
+
+-- name: ConversationHistory
+SELECT coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object('intent',intent,'reply',reply,'plan',plan))
+ ORDER BY started_at,id),'[]')
+FROM (
+ SELECT r.id,r.started_at,(SELECT e.payload->>'intent' FROM workbench_run_events e WHERE e.run_id=r.id AND e.sequence=1) AS intent,
+ (SELECT left(string_agg(e.payload->>'t','' ORDER BY e.sequence),6000) FROM workbench_run_events e
+  WHERE e.run_id=r.id AND e.payload->>'type'='token') AS reply,
+ CASE WHEN p.id IS NOT NULL THEN jsonb_build_object('plan_id',p.id,'title',p.title,'objective',p.objective,
+  'status',p.status,'tasks',p.tasks,'decision_id',d.id) END AS plan
+ FROM workbench_runs r LEFT JOIN workbench_knowledge_plans p ON p.run_id=r.id
+ LEFT JOIN workbench_inbox d ON d.plan_id=p.id
+ WHERE r.conversation_id=$1 AND r.status IN ('completed','waiting_approval')
+ ORDER BY r.started_at DESC,r.id DESC LIMIT 4
+) recent WHERE intent IS NOT NULL AND (reply IS NOT NULL OR plan IS NOT NULL);
+
+-- name: WorkExists
+SELECT to_jsonb(id) FROM works WHERE id=$1;
+
+-- name: RunExists
+SELECT to_jsonb(run_id) FROM workbench_run_summary WHERE run_id=$1;
+
+-- name: FindMentionedWorks
+SELECT coalesce(jsonb_agg(id ORDER BY title_length DESC,id),'[]') FROM (
+ SELECT w.id,greatest(length(w.canonical_title),length(coalesce(w.original_title,''))) AS title_length
+ FROM works w WHERE w.active AND (
+  (length(w.canonical_title)>=2 AND strpos(lower($1),lower(w.canonical_title))>0) OR
+  (length(w.original_title)>=2 AND strpos(lower($1),lower(w.original_title))>0))
+ ORDER BY title_length DESC,id LIMIT 3
+) x;
+
+-- name: AgentWorkGaps
+SELECT coalesce(jsonb_agg(to_jsonb(x)-'work_id' ORDER BY id),'[]')
+FROM (SELECT * FROM workbench_work_gaps WHERE work_id=$1 ORDER BY
+ CASE severity WHEN 'high' THEN 1 WHEN 'mid' THEN 2 ELSE 3 END,id LIMIT 12) x;
+
+
+-- name: WorkSet
+SELECT event.payload->'work_ids'
+FROM workbench_runs r JOIN workbench_conversations c ON c.id=r.conversation_id
+JOIN workbench_run_events event ON event.run_id=r.id AND event.sequence=1
+WHERE r.id=$1 AND c.operator=$2;
+
+-- name: WorkProfile
+SELECT jsonb_build_object('work_id',w.id,'completeness',p.completeness,
+ 'verified_entity_count',p.verified_entity_count,'gap_count',s.gap_count)
+FROM works w JOIN workbench_work_summary s ON s.work_id=w.id
+LEFT JOIN workbench_profiles p ON p.work_id=w.id WHERE w.id=$1;
+
+-- name: KnowledgeDelta
+WITH releases AS (
+ SELECT r.work_id,r.version_id,v.run_id,coalesce(s.finished_at,s.started_at) AS verified_at
+ FROM world_releases r JOIN knowledge_source_versions v ON v.id=r.version_id
+ JOIN knowledge_sync_runs s ON s.id=v.run_id AND s.status='success'
+), base_objects AS (
+ SELECT r.work_id,o.kind,o.key,r.verified_at,'source_sync:'||r.run_id AS source_run_id
+ FROM releases r CROSS JOIN LATERAL (
+  SELECT 'character' AS kind,slug AS key FROM work_characters WHERE v=r.version_id
+  UNION ALL SELECT 'chapter',slug FROM work_chapters WHERE v=r.version_id
+  UNION ALL SELECT 'scene',slug FROM work_scenes WHERE v=r.version_id
+  UNION ALL SELECT 'relation','chapter:'||chapter||'|'||person FROM chapter_appearances WHERE v=r.version_id
+  UNION ALL SELECT 'relation','scene:'||scene||'|'||person FROM scene_appearances WHERE v=r.version_id
+ ) o
+), extensions AS (
+ SELECT w.work_id,a.v,a.checked_at,a.reader_copy,a.research_run,e.slug,e.scene_slug,e.people
+ FROM scope_acceptances a JOIN work_worlds w ON w.slug=a.edition_slug
+ JOIN episode_extensions e ON e.topic=a.topic
+ WHERE a.passed AND a.research_run IS NOT NULL
+), extension_objects AS (
+ SELECT work_id,kind,key,checked_at,'research:'||research_run AS source_run_id FROM extensions
+ CROSS JOIN LATERAL (
+  SELECT 'chapter' AS kind,slug AS key
+  UNION ALL SELECT 'scene',scene_slug
+ ) o
+ UNION ALL
+ SELECT x.work_id,'character',p->>'slug',x.checked_at,'research:'||x.research_run
+ FROM extensions x CROSS JOIN jsonb_array_elements(x.people) p
+ WHERE p ? 'role' AND length(trim(x.reader_copy->x.slug->((p->>'beat')::int-1)->>'text'))>0
+), objects AS (
+ SELECT * FROM base_objects UNION ALL SELECT * FROM extension_objects
+), first_seen AS (
+ SELECT work_id,kind,key,min(verified_at) AS verified_at FROM objects GROUP BY work_id,kind,key
+), new_objects AS (
+ SELECT o.* FROM objects o JOIN first_seen f USING(work_id,kind,key,verified_at)
+ WHERE o.verified_at>=$1::timestamptz AND o.verified_at<$2::timestamptz
+), rows AS (
+ SELECT w.id AS work_id,w.canonical_title AS title,count(DISTINCT (o.kind,o.key)) AS new_verified_items,
+  nullif(count(DISTINCT o.key) FILTER(WHERE o.kind='character'),0) AS character_count,
+  nullif(count(DISTINCT o.key) FILTER(WHERE o.kind='chapter'),0) AS chapter_count,
+  nullif(count(DISTINCT o.key) FILTER(WHERE o.kind='scene'),0) AS scene_count,
+  nullif(count(DISTINCT o.key) FILTER(WHERE o.kind='relation'),0) AS relation_count,
+  jsonb_agg(DISTINCT o.source_run_id ORDER BY o.source_run_id) AS source_run_ids
+ FROM new_objects o JOIN works w ON w.id=o.work_id GROUP BY w.id,w.canonical_title
+)
+SELECT jsonb_build_object('rows',coalesce(jsonb_agg(jsonb_build_object(
+ 'work_id',work_id,'title',title,'new_verified_items',new_verified_items,
+ 'by_kind',jsonb_strip_nulls(jsonb_build_object('character',character_count,'chapter',chapter_count,'scene',scene_count,'relation',relation_count)),
+ 'source_run_ids',source_run_ids) ORDER BY new_verified_items DESC,work_id),'[]')) FROM rows;
+
+-- name: StatsOverview
+SELECT jsonb_build_object(
+ 'published_versions',(SELECT count(*) FROM workbench_verified_knowledge),
+ 'verified_items',(SELECT sum(verified_items) FROM workbench_verified_knowledge),
+ 'open_gaps',CASE WHEN EXISTS(SELECT 1 FROM workbench_current_results WHERE data_state='available') OR EXISTS(
+    SELECT 1 FROM workbench_work_gaps g JOIN works w ON w.id=g.work_id AND w.active)
+   THEN (SELECT count(*) FROM workbench_work_gaps g JOIN works w ON w.id=g.work_id AND w.active) END,
+ 'quality_issues',CASE WHEN EXISTS(SELECT 1 FROM knowledge_quality_runs WHERE status='success') OR EXISTS(
+    SELECT 1 FROM knowledge_quality_issues i JOIN works w ON w.id=i.entity_id AND w.active AND i.status='open')
+   THEN (SELECT count(*) FROM knowledge_quality_issues i JOIN works w ON w.id=i.entity_id AND w.active AND i.status='open') END,
+ 'avg_completeness',(SELECT avg(completeness) FROM workbench_profiles),
+ 'as_of',workbench_time(statement_timestamp()));
+
+-- name: RunsStats
+, scope AS MATERIALIZED (
+ SELECT status,billing_subject FROM workbench_run_summary
+ WHERE finished_at >= $1::timestamptz AND finished_at < $2::timestamptz
+), totals AS (
+ SELECT count(*) FILTER(WHERE status='completed') completed,
+ count(*) FILTER(WHERE status='failed') failed,
+ count(*) FILTER(WHERE status='cancelled') cancelled FROM scope
+), costs AS (
+ SELECT CASE WHEN count(*)=count(u.cost_usd) THEN sum(u.cost_usd) END total
+ FROM (SELECT DISTINCT billing_subject FROM scope WHERE billing_subject IS NOT NULL) a
+ LEFT JOIN workbench_usd_subjects u ON u.subject=a.billing_subject
+)
+SELECT jsonb_build_object('from',workbench_time($1),'to',workbench_time($2),
+ 'completed',completed,'failed',failed,'cancelled',cancelled,
+ 'success_rate',completed::numeric/nullif(completed+failed,0),
+ 'total_cost',costs.total,'currency',CASE WHEN costs.total IS NOT NULL THEN 'USD' END)
+FROM totals,costs;
+
+-- name: KnowledgeTrend
+WITH days AS (SELECT $1::date+n AS day FROM generate_series(0,$2::int-1) n)
+SELECT coalesce(jsonb_agg(jsonb_build_object('time',workbench_time(d.day::timestamp AT TIME ZONE 'Asia/Shanghai'),
+ 'value',(curr.metrics#>>'{knowledge,chapters}')::bigint-(prev.metrics#>>'{knowledge,chapters}')::bigint)
+ ORDER BY d.day),'[]')
+FROM days d LEFT JOIN ops_daily_snapshots curr ON curr.day=d.day AND curr.scope='all'
+LEFT JOIN ops_daily_snapshots prev ON prev.day=d.day-1 AND prev.scope='all';
+
+-- name: CostTrend
+WITH days AS (SELECT $1::date+n AS day FROM generate_series(0,$2::int-1) n),
+totals AS (
+ SELECT (started_at AT TIME ZONE 'Asia/Shanghai')::date AS day,
+ CASE WHEN count(*)=count(cost_usd) THEN sum(cost_usd) END AS cost
+ FROM workbench_usd_receipts
+ WHERE started_at>=($1::date::timestamp AT TIME ZONE 'Asia/Shanghai')
+ AND started_at<(($1::date+$2::int)::timestamp AT TIME ZONE 'Asia/Shanghai')
+ GROUP BY 1
+)
+SELECT coalesce(jsonb_agg(jsonb_build_object('time',workbench_time(d.day::timestamp AT TIME ZONE 'Asia/Shanghai'),
+ 'value',t.cost) ORDER BY d.day),'[]') FROM days d LEFT JOIN totals t USING(day);
+
+-- name: RunCostBreakdown
+SELECT jsonb_build_object(
+ 'run',workbench_run_json(to_jsonb(r),r.started_at,r.finished_at,u.cost_usd,coalesce(r.input_tokens,u.input_tokens),coalesce(r.output_tokens,u.output_tokens)),
+ 'items',coalesce((SELECT jsonb_agg(jsonb_build_object('call_id',x.call_id,'started_at',workbench_time(x.started_at),
+    'cost_usd',x.cost_usd,'currency',CASE WHEN x.cost_usd IS NOT NULL THEN 'USD' END,
+    'model',x.model,'input_tokens',x.input_tokens,'output_tokens',x.output_tokens)
+    ORDER BY x.started_at,x.call_id) FROM workbench_usd_receipts x WHERE x.subject=r.billing_subject),'[]'))
+FROM workbench_run_summary r LEFT JOIN workbench_usd_subjects u ON u.subject=r.billing_subject WHERE r.run_id=$1;
+
+-- name: ArtifactResult
+SELECT a.payload FROM workbench_artifact_results a
+JOIN workbench_runs r ON r.id=a.run_id JOIN workbench_conversations c ON c.id=r.conversation_id
+WHERE a.kind=$1 AND a.id=$2 AND c.operator=$3;
+
+-- name: CancelRequested
+SELECT cancel_requested_at IS NOT NULL FROM workbench_runs WHERE id=$1;
+
+-- name: ChatCost
+SELECT cost_usd::text FROM workbench_usd_subjects WHERE subject='workbench:'||$1::text;
+
+-- name: ArtifactWorkDimensions
+SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.key),'[]') FROM (
+ SELECT dimension AS key,sum(completed_required_items) AS completed_required_items,
+  sum(applicable_required_items) AS applicable_required_items,
+  sum(completed_required_items)::numeric/nullif(sum(applicable_required_items),0) AS completeness
+ FROM workbench_current_results WHERE work_id=$1 AND data_state='available' GROUP BY dimension
+) d;

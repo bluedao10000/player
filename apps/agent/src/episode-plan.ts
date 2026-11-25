@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto'
 import { defineTool } from '@earendil-works/pi-durable'
 import { obj } from '@earendil-works/pi-schema'
 import type { CheerioAPI } from 'cheerio'
+import { checkIndependentSources, extractEpisodeSource } from './episode-source-rules.ts'
+import { fetchSourceText } from './source-fetch.ts'
 
 export interface EpisodePlan {
   sourceRules?: SourceRules
@@ -45,7 +47,19 @@ export async function readEpisodeDocuments(
     'official' | 'guide' | 'number' | 'sourceNumber' | 'officialTitle' | 'guideTitle' | 'guideParagraphs' | 'sourceRules'
   >,
   page: (url: string) => Promise<CheerioAPI>,
+  rawPage = fetchSourceText,
 ) {
+  if (p.sourceRules?.guide === 'paired') {
+    const rules = p.sourceRules
+    const number = p.sourceNumber ?? p.number
+    const [official, guide] = await Promise.all([
+      rawPage(p.official).then((raw) => extractEpisodeSource(raw, rules.officialRule, { number, title: p.officialTitle })),
+      rawPage(p.guide).then((raw) => extractEpisodeSource(raw, rules.guideRule, { number, title: p.guideTitle })),
+    ])
+    checkIndependentSources(official, guide)
+    return [sourceDocument(p.official, official, 'official', p.officialTitle, p.number, number, 'ja'),
+      sourceDocument(p.guide, guide, 'guide', p.guideTitle, p.number, number, 'ja')]
+  }
   const [site, wiki] = await Promise.all([
     page(p.official),
     page(p.guide.split('#')[0]),
@@ -136,6 +150,15 @@ export async function readEpisodeDocuments(
       sha256: createHash('sha256').update(text).digest('hex'),
     }
   })
+}
+
+function sourceDocument(url: string, text: string, key: string, title: string, episode: number, sourceNumber: number, language: string) {
+  const segmenter = new Intl.Segmenter(language, { granularity: 'sentence' })
+  return {
+    id: `${key}-${episode}`, episode, url, locator: `${title} · Episode ${sourceNumber}`, text,
+    sentences: Array.from(segmenter.segment(text), ({ segment }) => segment.trim()).filter(Boolean),
+    fetched_at: new Date().toISOString(), sha256: createHash('sha256').update(text).digest('hex'),
+  }
 }
 function readPressSynopsis(site: CheerioAPI, plan: Pick<EpisodePlan, 'official' | 'officialTitle' | 'number'>) {
   const url = new URL(plan.official)
@@ -229,7 +252,7 @@ function readGuideParagraphs(page: CheerioAPI, starts: string[]) {
   return matches as string[]
 }
 
-export function episodeOutline(p: EpisodePlan, docs: Doc[]) {
+export function episodeOutline(p: EpisodePlan & { people?: { beat: number; name?: string; evidence?: string }[]; setting?: [string, number] }, docs: Doc[]) {
   const guide = docs.find((d) => d.id === 'guide-' + p.number)!
   const official = docs.find((d) => d.id === 'official-' + p.number)!
   const starts: number[] = []
@@ -243,14 +266,30 @@ export function episodeOutline(p: EpisodePlan, docs: Doc[]) {
     const start = starts[i],
       end = starts[i + 1] ?? guide.sentences.length
     if (start < 0 || end <= start) throw Error('剧情出处需更新：' + b.needle)
-    const evidence = guide.sentences
+    const source = guide.sentences
       .slice(start, end)
       .map((text, k) => ({ id: guide.id, sentence: start + k + 1, text }))
+    const maxGuide = b.officialSentence ? 7 : 8
+    const required = new Set([0])
+    const people = (p.people ?? []).filter((person) => person.beat === i + 1)
+    for (const person of people) {
+      if (!person.evidence) continue
+      const quote = person.evidence
+      const position = source.findIndex(({ text }) => text.includes(quote))
+      if (position >= 0) required.add(position)
+    }
+    if (required.size > maxGuide) throw Error('该段角色证据超出引用上限')
+    for (let k = 0; k < source.length && required.size < maxGuide; k++) required.add(k)
+    const evidence = source.filter((_, k) => required.has(k))
     if (b.officialSentence) {
       const text = official.sentences[b.officialSentence - 1]
       if (!text) throw Error('缺少官方定位')
       evidence.push({ id: official.id, sentence: b.officialSentence, text })
     }
-    return { episode: p.number, kind: b.kind, question: b.question, evidence }
+    const names = people.flatMap(({ name }) => name ? [name] : [])
+    const setting = p.setting?.[1] === i + 1 ? p.setting[0] : ''
+    const question = b.question + (names.length ? ` 使用登记姓名「${names.join('、')}」。` : '') +
+      (setting ? ` 根据本段证据解释「${setting}」，正文保留这个术语。` : '')
+    return { episode: p.number, kind: b.kind, question, evidence }
   })
 }

@@ -7,13 +7,16 @@ import resources "anime-agent/api/internal/repository/queries"
 var plansSource string
 
 var (
-	plansSourceQueries  = resources.Statements(plansSource)
-	CreateNarutoEdition = plansSourceQueries["CreateNarutoEdition"]
-	FirstFiveSlugs      = plansSourceQueries["FirstFiveSlugs"]
-	PlanGraphCounts     = plansSourceQueries["PlanGraphCounts"]
-	PublishedHeads      = plansSourceQueries["PublishedHeads"]
-	CreateONAEdition    = plansSourceQueries["CreateONAEdition"]
-	ONACoverage         = plansSourceQueries["ONACoverage"]
-	FailImageProvider   = plansSourceQueries["FailImageProvider"]
-	RequeuedImage       = plansSourceQueries["RequeuedImage"]
+	plansSourceQueries              = resources.Statements(plansSource)
+	CreateNarutoEdition             = plansSourceQueries["CreateNarutoEdition"]
+	SeedBlockedSourceBundleRequests = plansSourceQueries["SeedBlockedSourceBundleRequests"]
+	AttachedSourceBundleCount       = plansSourceQueries["AttachedSourceBundleCount"]
+	MoveSourceBundleToConfiguration = plansSourceQueries["MoveSourceBundleToConfiguration"]
+	FirstFiveSlugs                  = plansSourceQueries["FirstFiveSlugs"]
+	PlanGraphCounts                 = plansSourceQueries["PlanGraphCounts"]
+	PublishedHeads                  = plansSourceQueries["PublishedHeads"]
+	CreateONAEdition                = plansSourceQueries["CreateONAEdition"]
+	ONACoverage                     = plansSourceQueries["ONACoverage"]
+	FailImageProvider               = plansSourceQueries["FailImageProvider"]
+	RequeuedImage                   = plansSourceQueries["RequeuedImage"]
 )

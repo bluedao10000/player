@@ -4,6 +4,20 @@ WITH k AS (INSERT INTO works(canonical_title,type,season_year) VALUES('fixture',
 -- name: FirstFiveSlugs
 SELECT string_agg(id||':'||(spec->>'slug'),',' ORDER BY number) FROM episode_plans WHERE number<=5
 
+-- name: SeedBlockedSourceBundleRequests
+INSERT INTO episode_production_requests(id,world,first_episode,last_episode,token_limit,operator_paused,paused_reason,stage,production_policy)
+SELECT gen_random_uuid(),'naruto-tv-2002',n,n,60000,true,'待补可复用的同版本来源模板','blocked','{"queue":"test"}'
+FROM generate_series(6,7) n;
+
+-- name: AttachedSourceBundleCount
+SELECT count(*) FROM episode_production_requests
+WHERE world='naruto-tv-2002' AND stage='inventory' AND operator_paused AND paused_reason='等待广州批次'
+  AND production_policy->'source_bundle'->>'ruleSha256'=$1 AND revision=2;
+
+-- name: MoveSourceBundleToConfiguration
+UPDATE episode_production_requests SET stage='plan_validated',operator_paused=false,paused_reason=NULL,gaps=ARRAY[6]
+WHERE world='naruto-tv-2002' AND first_episode=6;
+
 -- name: PlanGraphCounts
 SELECT (SELECT count(*) FROM episode_plans),(SELECT count(*) FROM episode_art_jobs),(SELECT count(*) FROM world_releases)
 

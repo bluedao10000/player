@@ -5,10 +5,13 @@ import {
   type EpisodePlan,
 } from './episode-plan.ts'
 
+type EpisodeEvidence = Pick<EpisodePlan, 'number' | 'official' | 'guide' | 'sourceRules' | 'officialTitle' | 'guideTitle'>
+
 export type Template = EpisodePlan & {
   people: { slug: string; name: string }[]
   portraitReferences?: Record<string, { sourceSHA: string; referenceURL: string }>
   art: { sourceSHA: string; referenceURL: string }
+  sourceBundle?: EpisodeEvidence
 }
 export async function locateEpisode(
   previous: Template,
@@ -49,7 +52,7 @@ export async function locateEpisode(
 }
 export function compileEpisode(
   previous: Template,
-  located: Awaited<ReturnType<typeof locateEpisode>>,
+  located: { source: EpisodeEvidence; docs: Awaited<ReturnType<typeof readEpisodeDocuments>> },
   draft: {
     slug: string
     title: string
@@ -105,13 +108,13 @@ export function compileEpisode(
   )
     throw Error('缺少五维验收所需定位')
   if (
-    typeof setting[0] !== 'string' ||
+    typeof setting[0] !== 'string' || Array.from(setting[0]).length > 24 || /[、,，;；]/.test(setting[0]) ||
     ['世界观', '设定', '人物', '剧情', '时间线', '图片'].includes(
       setting[0].trim(),
     )
   )
     throw Error('世界设定必须是本集具体概念')
-  const outline = episodeOutline({ ...located.source, beats }, located.docs)
+  const outline = episodeOutline({ ...located.source, beats, people: draft.people }, located.docs)
   const people = draft.people.map(({ slug, beat, evidence }) => {
     const existing = previous.people.find((p) => p.slug === slug)
     if (!existing || !validBeat(beat)) throw Error('角色或段落未登记')

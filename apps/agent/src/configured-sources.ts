@@ -1,16 +1,23 @@
 import type { CheerioAPI } from 'cheerio'
+import type { EpisodeSourceRule } from './episode-source-rules.ts'
 
-export type SourceRules = {
+type LegacySourceRules = {
   entry: string
   heading: string
   attribute?: string
   body: string
   guide: 'wiki-episode' | 'paragraphs'
 }
+export type SourceRules = LegacySourceRules | {
+  version: 1
+  guide: 'paired'
+  officialRule: EpisodeSourceRule
+  guideRule: EpisodeSourceRule
+}
 
 // Select one episode by its printed number AND its registered title. CSS comes
 // from the operator's locked spec and only queries an already downloaded DOM.
-export function readConfiguredOfficial(site: CheerioAPI, rules: SourceRules, number: number, title: string) {
+export function readConfiguredOfficial(site: CheerioAPI, rules: LegacySourceRules, number: number, title: string) {
   const entries = site(rules.entry).toArray().filter(el => {
     const node = site(el).find(rules.heading)
     if (node.length !== 1) return false

@@ -10,6 +10,7 @@ import { mediaExtension, mediaStatus } from './media.ts'
 import { openUsage, pendingUsage, acknowledgeUsage } from './model-api.ts'
 import { prepareEpisodeConfiguration } from './episode-configuration-task.ts'
 import { runProductionModel } from './production-model.ts'
+import { streamWorkbenchRun } from './workbench.ts'
 import { research } from './research.ts'
 import { ExecutionCounters, readAgentStatus } from './executions.ts'
 import { health } from '@anime/shared'
@@ -101,6 +102,11 @@ const server = createServer(async (req, res) => {
     } catch {
       res.writeHead(503).end('media task unavailable')
     }
+    return
+  }
+  const workbenchRun = /^\/internal\/workbench\/runs\/([0-9a-f-]{36})$/.exec(req.url ?? '')
+  if (req.method === 'POST' && workbenchRun) {
+    await streamWorkbenchRun(req, res, workbenchRun[1])
     return
   }
   const configuration = /^\/internal\/episode-configuration\/([0-9a-f-]{36})$/.exec(req.url ?? '')

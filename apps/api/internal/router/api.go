@@ -13,6 +13,7 @@ import (
 	"anime-agent/api/internal/handler/billing"
 	"anime-agent/api/internal/handler/knowledge"
 	"anime-agent/api/internal/handler/reader"
+	"anime-agent/api/internal/handler/workbench"
 )
 
 func New(db *pgxpool.Pool, logger *zap.Logger) *gin.Engine {
@@ -44,12 +45,20 @@ func Register(r *gin.Engine, db *pgxpool.Pool) {
 	billing.PaymentRoutes(r, db)
 	reader.Routes(r, db)
 	knowledge.Routes(r, db)
+	workbench.Routes(r, db, operatorFromBearer)
+	if path := os.Getenv("WORKBENCH_CONTRACT_PATH"); path != "" {
+		r.Match([]string{"GET", "HEAD"}, "/docs/api-contract.md", func(c *gin.Context) {
+			c.Header("Content-Type", "text/plain; charset=utf-8")
+			c.Header("X-Content-Type-Options", "nosniff")
+			c.File(path)
+		})
+	}
 }
 
 func adminGroup(r *gin.Engine) *gin.RouterGroup {
 	return r.Group("/api/v1/admin/knowledge", func(c *gin.Context) {
-		token, operator := os.Getenv("KNOWLEDGE_ADMIN_TOKEN"), os.Getenv("KNOWLEDGE_ADMIN_OPERATOR")
-		if operator == "" || len(token) < 32 || subtle.ConstantTimeCompare([]byte(c.GetHeader("Authorization")), []byte("Bearer "+token)) != 1 {
+		operator := operatorFromBearer(c.GetHeader("Authorization"))
+		if operator == "" {
 			c.AbortWithStatus(401)
 			return
 		}
@@ -57,4 +66,12 @@ func adminGroup(r *gin.Engine) *gin.RouterGroup {
 		c.Header("Cache-Control", "no-store")
 		c.Next()
 	})
+}
+
+func operatorFromBearer(header string) string {
+	token, operator := os.Getenv("KNOWLEDGE_ADMIN_TOKEN"), os.Getenv("KNOWLEDGE_ADMIN_OPERATOR")
+	if operator == "" || len(token) < 32 || subtle.ConstantTimeCompare([]byte(header), []byte("Bearer "+token)) != 1 {
+		return ""
+	}
+	return operator
 }
