@@ -1,0 +1,2 @@
+# Used only by the repository-root local Compose entry.
+OPS_NODE_NAME=${OPS_NODE_NAME:-local}

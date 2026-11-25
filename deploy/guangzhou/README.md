@@ -12,7 +12,7 @@
 | api:4311 | PGHOST=postgres，READER_DB、READER_USER 与 reader.env 的 PGPASSWORD。归档 /archive 只读；原微信回调、支付凭据、邮件、StoreKit 环境单独放 reader.env。关闭工作台本地登录。/healthz 会 ping 数据库 |
 | reader-api:4310 | KNOWLEDGE_API_URL=http://api:4311。由 READER_API_TRUSTED_PROXY_IP 指定广州 Mesh 连接器的固定网桥地址，透传公开站 Host 和 HTTPS。提供登录、iOS、支付与 sitemap |
 | image:14580 | 继承 apps/image 的构建、资源限制、只读根文件系统和健康检查，挂载独立本地 /data；删除继承的宿主机映射。image.env 恢复原签名密钥及管理 token。默认关闭资产库 AI 领取，读、上传、签发和预热仍可用 |
-| research-agent:4312 | Pi 的 /state（含 agent.sqlite、model-usage.sqlite 及关联文件）、/media 和参考图。agent.env 配已审核的 MAGPIE_BASE_URL、MAGPIE_CONTENT_MODEL、MAGPIE_ACCOUNT 和国内凭据；国内网关从 jobs 网络可达。MEDIA、VISION 的模型、ACCOUNT 保持原计量映射，API_KEY 仅为硅谷网关身份。两者 BASE_URL 指向同命名空间的 model-egress |
+| research-agent:4312 | Pi 的 /state（含 agent.sqlite、model-usage.sqlite 及关联文件）、/media 和参考图。agent.env 配 OpenAI 的 CONTENT_AI_API_KEY、CONTENT_AI_MODEL 和 CONTENT_AI_ACCOUNT；通过验证过的 OpenAI HTTPS 路径访问。MEDIA、VISION 的模型、ACCOUNT 沿用原计量映射，API_KEY 为硅谷网关身份。两者 BASE_URL 指向同命名空间的 model-egress |
 | model-egress:18080 | 仅 Pi 回环可访问。UID 1000 读取 MODEL_TLS_DIR 中的 ca.pem、client.pem、client.key，经 MODEL_SOCKET_DIR/model.sock 连接硅谷，校验 SV_TLS_NAME 并提交客户端证书。证书目录只读；文件系统仅允许专用服务身份读取私钥 |
 | sync、sync-media | 与原生产单元相同的 research/media 两条 lane，连接 PRODUCTION_DB、PRODUCTION_USER，密码在 sync.env。各自容器内可监听预算端口 14328，Pi 使用 sync:14328。制作归档、计划和 /media 与读者归档分卷。两条 lane 与 Pi 均在 workers profile |
 | release-receiver | 明确授权时临时运行。release.env 内 DATABASE_URL 指向 postgres 上的读者库，专用发布角色具有 receiver.psql 所需权限；接收器写读者归档，使用 IMAGE_API_TOKEN 访问私有图片管理接口 |

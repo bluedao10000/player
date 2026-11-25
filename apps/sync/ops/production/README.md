@@ -7,6 +7,12 @@
 3. 将 [盘点脚本](inventory.py)、[采集脚本](capture.mjs) 及 [定时器入口](refresh.sh) 安装到其运行路径。盘点进程需要 READER_PUBLIC_URL 和作品版本映射；外部采集模式需要 EPISODE_EXTERNAL_CAPTURE。按需启用 inventory 和 evidence 定时器。
 4. 通过 knowledge episode-register 的标准输入登记私有分集计划。在工作台查看缺口、采集失败、制作耗时和验收。只有已配置上线的定稿会进入[正式站投递](../reader-release/README.md)。字段示例见[分集模板](../../episode-plan.example.json)。
 
+盘点定时器每四小时触发，使用北京时间 02:00、06:00、10:00、14:00、18:00、22:00。若盘点节点无法直连 Bangumi，可为盘点单元设置 `BANGUMI_SSH_CONFIG`。该 SSH 配置应有 `bangumi-inventory` 主机项，使用固定主机公钥和单独的密钥。出口节点将对应公钥限制为 `restrict` 和固定命令 [bangumi-page.py](bangumi-page.py)，并限制来源地址。该命令只接受作品 ID 与分页偏移，访问固定的 Bangumi 分集 API。若所有已映射的作品均无法取得分集目录，盘点失败并保留旧快照。
+
+广州盘点成功后从私有 `approved-batch` 目录读取审核过的 JSON，每轮登记最多五集。提交文件使用唯一文件名，按文件名排序。文件内的集数应为连续范围，各集均设置 `publishToReader: false`。登记成功的文件归档到 `registered`。将 [批量入口](register-batch.py) 和 [进度查询](episode-progress.sql) 作为盘点单元的后置步骤，登记步骤使用研究调度的数据库连接。使用 `journalctl -u folio-refresh-gz@inventory.service` 查看这批 20 部作品的目录集数、已播缺集、未到播出日的集数、本地验收及用量。以对应发行版本的正式集数为完成范围，未定总集数的作品随目录更新复核。
+
+广州文本 Agent 从权限为 `0600` 的 `research-openai.env` 读取 OpenAI 凭据、模型和计量账户。生产连接使用 [本地 TLS socket](folio-openai-api.socket) 与 [SSH 单连接服务](folio-openai-api@.service)。SSH 客户端固定出口主机公钥。出口侧将专用公钥限制为 `restrict` 和固定的 `/usr/bin/nc api.openai.com 443` 命令，并限制来源地址。容器把 `api.openai.com` 解析到 `127.0.0.2`，仍使用官方域名进行 TLS 证书校验。先从容器核对官方 `/v1/models`，再恢复调度。
+
 ```sh
 systemctl is-active folio-episode@research
 systemctl is-active folio-episode@media folio-refresh@evidence.timer

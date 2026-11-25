@@ -13,14 +13,15 @@ services:
     image: folio/pi:phase1
     container_name: folio-pi-research
     network_mode: host
+    env_file: [./research-openai.env]
+    extra_hosts:
+      - api.openai.com=${FOLIO_OPENAI_HOST_ADDRESS:-127.0.0.2}
     environment:
       EPISODE_CALL_BUDGET: required
       AGENT_HOST: 127.0.0.1
       AGENT_DB_PATH: /state/agent.sqlite
       APP_VERSION: ${APP_VERSION:-dev}
-      MAGPIE_BASE_URL: http://127.0.0.1:3425/v1
-      CONTENT_AI_MODE: magpie
-      MAGPIE_CONTENT_MODEL: volcengine/kimi-k3.1-pro
+      CONTENT_AI_MODE: direct
     restart: unless-stopped
     volumes:
       - ./agent-src:/app/apps/agent/src:ro

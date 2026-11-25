@@ -70,7 +70,7 @@ services:
       AGENT_DB_PATH: /state/agent.sqlite
       EPISODE_CALL_BUDGET: required
       EPISODE_BUDGET_URL: http://sync:14328
-      CONTENT_AI_MODE: magpie
+      CONTENT_AI_MODE: direct
       MEDIA_AI_MODE: direct
       ORIGINAL_MEDIA_AI_MODE: direct
       MEDIA_AI_BASE_URL: http://127.0.0.1:18080/v1

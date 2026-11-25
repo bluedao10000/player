@@ -1,0 +1,9 @@
+[Unit]
+Description=Private Folio OpenAI TLS socket
+
+[Socket]
+ListenStream=127.0.0.2:443
+Accept=true
+
+[Install]
+WantedBy=sockets.target

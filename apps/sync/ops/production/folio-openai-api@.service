@@ -1,0 +1,11 @@
+[Unit]
+Description=Relay a Folio OpenAI TLS connection
+After=network-online.target
+
+[Service]
+User=folio-worker
+NoNewPrivileges=true
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+ExecStart=/usr/bin/ssh -F /srv/folio-data/openai-egress/ssh_config -T openai-api
