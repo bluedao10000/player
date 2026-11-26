@@ -8,7 +8,7 @@ flowchart TB
   config --> register["Go · 校验、结算与事务登记"]
   register -->|来源或配置无效| wait
   wait --> ask
-  register --> proof["双来源取证、写作与复核"]
+  register --> proof["同集取证、写作与复核"]
   proof -->|文本四维通过| media["三张候选 · 手机裁切与自动验图"]
   media --> gate{"五维验收"}
   gate -->|可重试| proof
@@ -21,10 +21,10 @@ flowchart TB
 %% ask | 制作范围可通过配置文件或管理命令登记。 | apps/sync/cmd/knowledge/main.go
 %% gap | 对比盘点快照、计划范围和既有定稿，保留已发布集数。 | apps/api/internal/repository/queries/knowledge/schedule.queries
 %% budget | 模型调用前预留额度，结算后释放余额。额度不足时等待在途结算或暂停。 | apps/sync/internal/service/scheduler/configuration.go
-%% config | 目前支持已登记的同版官方分集合集页与分集指南模板。 | apps/agent/src/episode-configuration-task.ts
-%% register | 验证原文顺序、人物定位与参考图指纹。将分集、来源快照和制作请求原子登记。 | apps/api/internal/service/knowledge/episode_configuration.go
+%% config | 来源模板带模式：双来源（官方 + 独立指南）或单一官方来源。 | apps/agent/src/episode-configuration-task.ts
+%% register | 验证原文顺序、人物定位与参考图指纹；叙事来源按模式取官方或指南。将分集、来源快照和制作请求原子登记。 | apps/api/internal/service/knowledge/episode_configuration.go
 %% wait | 调度保留配置失败、预算暂停与重试记录。 | apps/sync/internal/service/scheduler/configuration.go
-%% proof | 沿可验证原文取证、按顺序写作并复核，复用有效来源快照。 | apps/agent/src/research.ts
+%% proof | 沿可验证原文取证、按顺序写作并复核；双来源与单一官方来源走同一证据策略。 | apps/agent/src/research.ts
 %% media | 用已登记肖像生成候选，记录参考指纹、原图、裁切与验图凭证。 | apps/api/internal/service/knowledge/media.go
 %% gate | 核对人物、剧情、世界观、时间线和图片，失败留有逐项原因。 | apps/api/internal/service/knowledge/episode_plan.go
 %% freeze | 保存本次正文、阅读锚点及入选图内容地址。 | apps/api/internal/service/knowledge/acceptance.go

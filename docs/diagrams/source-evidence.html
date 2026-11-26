@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分集来源证据策略 · Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@400&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;   /* white-smoke */
+      --color-ink:     #2d3142;   /* jet-black */
+      --color-muted:   #4f5d75;   /* blue-slate */
+      --color-accent:  #bf4520;   /* burnt-tangerine */
+      --font-sans:     'Geist', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif SC', 'Songti SC', serif;
+      --font-mono:     'Geist Mono', 'Noto Sans Mono CJK SC', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1200px; width: 100%; }
+    /* The SVG holds its readable width (min-width == the viewBox width, so the
+       type ramp is never silently scaled down). This wrapper lets a narrow
+       screen scroll the diagram instead of the whole page. */
+    .diagram-container { width: 100%; overflow-x: auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+
+    svg { width: 100%; min-width: 960px; display: block; }
+    /* Paper has no scrollbar, so the local scroller would clip instead of
+       scroll. Let the diagram scale down to the sheet: smaller but whole
+       beats sharp but cut off. Must come after the svg rule above - a media
+       query adds no specificity, so a later plain rule would win. */
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · Source evidence</p>
+    <h1>分集来源证据策略</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="source-evidence-title source-evidence-desc">
+        <title id="source-evidence-title">分集来源证据策略</title>
+        <desc id="source-evidence-desc">一张证据策略表把每集的来源模式求值为文档数、引用键和叙事来源，四个 Go 入口与一个 TS 入口读取同一行结果；单一官方来源合法时不产生分集指南文档。</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- Column headers -->
+        <text x="40" y="116" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.16em">SOURCES</text>
+        <text x="328" y="116" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.16em">POLICY</text>
+        <text x="640" y="116" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.16em">CONSUMERS</text>
+
+        <!-- Arrows first (behind boxes) -->
+        <line x1="232" y1="256" x2="328" y2="256" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="232" y1="376" x2="328" y2="376" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <line x1="544" y1="196" x2="640" y2="196" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="544" y1="256" x2="640" y2="256" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="544" y1="316" x2="640" y2="316" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="544" y1="376" x2="640" y2="376" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="544" y1="436" x2="640" y2="436" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Arrow label: shared mode vocabulary -->
+        <rect x="582" y="416" width="36" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="600" y="425" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">GUIDE</text>
+
+        <!-- Node: official episode page -->
+        <rect x="40" y="220" width="192" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="40" y="220" width="192" height="72" rx="6" fill="rgba(79,93,117,0.10)" stroke="#5a6580" stroke-width="1"/>
+        <rect x="48" y="228" width="28" height="12" rx="2" fill="transparent" stroke="rgba(90,101,128,0.40)" stroke-width="0.8"/>
+        <text x="62" y="237" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">SRC</text>
+        <text x="136" y="260" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif" text-anchor="middle">官方分集页</text>
+        <text x="136" y="276" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">official · page</text>
+
+        <!-- Node: independent guide page (optional) -->
+        <rect x="40" y="340" width="192" height="72" rx="6" fill="#f5f5f5"/>
+        <rect x="40" y="340" width="192" height="72" rx="6" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <rect x="48" y="348" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.20)" stroke-width="0.8"/>
+        <text x="62" y="357" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">OPT</text>
+        <text x="136" y="380" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif" text-anchor="middle">独立分集指南</text>
+        <text x="136" y="396" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">optional · page</text>
+
+        <!-- Node: evidence policy table (focal) -->
+        <rect x="328" y="136" width="216" height="360" rx="6" fill="#f5f5f5"/>
+        <rect x="328" y="136" width="216" height="360" rx="6" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+        <rect x="336" y="144" width="40" height="12" rx="2" fill="transparent" stroke="rgba(191,69,32,0.50)" stroke-width="0.8"/>
+        <text x="356" y="153" fill="#bf4520" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">TABLE</text>
+        <text x="436" y="184" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif" text-anchor="middle">证据策略表</text>
+        <text x="436" y="201" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">sourceEvidence · evidenceFor(guide)</text>
+        <line x1="336" y1="214" x2="536" y2="214" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+
+        <text x="344" y="236" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">等级</text>
+        <text x="392" y="236" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">文档</text>
+        <text x="440" y="236" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">引用键</text>
+        <text x="482" y="236" fill="#5a6580" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">叙事</text>
+
+        <text x="344" y="266" fill="#2d3142" font-size="10" font-family="'Geist Mono', monospace">A</text>
+        <text x="392" y="266" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">2</text>
+        <text x="440" y="266" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">5</text>
+        <text x="482" y="266" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">guide</text>
+
+        <text x="344" y="296" fill="#2d3142" font-size="10" font-family="'Geist Mono', monospace">B</text>
+        <text x="392" y="296" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">1</text>
+        <text x="440" y="296" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">4</text>
+        <text x="482" y="296" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">official</text>
+
+        <text x="344" y="326" fill="#2d3142" font-size="10" font-family="'Geist Mono', monospace">C</text>
+        <text x="392" y="326" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">0</text>
+        <text x="440" y="326" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">0</text>
+        <text x="482" y="326" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">none</text>
+
+        <text x="344" y="356" fill="#4f5d75" font-size="12" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">弱来源永不自动通过</text>
+        <text x="436" y="414" fill="#4f5d75" font-size="14" font-style="italic" font-family="'Instrument Serif', 'Noto Serif SC', 'Songti SC', serif" text-anchor="middle">等级与模式同一次求值</text>
+
+        <!-- Node: source validation -->
+        <rect x="640" y="172" width="280" height="48" rx="6" fill="#f5f5f5"/>
+        <rect x="640" y="172" width="280" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="648" y="178" width="20" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="658" y="187" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GO</text>
+        <text x="780" y="198" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif" text-anchor="middle">取证校验</text>
+        <text x="780" y="212" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">validateSourceDocuments</text>
+
+        <!-- Node: planned-episode acceptance -->
+        <rect x="640" y="232" width="280" height="48" rx="6" fill="#f5f5f5"/>
+        <rect x="640" y="232" width="280" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="648" y="238" width="20" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="658" y="247" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GO</text>
+        <text x="780" y="258" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif" text-anchor="middle">计划验收</text>
+        <text x="780" y="272" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">AcceptPlannedEpisodes</text>
+
+        <!-- Node: source bundle attach -->
+        <rect x="640" y="292" width="280" height="48" rx="6" fill="#f5f5f5"/>
+        <rect x="640" y="292" width="280" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="648" y="298" width="20" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="658" y="307" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GO</text>
+        <text x="780" y="318" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif" text-anchor="middle">来源绑定</text>
+        <text x="780" y="332" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">AttachEpisodeSourceBundle</text>
+
+        <!-- Node: configuration registration -->
+        <rect x="640" y="352" width="280" height="48" rx="6" fill="#f5f5f5"/>
+        <rect x="640" y="352" width="280" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="648" y="358" width="20" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+        <text x="658" y="367" fill="#2d3142" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GO</text>
+        <text x="780" y="378" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif" text-anchor="middle">配置登记</text>
+        <text x="780" y="392" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">RegisterEpisodeConfiguration</text>
+
+        <!-- Node: agent proposal, documents, outline (mirror) -->
+        <rect x="640" y="412" width="280" height="48" rx="6" fill="#f5f5f5"/>
+        <rect x="640" y="412" width="280" height="48" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+        <rect x="648" y="418" width="20" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.22)" stroke-width="0.8"/>
+        <text x="658" y="427" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">TS</text>
+        <text x="780" y="438" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif" text-anchor="middle">规则与大纲</text>
+        <text x="780" y="452" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">proposal · documents · outline</text>
+
+        <!-- Legend strip -->
+        <line x1="40" y1="524" x2="920" y2="524" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="40" y="540" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+        <rect x="40" y="556" width="14" height="10" rx="2" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+        <text x="60" y="565" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">策略表</text>
+
+        <rect x="216" y="556" width="14" height="10" rx="2" fill="rgba(79,93,117,0.10)" stroke="#5a6580" stroke-width="1"/>
+        <text x="236" y="565" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">官方来源</text>
+
+        <rect x="392" y="556" width="14" height="10" rx="2" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="412" y="565" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">可选来源</text>
+
+        <rect x="568" y="556" width="14" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="588" y="565" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">Go 消费方</text>
+
+        <rect x="744" y="556" width="14" height="10" rx="2" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+        <text x="764" y="565" fill="#4f5d75" font-size="12" font-weight="500" font-family="'Geist', 'Noto Sans SC', 'PingFang SC', sans-serif">TS 镜像</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

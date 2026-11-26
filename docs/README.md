@@ -1,6 +1,6 @@
 # 项目文档
 
-从 [AGENTS.md](../AGENTS.md) 开始执行任务；从[架构图集](architecture.html)开始理解服务关系。图集可离线打开，选择节点能看到职责与源码。
+从 [AGENTS.md](../AGENTS.md) 开始执行任务；从[架构图集](architecture.html)开始理解服务关系。图集可离线打开，选择节点能看到职责与源码。采集侧的证据分级见[分集来源证据策略](diagrams/source-evidence.html)。
 
 | 文档 | 它回答的问题 |
 | --- | --- |

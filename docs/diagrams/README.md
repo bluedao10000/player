@@ -19,3 +19,5 @@ NODE_PATH="$diagram_tools/node_modules" CHROME_CHANNEL=chrome node docs/diagrams
 [旧工作台功能地图（历史）](workbench.svg) · [PNG](workbench.png) · [Mermaid 源文件](workbench.mmd)
 
 [2026-11 交付图](delivery-2026-11.svg) · [PNG](delivery-2026-11.png) · [Mermaid 源文件](delivery-2026-11.mmd)：运营中心 Phase 3、Knowledge P0 与 P1、性能和快照修复，覆盖 `91e92da` 至 `b7ebc8b`，并列出未完成项。单独更新时在渲染命令末尾加上 `delivery`。
+
+[分集来源证据策略](source-evidence.html)：单张 HTML 图，说明 `evidenceFor(guide)` 如何把来源模式求值为文档数、引用键和叙事来源，以及四个 Go 入口和一个 TS 入口怎样读取同一行。采用 diagram-design 技能的默认暖纸 token；改图后用该技能的 `self_check.py` 与 `verify_geometry.py` 校验。
