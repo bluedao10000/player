@@ -47,4 +47,21 @@ func TestResearchEvidenceBoundaries(t *testing.T) {
 	if validateDocuments(docs) == nil {
 		t.Fatal("altered source snapshot accepted")
 	}
+	// 分集回顾常有上百句，索引上限只挡空索引与异常大的快照。
+	long := make([]string, 200)
+	for i := range long {
+		long[i] = fmt.Sprintf("sentence %d.", i+1)
+	}
+	docs[0].Text = strings.Join(long, " ")
+	docs[0].Sentences = long
+	docs[0].SHA = strings.TrimPrefix(digest([]byte(docs[0].Text)), "sha256:")
+	if err := validateDocuments(docs); err != nil {
+		t.Fatalf("long recap rejected: %v", err)
+	}
+	docs[0].Text += " extra sentence."
+	docs[0].Sentences = append(long, "extra sentence.")
+	docs[0].SHA = strings.TrimPrefix(digest([]byte(docs[0].Text)), "sha256:")
+	if err := validateDocuments(docs); err == nil || !strings.Contains(err.Error(), "句子索引") {
+		t.Fatalf("oversized sentence index accepted: %v", err)
+	}
 }

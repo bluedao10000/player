@@ -76,7 +76,8 @@ func validateSourceDocuments(docs []researchDocument, first, last int, plan *epi
 		if !allowed || d.Episode < first || d.Episode > last || want == "" || d.URL != want || seen[d.ID] || d.ID != fmt.Sprintf("%s-%d", prefix, d.Episode) || d.Locator == "" || d.Fetched.IsZero() || len(d.Text) < 60 || digest([]byte(d.Text)) != "sha256:"+d.SHA {
 			return fmt.Errorf("分集来源或快照指纹核验失败")
 		}
-		if len(d.Sentences) == 0 || len(d.Sentences) > 100 {
+		// 分集回顾动辄上百句；上限只用来挡住空索引和异常大的快照。
+		if len(d.Sentences) == 0 || len(d.Sentences) > 200 {
 			return fmt.Errorf("缺少快照句子索引")
 		}
 		for _, sentence := range d.Sentences {
