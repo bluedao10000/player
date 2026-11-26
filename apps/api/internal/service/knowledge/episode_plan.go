@@ -30,7 +30,7 @@ type sourceRules struct {
 }
 
 type episodeSourceRule struct {
-	Kind, Episode, Title, Heading, Body string
+	Kind, Episode, Title, Heading, Body, TitleSelector string
 }
 
 var episodeJSONField = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
@@ -401,9 +401,13 @@ func AcceptPlannedEpisodes(ctx context.Context, db *pgxpool.Pool) error {
 			if err = json.Unmarshal(raw, &in); err != nil {
 				return err
 			}
-			valid := in.Research != "" && validateSourceDocuments(in.Documents, e.Number, e.Number, &e) == nil && validateEpisodeClaims(in.Claims, in.Documents, e.Number, e.Number) == nil && len(in.Claims) == len(e.Beats)
+			policy, perr := e.evidence()
+			valid := perr == nil && in.Research != "" && validateSourceDocuments(in.Documents, e.Number, e.Number, &e) == nil && validateEpisodeClaims(in.Claims, in.Documents, e.Number, e.Number, policy) == nil && len(in.Claims) == len(e.Beats)
 			checks := []scopeCheck{{Name: "人物"}, {Name: "剧情"}, {Name: "世界观"}, {Name: "时间线"}}
 			gap := "等待同集、双来源的取证校对 · " + stage
+			if policy.Documents == 1 {
+				gap = "等待同集、官方来源的取证校对 · " + stage
+			}
 			if reason != "" {
 				gap += " · " + reason
 			}
@@ -510,6 +514,14 @@ func (e episodeSpec) validateRules() error {
 	default:
 		return errors.New("未登记的来源站点")
 	}
+	if r.Guide == "official_only" {
+		if e.Guide != "" || len(e.GuideParagraphs) != 0 || r.Version != 1 || r.OfficialRule == nil || !r.OfficialRule.valid() ||
+			r.GuideRule != nil || r.Entry != "" || r.Heading != "" || r.Attribute != "" || r.Body != "" ||
+			strings.TrimSpace(e.OfficialTitle) == "" {
+			return errors.New("单官方来源规则无效")
+		}
+		return nil
+	}
 	if r.Guide == "paired" {
 		guide, err := url.Parse(e.Guide)
 		if err != nil || guide.Scheme != "https" || guide.User != nil || guide.Host == official.Host || guide.Fragment != "" || guide.RawQuery != "" || guide.Path == "" {
@@ -576,10 +588,11 @@ func (r *episodeSourceRule) valid() bool {
 	}
 	switch r.Kind {
 	case "json_episode_list":
-		return r.Heading == "" && len(r.Episode) <= 256 && len(r.Title) <= 256 &&
+		return r.Heading == "" && r.TitleSelector == "" && len(r.Episode) <= 256 && len(r.Title) <= 256 &&
 			episodeJSONField.MatchString(r.Episode) && episodeJSONField.MatchString(r.Title) && episodeJSONField.MatchString(r.Body)
 	case "html_episode_article":
-		return r.Episode == "" && r.Title == "" && strings.TrimSpace(r.Heading) != "" && len(r.Heading) <= 256
+		return r.Episode == "" && r.Title == "" && strings.TrimSpace(r.Heading) != "" && len(r.Heading) <= 256 &&
+			len(r.TitleSelector) <= 256
 	default:
 		return false
 	}

@@ -56,14 +56,24 @@ func validateEpisodeDocuments(docs []researchDocument, first, last int) error {
 	return validateSourceDocuments(docs, first, last, nil)
 }
 func validateSourceDocuments(docs []researchDocument, first, last int, plan *episodeSpec) error {
+	policy, err := plan.evidence()
+	if err != nil {
+		return err
+	}
 	seen := map[string]bool{}
 	for _, d := range docs {
 		prefix, _, _ := strings.Cut(d.ID, "-")
-		urls := map[string]string{"official": "https://www.cowboy-bebop.net/story/", "guide": fmt.Sprintf("https://en.wikipedia.org/wiki/List_of_Cowboy_Bebop_episodes#ep%d", d.Episode)}
+		urls := map[string]string{"official": "https://www.cowboy-bebop.net/story/"}
 		if plan != nil {
-			urls = map[string]string{"official": plan.Official, "guide": plan.Guide}
+			urls["official"] = plan.Official
+			if policy.Documents > 1 {
+				urls["guide"] = plan.Guide
+			}
+		} else if policy.Documents > 1 {
+			urls["guide"] = fmt.Sprintf("https://en.wikipedia.org/wiki/List_of_Cowboy_Bebop_episodes#ep%d", d.Episode)
 		}
-		if d.Episode < first || d.Episode > last || urls[prefix] == "" || d.URL != urls[prefix] || seen[d.ID] || d.ID != fmt.Sprintf("%s-%d", prefix, d.Episode) || d.Locator == "" || d.Fetched.IsZero() || len(d.Text) < 60 || digest([]byte(d.Text)) != "sha256:"+d.SHA {
+		want, allowed := urls[prefix]
+		if !allowed || d.Episode < first || d.Episode > last || want == "" || d.URL != want || seen[d.ID] || d.ID != fmt.Sprintf("%s-%d", prefix, d.Episode) || d.Locator == "" || d.Fetched.IsZero() || len(d.Text) < 60 || digest([]byte(d.Text)) != "sha256:"+d.SHA {
 			return fmt.Errorf("分集来源或快照指纹核验失败")
 		}
 		if len(d.Sentences) == 0 || len(d.Sentences) > 100 {
@@ -76,16 +86,16 @@ func validateSourceDocuments(docs []researchDocument, first, last int, plan *epi
 		}
 		seen[d.ID] = true
 	}
-	if len(seen) != 2*(last-first+1) {
-		return fmt.Errorf("每集需两份可核实的分集来源")
+	if len(seen) != policy.Documents*(last-first+1) {
+		return fmt.Errorf("每集需 %d 份可核实的分集来源", policy.Documents)
 	}
 	return nil
 }
 
 func validateClaims(claims []researchClaim, docs []researchDocument) error {
-	return validateEpisodeClaims(claims, docs, 1, 2)
+	return validateEpisodeClaims(claims, docs, 1, 2, pairedEvidence)
 }
-func validateEpisodeClaims(claims []researchClaim, docs []researchDocument, first, last int) error {
+func validateEpisodeClaims(claims []researchClaim, docs []researchDocument, first, last int, policy sourceEvidence) error {
 	index := map[string]researchDocument{}
 	for _, d := range docs {
 		index[d.ID] = d
@@ -124,8 +134,8 @@ func validateEpisodeClaims(claims []researchClaim, docs []researchDocument, firs
 		}
 	}
 	for ep := first; ep <= last; ep++ {
-		if counts[ep] < 4 || counts[ep] > 6 || len(coverage[ep]) != 5 {
-			return fmt.Errorf("第 %d 集的动机、转折、因果或双来源不完整", ep)
+		if counts[ep] < 4 || counts[ep] > 6 || len(coverage[ep]) != policy.Citations {
+			return fmt.Errorf("第 %d 集的动机、转折、因果或来源引用不完整（需 %d 项）", ep, policy.Citations)
 		}
 	}
 	return nil
@@ -217,6 +227,10 @@ func ResearchIfDue(ctx context.Context, db *pgxpool.Pool, retryNow bool) error {
 	if err = json.Unmarshal(catalog, &selection); err != nil {
 		return err
 	}
+	sourcePolicy, err := selection.Plan.evidence()
+	if err != nil {
+		return fail(err)
+	}
 	var docs []researchDocument
 	if phase == "collect" {
 		result, e := callResearch(ctx, base, id, "collect", catalog)
@@ -248,7 +262,7 @@ func ResearchIfDue(ctx context.Context, db *pgxpool.Pool, retryNow bool) error {
 	if err != nil {
 		return fail(err)
 	}
-	if err = validateEpisodeClaims(result.Claims, docs, first, last); err != nil {
+	if err = validateEpisodeClaims(result.Claims, docs, first, last, sourcePolicy); err != nil {
 		return fail(err)
 	}
 	return pgx.BeginFunc(ctx, conn, func(tx pgx.Tx) error {

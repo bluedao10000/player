@@ -238,3 +238,40 @@ test('Magpie image receipts retain the image count when the upstream omits token
   assert.equal(known.usage.total_tokens, 16)
   assert.equal(known.resolved, meta.model)
 })
+
+test('plan inputs keep paired Japanese sources inside the reserved range', async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), 'model-plan-'))
+  t.after(() => rm(dir, { recursive: true, force: true }))
+  openUsage(dir)
+  const server = createServer(async (req, res) => {
+    for await (const _ of req) void _
+    res.setHeader('content-type', 'text/event-stream')
+    res.write('data: ' + JSON.stringify({ id: 'p1', choices: [{ index: 0, delta: { content: 'ok' } }] }) + '\n\n')
+    res.write('data: ' + JSON.stringify({ id: 'p1', choices: [], usage: { prompt_tokens: 9, completion_tokens: 1, total_tokens: 10 } }) + '\n\n')
+    res.end('data: [DONE]\n\n')
+  })
+  server.listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  t.after(() => server.close())
+  const base = 'http://127.0.0.1:' + server.address().port
+  const saved = Object.fromEntries(['BASE_URL', 'API_KEY', 'MODEL'].map((k) => [k, process.env['CONTENT_AI_' + k]]))
+  t.after(() => {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env['CONTENT_AI_' + k]
+      else process.env['CONTENT_AI_' + k] = v
+    }
+  })
+  process.env.CONTENT_AI_BASE_URL = base
+  process.env.CONTENT_AI_API_KEY = 'plan-fixture'
+  process.env.CONTENT_AI_MODEL = 'content-fixture'
+  const meta = { ...profile('content'), subject: 'plan:11111111-1111-1111-1111-111111111111', operation: 'configuration' }
+  const body = (chars) => JSON.stringify({ model: 'content-fixture', messages: [{ role: 'user', content: 'あ'.repeat(chars) }] })
+  const paired = body(6400)
+  assert.ok(Buffer.byteLength(paired) > 19000)
+  const res = await streamFetch(meta)(base + '/chat/completions', { method: 'POST', headers: { Authorization: 'Bearer plan-fixture' }, body: paired })
+  assert.match(await res.text(), /DONE/)
+  await assert.rejects(
+    streamFetch(meta)(base + '/chat/completions', { method: 'POST', body: body(14000) }),
+    /预留范围/,
+  )
+})

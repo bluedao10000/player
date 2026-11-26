@@ -5,7 +5,7 @@ export type EpisodeIdentity = { number: number; title: string }
 
 export type EpisodeSourceRule =
   | { kind: 'json_episode_list'; episode: string; title: string; body: string }
-  | { kind: 'html_episode_article'; heading: string; body: string }
+  | { kind: 'html_episode_article'; heading: string; titleSelector?: string; body: string }
 
 const normalizedTitle = (text: string) => text.normalize('NFKC').replace(/\.{3,}/g, '…').replace(/\s+/g, '').toLowerCase()
 const normalizeBody = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim()
@@ -15,15 +15,18 @@ export function parseEpisodeSourceRule(value: unknown): EpisodeSourceRule {
   const rule = value as Record<string, unknown>
   const fields = rule.kind === 'json_episode_list' ? ['episode', 'title', 'body']
     : rule.kind === 'html_episode_article' ? ['heading', 'body'] : []
-  if (!fields.length || Object.keys(rule).length !== fields.length + 1 || fields.some((field) => {
-    const item = rule[field]
-    return typeof item !== 'string' || !item.trim() || item.length > 256 ||
-      (rule.kind === 'json_episode_list' && !/^[\w-]+$/.test(item))
-  })) throw Error('采集规则字段无效')
+  // 标题不在标题元素里时，模型可以另给一个标题选择器。
+  const optional = rule.kind === 'html_episode_article' && rule.titleSelector !== undefined ? ['titleSelector'] : []
+  if (!fields.length || Object.keys(rule).length !== fields.length + optional.length + 1 ||
+    fields.some((field) => typeof rule[field] !== 'string' || !rule[field].trim() || rule[field].length > 256 ||
+      (rule.kind === 'json_episode_list' && !/^[\w-]+$/.test(rule[field] as string))) ||
+    optional.some((field) => typeof rule[field] !== 'string' || !(rule[field] as string).trim() || (rule[field] as string).length > 256))
+    throw Error('采集规则字段无效')
   const parsed = value as EpisodeSourceRule
   return parsed.kind === 'json_episode_list'
     ? { kind: parsed.kind, episode: parsed.episode, title: parsed.title, body: parsed.body }
-    : { kind: parsed.kind, heading: parsed.heading, body: parsed.body }
+    : { kind: parsed.kind, heading: parsed.heading, body: parsed.body,
+        ...(parsed.titleSelector ? { titleSelector: parsed.titleSelector } : {}) }
 }
 
 function episodeNumber(label: string) {
@@ -52,7 +55,10 @@ export function extractEpisodeSource(raw: string, input: unknown, target: Episod
     const $ = load(raw)
     const headings = $(rule.heading)
     const heading = headings.text()
-    if (headings.length !== 1 || episodeNumber(heading) !== target.number || !normalizedTitle(heading).includes(title))
+    if (headings.length !== 1 || episodeNumber(heading) !== target.number)
+      throw Error('来源标题未唯一命中目标分集')
+    const printed = rule.titleSelector ? $(rule.titleSelector).text() : heading
+    if (!normalizedTitle(printed).includes(title))
       throw Error('来源标题未唯一命中目标分集')
     const article = headings.closest('article, main, body').get(0)
     const blocks = $(rule.body).toArray()

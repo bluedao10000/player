@@ -28,6 +28,11 @@ VALUES('cost','http://workbench-model.test','fixture','folio-test','USD',now()-i
 -- name: MeasuredRunCost
 SELECT cost_usd::text FROM workbench_runs WHERE id=$1;
 
+-- name: WorkCounts
+SELECT jsonb_build_object(
+ 'all',(SELECT count(*) FROM workbench_work_summary),
+ 'processed',(SELECT count(*) FROM workbench_profiles WHERE verified_entity_count>0));
+
 -- name: SeedKnowledgeTrend
 WITH live AS (
  SELECT coalesce(sum(verified_items),0) AS n FROM workbench_verified_knowledge

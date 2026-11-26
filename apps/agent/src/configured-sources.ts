@@ -13,6 +13,10 @@ export type SourceRules = LegacySourceRules | {
   guide: 'paired'
   officialRule: EpisodeSourceRule
   guideRule: EpisodeSourceRule
+} | {
+  version: 1
+  guide: 'official_only'
+  officialRule: EpisodeSourceRule
 }
 
 // Select one episode by its printed number AND its registered title. CSS comes

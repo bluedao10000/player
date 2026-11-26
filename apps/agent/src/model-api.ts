@@ -240,12 +240,15 @@ export async function modelJSON(
 // Pi can perform multiple turns and transport retries for one durable step.
 // Observe each actual HTTP dispatch, including a final streaming usage receipt.
 export type ModelCallReceipt = ReturnType<ReturnType<typeof start>>
+// 单次规划调用预留 16000 token、输出上限 2048。日文与中文正文约每字 3 字节、每字不超过 1 token，
+// 40000 字节仍在预留之内，同时容得下两份各 6000 字的分集来源。
+const planInputBytes = 40000
 export function streamFetch(meta: Meta, onReceipt?: (receipt: ModelCallReceipt) => void): typeof fetch {
   let sent = false
   return async (input, init) => {
     if (meta.subject.startsWith('plan:')) {
       if (sent) throw Error('再次规划调用需要独立预算预留')
-      if (typeof init?.body !== 'string' || Buffer.byteLength(init.body) > 12000)
+      if (typeof init?.body !== 'string' || Buffer.byteLength(init.body) > planInputBytes)
         throw Error('规划输入超过预留范围')
       const payload = JSON.parse(init.body)
       if ('max_completion_tokens' in payload) payload.max_completion_tokens = 2048

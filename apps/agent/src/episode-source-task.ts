@@ -3,7 +3,7 @@ import { load } from 'cheerio'
 import { checkEpisodeSourceRule, checkIndependentSources, extractEpisodeSource, parseEpisodeSourceRule } from './episode-source-rules.ts'
 import { fetchSourceText } from './source-fetch.ts'
 
-type Case = { number: number; title: string; official: string; guide: string }
+type Case = { number: number; sourceNumber?: number; title: string; official: string; guide?: string }
 type RuleProposal = { officialRule?: unknown; guideRule?: unknown }
 
 function sourceURL(value: string) {
@@ -35,36 +35,50 @@ export async function validateEpisodeSourceProposal(
   propose: (sample: unknown) => Promise<{ value: RuleProposal; tokens?: number }>,
   download = fetchSourceText,
 ) {
-  if (!Array.isArray(cases) || cases.length < 2 || cases.length > 5 || cases.some(({ number, title }) =>
-    !Number.isSafeInteger(number) || number < 1 || typeof title !== 'string' || !title.trim())) {
+  if (!Array.isArray(cases) || cases.length < 2 || cases.length > 5 || cases.some(({ number, sourceNumber, title }) =>
+    !Number.isSafeInteger(number) || number < 1 || typeof title !== 'string' || !title.trim() ||
+    (sourceNumber !== undefined && (!Number.isSafeInteger(sourceNumber) || sourceNumber < 1)))) {
     throw Error('需提供 2–5 条已与目录核对的分集样本')
   }
   if (new Set(cases.map(({ number }) => number)).size !== cases.length) throw Error('规则样本集号重复')
-  const hosts = [new URL(cases[0].official).host, new URL(cases[0].guide).host]
-  if (hosts[0] === hosts[1] || cases.some((entry) =>
-    sourceURL(entry.official).host !== hosts[0] || sourceURL(entry.guide).host !== hosts[1])) throw Error('样本需要同一对独立站点')
+  const officialHost = new URL(cases[0].official).host
+  const guideHost = cases[0].guide === undefined ? '' : new URL(cases[0].guide).host
+  if (officialHost === guideHost || cases.some((entry) =>
+    (entry.guide === undefined) !== (guideHost === '') ||
+    sourceURL(entry.official).host !== officialHost ||
+    (entry.guide !== undefined && sourceURL(entry.guide).host !== guideHost))) throw Error('样本需要同一对独立站点')
   const pages = new Map<string, Promise<string>>()
   const get = (url: string) => {
     const page = pages.get(url) ?? download(url)
     pages.set(url, page)
     return page
   }
-  const samples = await Promise.all(cases.map(async (target) => ({
-    target, official: await get(target.official), guide: await get(target.guide),
+  // 续作的来源集号可能与本站集号不同（季偏移），按来源集号提取与留证。
+  // 只有官方来源时，独立分集来源整组省略。
+  const samples = await Promise.all(cases.map(async (entry) => ({
+    target: { number: entry.sourceNumber ?? entry.number, title: entry.title },
+    official: await get(entry.official),
+    guide: entry.guide === undefined ? undefined : await get(entry.guide),
   })))
   const first = samples[0]
   const { value, tokens } = await propose({ target: { number: first.target.number, title: first.target.title },
-    official: describe(first.official), guide: describe(first.guide) })
+    official: describe(first.official),
+    ...(first.guide === undefined ? {} : { guide: describe(first.guide) }) })
   const officialRule = parseEpisodeSourceRule(value?.officialRule)
+  const officialProofs = checkEpisodeSourceRule(officialRule,
+    samples.map(({ official, target }) => ({ raw: official, target })))
+  if (first.guide === undefined) {
+    const sourceRules = { version: 1 as const, guide: 'official_only' as const, officialRule }
+    return { sourceRules, ruleSha256: createHash('sha256').update(JSON.stringify(sourceRules)).digest('hex'),
+      sources: cases, proofs: { official: officialProofs }, tokens }
+  }
   const guideRule = parseEpisodeSourceRule(value?.guideRule)
   const sourceRules = { version: 1 as const, guide: 'paired' as const, officialRule, guideRule }
-  const proofs = {
-    official: checkEpisodeSourceRule(officialRule, samples.map(({ official, target }) => ({ raw: official, target }))),
-    guide: checkEpisodeSourceRule(guideRule, samples.map(({ guide, target }) => ({ raw: guide, target }))),
-  }
+  const guideProofs = checkEpisodeSourceRule(guideRule,
+    samples.map(({ guide, target }) => ({ raw: guide!, target })))
   for (const sample of samples) checkIndependentSources(
-    extractEpisodeSource(sample.official, officialRule, sample.target), extractEpisodeSource(sample.guide, guideRule, sample.target),
+    extractEpisodeSource(sample.official, officialRule, sample.target), extractEpisodeSource(sample.guide!, guideRule, sample.target),
   )
   return { sourceRules, ruleSha256: createHash('sha256').update(JSON.stringify(sourceRules)).digest('hex'),
-    sources: cases, proofs, tokens }
+    sources: cases, proofs: { official: officialProofs, guide: guideProofs }, tokens }
 }

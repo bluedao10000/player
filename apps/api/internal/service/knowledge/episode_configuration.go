@@ -51,8 +51,11 @@ func RegisterEpisodeConfiguration(ctx context.Context, tx pgx.Tx, request string
 		return err
 	}
 	expectedSource := previous
+	// 续作允许 bundle 声明来源集号偏移；历史模板仍要求来源集号为零。
+	expectedNumber := 0
 	if input.SourceBundle != nil {
 		expectedSource = *input.SourceBundle
+		expectedNumber = expectedSource.SourceNumber
 		if expectedSource.Number != number || spec.GuideTitle != expectedSource.GuideTitle || spec.OfficialTitle != expectedSource.OfficialTitle {
 			return errors.New("分集来源与已核对的规则不一致")
 		}
@@ -61,7 +64,7 @@ func RegisterEpisodeConfiguration(ctx context.Context, tx pgx.Tx, request string
 		expectedSource.Guide = fmt.Sprintf("%s#ep%d", base, number)
 	}
 	if spec.Official != expectedSource.Official || spec.Guide != expectedSource.Guide ||
-		!reflect.DeepEqual(spec.SourceRules, expectedSource.SourceRules) || spec.SourceRules == nil || spec.SourceNumber != 0 {
+		!reflect.DeepEqual(spec.SourceRules, expectedSource.SourceRules) || spec.SourceRules == nil || spec.SourceNumber != expectedNumber {
 		return errors.New("来源超出已登记的同版本规则")
 	}
 	if err := spec.validate(); err != nil {
@@ -85,10 +88,19 @@ func RegisterEpisodeConfiguration(ctx context.Context, tx pgx.Tx, request string
 			official = doc.Sentences
 		}
 	}
+	// 单一官方来源时，官方正文就是叙事来源。
+	policy, err := spec.evidence()
+	if err != nil {
+		return err
+	}
+	narrative := guide
+	if policy.Narrative == "official" {
+		narrative = official
+	}
 	starts := make([]int, 0, len(spec.Beats))
 	next := 0
 	for _, beat := range spec.Beats {
-		match := slices.IndexFunc(guide[next:], func(sentence string) bool { return strings.Contains(sentence, beat.Needle) })
+		match := slices.IndexFunc(narrative[next:], func(sentence string) bool { return strings.Contains(sentence, beat.Needle) })
 		if match < 0 || beat.OfficialSentence < 0 || beat.OfficialSentence > len(official) {
 			return errors.New("配置无法按顺序定位原文")
 		}
@@ -103,17 +115,17 @@ func RegisterEpisodeConfiguration(ctx context.Context, tx pgx.Tx, request string
 	}
 	for i, person := range spec.People {
 		index := person.Beat - 1
-		end := len(guide)
+		end := len(narrative)
 		if index+1 < len(starts) {
 			end = starts[index+1]
 		}
 		evidence := castProof.People[i].Evidence
-		inGuide := slices.ContainsFunc(guide[starts[index]:end], func(sentence string) bool {
+		inNarrative := slices.ContainsFunc(narrative[starts[index]:end], func(sentence string) bool {
 			return strings.Contains(sentence, evidence)
 		})
 		officialIndex := spec.Beats[index].OfficialSentence - 1
 		inOfficial := officialIndex >= 0 && strings.Contains(official[officialIndex], evidence)
-		if len([]rune(strings.TrimSpace(evidence))) < 3 || (!inGuide && !inOfficial) {
+		if len([]rune(strings.TrimSpace(evidence))) < 3 || (!inNarrative && !inOfficial) {
 			return errors.New("人物出场缺少同段来源定位")
 		}
 	}

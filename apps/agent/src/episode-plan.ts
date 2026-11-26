@@ -60,6 +60,12 @@ export async function readEpisodeDocuments(
     return [sourceDocument(p.official, official, 'official', p.officialTitle, p.number, number, 'ja'),
       sourceDocument(p.guide, guide, 'guide', p.guideTitle, p.number, number, 'ja')]
   }
+  if (p.sourceRules?.guide === 'official_only') {
+    const rules = p.sourceRules
+    const number = p.sourceNumber ?? p.number
+    const official = await rawPage(p.official).then((raw) => extractEpisodeSource(raw, rules.officialRule, { number, title: p.officialTitle }))
+    return [sourceDocument(p.official, official, 'official', p.officialTitle, p.number, number, 'ja')]
+  }
   const [site, wiki] = await Promise.all([
     page(p.official),
     page(p.guide.split('#')[0]),
@@ -253,8 +259,9 @@ function readGuideParagraphs(page: CheerioAPI, starts: string[]) {
 }
 
 export function episodeOutline(p: EpisodePlan & { people?: { beat: number; name?: string; evidence?: string }[]; setting?: [string, number] }, docs: Doc[]) {
-  const guide = docs.find((d) => d.id === 'guide-' + p.number)!
   const official = docs.find((d) => d.id === 'official-' + p.number)!
+  // 单一官方来源时，官方正文就是叙事来源。
+  const guide = docs.find((d) => d.id === 'guide-' + p.number) ?? official
   const starts: number[] = []
   for (const beat of p.beats) {
     const previous = starts.at(-1) ?? -1
@@ -284,7 +291,8 @@ export function episodeOutline(p: EpisodePlan & { people?: { beat: number; name?
     if (b.officialSentence) {
       const text = official.sentences[b.officialSentence - 1]
       if (!text) throw Error('缺少官方定位')
-      evidence.push({ id: official.id, sentence: b.officialSentence, text })
+      if (!evidence.some(({ id, sentence }) => id === official.id && sentence === b.officialSentence))
+        evidence.push({ id: official.id, sentence: b.officialSentence, text })
     }
     const names = people.flatMap(({ name }) => name ? [name] : [])
     const setting = p.setting?.[1] === i + 1 ? p.setting[0] : ''

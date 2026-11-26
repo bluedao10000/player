@@ -41,6 +41,9 @@ WITH filtered AS MATERIALIZED (
  AND ($2='' OR x.work_type=CASE $2 WHEN 'TV' THEN 'TV 动画' WHEN 'MOVIE' THEN '剧场版'
        WHEN 'SPECIAL' THEN '特别篇' ELSE $2 END) AND ($3='' OR x.publication_status=$3)
  AND ($7::text[] IS NULL OR x.work_id::text=ANY($7))
+ AND (NOT $8::boolean OR EXISTS (
+  SELECT 1 FROM workbench_profiles profile
+  WHERE profile.work_id=x.work_id AND profile.verified_entity_count>0))
 ), page AS (
  SELECT filtered.*, row_number() OVER (ORDER BY
   CASE WHEN $4='gap' THEN gap_count END DESC NULLS LAST,
@@ -166,7 +169,8 @@ FROM workbench_knowledge_plans p WHERE p.id=$1;
    WHERE scope='all' AND day=($1::timestamptz AT TIME ZONE 'Asia/Shanghai')::date) END AS value
 ), verified AS (
  SELECT present.value,CASE WHEN present.value IS NOT NULL AND baseline.value IS NOT NULL
-  THEN present.value-baseline.value END AS delta
+  THEN CASE WHEN $3::boolean THEN present.value-baseline.value
+   ELSE baseline.value-present.value END END AS delta
  FROM verified_current present LEFT JOIN LATERAL (
   SELECT (metrics->>'verifiedItems')::numeric AS value FROM ops_daily_snapshots
   WHERE scope='all' AND day=($1::timestamptz AT TIME ZONE 'Asia/Shanghai')::date

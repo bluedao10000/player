@@ -34,3 +34,9 @@
 | 14 | 平均完整度的服务端口径 | `GET /stats/overview` 增加 `avg_completeness`（全部已发布作品 completeness 均值） | 前端目前拉 100 条作品客户端求均值，作品数增长后失真 | 低 |
 
 说明：#10 是「今日知识增量」区块的唯一数据源，接口就绪后前端接入约半个工作日；#12/#13 前端已有客户端兜底实现，属于性能与口径稳定性优化。
+
+> **状态更新（2026-11-26 00:40）**：#11–#14 后端已交付并接入——`briefing.execution`（当日执行按类型×状态分组，服务端口径）、risks 直出 `detail`/`occurrences`/`error_summary`、`stats/overview.avg_completeness`、metrics `delta`。前端已切换为服务端口径（撤销客户端拉全量 runs 聚合与 works 求均值的临时方案）。#10 `GET /stats/knowledge-delta` 端点已上线，返回结构正确但 rows 为空（尚无增量落库），前端区块已就绪、有数据即自动出现。注意：`/docs/api-contract.md` 当前 404，契约文档入口疑似被移除，请后端确认。
+
+> **新增 #15（2026-11-26）**：`GET /works` 返回范围从「工作台作品」（契约 §4 示例 total:24）扩大为全量来源目录 39,120 条，其中仅 25 部有已验证知识（verified_entity_count>0，与 stats/overview.published_versions 一致），其余 39,095 条携带空 workbench_profile。作品知识页因此被稀释：分页器显示 39,120，空画像行显示整页 N/A。请二选一：**A（推荐）** `/works` 增加 `processed=true` 过滤参数（只返回有已验证知识的作品），前端加「仅看已处理作品」开关（默认开）；**B** 恢复 `/works` 只返回工作台作品，全量目录另开 `/catalog` 端点。
+
+> **状态更新（2026-11-26）**：#15 已按方案 A 交付——`GET /works?processed=true` 只返回 `verified_entity_count>0` 的作品，`total` 同步为过滤后数量；省略参数仍返回全量，兼容现有调用。契约 §4 已补充参数说明，集成测试覆盖过滤、搜索组合与非法布尔值。另：`/docs/api-contract.md` 路由仅在 `WORKBENCH_CONTRACT_PATH` 设置时注册；仓库内 `deploy/compose.services.yml` 未设置该变量，本地 `deploy/compose.local.yml` 已设置并挂载 `docs/`。广州实际环境是否设置未核验，若仍 404 请检查部署环境变量与挂载。

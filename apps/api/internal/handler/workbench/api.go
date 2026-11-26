@@ -170,6 +170,18 @@ func oneOf(value string, choices ...string) bool {
 	return false
 }
 
+func boolQuery(c *gin.Context, field string, fallback bool) (bool, error) {
+	raw, present := c.GetQuery(field)
+	if !present {
+		return fallback, nil
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, invalid(field)
+	}
+	return value, nil
+}
+
 func pageNumber(c *gin.Context, field string, fallback, min, max int) (int, error) {
 	raw, present := c.GetQuery(field)
 	if !present {
@@ -205,11 +217,16 @@ func (h handler) works(c *gin.Context) {
 			apiFailure(c, err)
 			return
 		}
-		h.workPage(c, search, kind, status, sort, size, page*size)
+		processed, err := boolQuery(c, "processed", false)
+		if err != nil {
+			apiFailure(c, err)
+			return
+		}
+		h.workPage(c, search, kind, status, sort, size, page*size, processed)
 	}
 }
 
-func (h handler) workPage(c *gin.Context, search, kind, status, sort string, size, offset int) {
+func (h handler) workPage(c *gin.Context, search, kind, status, sort string, size, offset int, processed bool) {
 	ref := c.Query("ref")
 	if ref != "" && !catalog.ValidUUID(ref) {
 		apiFailure(c, invalid("ref"))
@@ -236,7 +253,7 @@ func (h handler) workPage(c *gin.Context, search, kind, status, sort string, siz
 		}
 		var err error
 		result, err = database.ReadJSON(ctx, tx, q.Read["Works"], pgx.QueryExecModeExec,
-			search, kind, status, sort, size, offset, ids)
+			search, kind, status, sort, size, offset, ids, processed)
 		return err
 	})
 	respond(c, result, err)

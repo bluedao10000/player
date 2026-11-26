@@ -50,7 +50,7 @@ func AcceptThirdEpisode(ctx context.Context, db *pgxpool.Pool) error {
 			return err
 		}
 		checks := []scopeCheck{{Name: "人物"}, {Name: "剧情"}, {Name: "世界观"}, {Name: "时间线"}}
-		valid := in.Research != "" && validateEpisodeDocuments(in.Documents, 3, 3) == nil && validateEpisodeClaims(in.Claims, in.Documents, 3, 3) == nil && len(in.Claims) == len(thirdEvents)
+		valid := in.Research != "" && validateEpisodeDocuments(in.Documents, 3, 3) == nil && validateEpisodeClaims(in.Claims, in.Documents, 3, 3, pairedEvidence) == nil && len(in.Claims) == len(thirdEvents)
 		ch := scopeChapter{Slug: "honky-tonk-women", Episode: 3, Block: "chips", Scene: "casino-chip"}
 		var links [4]string
 		previous := 0

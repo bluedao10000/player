@@ -13,7 +13,8 @@ export async function prepareEpisodeConfiguration(dir: string, call: string, inp
   try {
     if (previous.sourceBundle) {
       const source = previous.sourceBundle
-      if (source.number !== number || source.sourceRules?.guide !== 'paired') throw Error('分集与已核对的来源不一致')
+      const guide = source.sourceRules?.guide
+      if (source.number !== number || (guide !== 'paired' && guide !== 'official_only')) throw Error('分集与已核对的来源不一致')
       located = { source, docs: await readEpisodeDocuments(source, page) }
     } else {
       const official = new URL(previous.official)

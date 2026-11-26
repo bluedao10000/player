@@ -14,7 +14,18 @@ if (!rule) {
   await mkdir(stateDir, { recursive: true, mode: 0o700 })
   openUsage(stateDir)
 }
-const result = await validateEpisodeSourceProposal(cases, async (sample) => rule
-  ? { value: rule }
-  : runProductionModel(stateDir, randomUUID(), 1, 1, 'source_rule', JSON.stringify(sample)))
-console.log(JSON.stringify(result, null, 2))
+// 校验失败时把原因交回模型改一版；规则仍要过同一套确定性检查。
+let feedback = ''
+for (let attempt = 1; ; attempt++) {
+  try {
+    const result = await validateEpisodeSourceProposal(cases, async (sample) => rule
+      ? { value: rule }
+      : runProductionModel(stateDir, randomUUID(), attempt, 1, 'source_rule',
+          JSON.stringify(sample) + (feedback ? '\n上一次规则未通过校验：' + feedback : '')))
+    console.log(JSON.stringify(result, null, 2))
+    break
+  } catch (error) {
+    if (rule || attempt >= 2 || !(error instanceof Error)) throw error
+    feedback = error.message
+  }
+}

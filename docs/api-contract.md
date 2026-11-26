@@ -192,7 +192,7 @@
 
 ### `GET /works`
 
-**Query**：`search?`（标题/原标题模糊）、`type?`、`status?`（`published|draft|archived`）、`sort?`（`gap|updated|coverage`，默认 `updated`）、`page?`（0 起，默认 0）、`page_size?`（默认 10）
+**Query**：`search?`（标题/原标题模糊）、`type?`、`status?`（`published|draft|archived`）、`sort?`（`gap|updated|coverage`，默认 `updated`）、`page?`（0 起，默认 0）、`page_size?`（默认 10）、`processed?`（`true` 时只返回 `verified_entity_count>0` 的作品；默认 `false` 返回全量目录）
 
 **响应 200**：
 
@@ -226,6 +226,7 @@
 ```
 
 - `coverage: 0-1 | null`（分母不可靠时 `null`，前端 N/A）；`maturity_level ∈ seed|growing|established|reference`。
+- `processed=true` 只返回已有已验证知识的作品；`total` 同步为过滤后的数量。全量目录仍需浏览时省略该参数。
 
 ### `GET /works/:id/gaps` → `WorkGap[]`
 

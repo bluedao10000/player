@@ -61,7 +61,7 @@ func TestHTTPContractValidationAndAuthorization(t *testing.T) {
 	if response.Code != 401 || !strings.Contains(response.Body.String(), `"code":"unauthenticated"`) {
 		t.Fatalf("unauthenticated: %d %s", response.Code, response.Body)
 	}
-	for _, path := range []string{"/briefing?date=invalid", "/stats/knowledge-delta?date=invalid", "/works?page=-1", "/works?page_size=101", "/decisions?risk=L4", "/runs?status=posted"} {
+	for _, path := range []string{"/briefing?date=invalid", "/stats/knowledge-delta?date=invalid", "/works?page=-1", "/works?page_size=101", "/works?processed=maybe", "/decisions?risk=L4", "/runs?status=posted"} {
 		err := jsonResponse[object](t, r, "GET", path, "", 400)["error"].(object)
 		if err["code"] != "invalid_argument" || err["details"].(object)["field"] == nil {
 			t.Fatalf("%s: %v", path, err)
@@ -201,6 +201,29 @@ func TestWorkbenchReadsAndSourceApproval(t *testing.T) {
 	missing := jsonResponse[object](t, r, "GET", "/works?search=not-found-fixture", "", 200)
 	if missing["total"] != float64(0) || len(missing["rows"].([]any)) != 0 {
 		t.Fatal(missing)
+	}
+	var countsBody []byte
+	if err := db.QueryRow(ctx, fixtures.Workbench["WorkCounts"]).Scan(&countsBody); err != nil {
+		t.Fatal(err)
+	}
+	var counts struct{ All, Processed int }
+	if err := json.Unmarshal(countsBody, &counts); err != nil {
+		t.Fatal(err)
+	}
+	all := jsonResponse[object](t, r, "GET", "/works?page_size=100", "", 200)
+	processed := jsonResponse[object](t, r, "GET", "/works?processed=true&page_size=100", "", 200)
+	if all["total"] != float64(counts.All) || processed["total"] != float64(counts.Processed) {
+		t.Fatalf("all=%v processed=%v want all=%d processed=%d", all["total"], processed["total"], counts.All, counts.Processed)
+	}
+	for _, raw := range processed["rows"].([]any) {
+		row := raw.(object)
+		inline, ok := row["workbench_profile"].(object)
+		if !ok || inline["verified_entity_count"].(float64) <= 0 {
+			t.Fatalf("processed row=%v", row)
+		}
+	}
+	if hit := jsonResponse[object](t, r, "GET", "/works?processed=true&search=潮汐邮局", "", 200); hit["total"] != float64(1) {
+		t.Fatal(hit)
 	}
 	items := jsonResponse[[]object](t, r, "GET", "/decisions?status=pending&risk=L2", "", 200)
 	if len(items) != 1 || items[0]["diff"] != nil {
