@@ -1,6 +1,6 @@
 # 项目文档
 
-从 [AGENTS.md](../AGENTS.md) 开始执行任务；从[架构图集](architecture.html)开始理解服务关系。图集可离线打开，选择节点能看到职责与源码。采集侧的证据分级见[分集来源证据策略](diagrams/source-evidence.html)。
+从 [AGENTS.md](../AGENTS.md) 开始执行任务；先看[当前分集生产链](diagrams/current.html)与[目标采集架构](diagrams/target-collection.html)理解服务关系，再看[部署与信任边界](diagrams/deployment-boundaries.html)区分公网、私网和模型出口。采集侧的证据分级见[分集来源证据策略](diagrams/source-evidence.html)。各图与 Mermaid 图源见[图目录](diagrams/README.md)。
 
 | 文档 | 它回答的问题 |
 | --- | --- |

@@ -2,7 +2,7 @@
 
 从作品找到人物，从人物读到出场章节，再从一幕场景回到故事里的那一段。H5 提供公开阅读、作品搜索和私人分支试玩；数据服务把上游作品档案、分集取证和已验收插画组织成可发布的知识库。
 
-**开发入口**　[AGENTS.md](AGENTS.md) 按任务指向架构、源码和验证方法。[文档索引](docs/README.md) · [离线架构图集](docs/architecture.html)
+**开发入口**　[AGENTS.md](AGENTS.md) 按任务指向架构、源码和验证方法。[文档索引](docs/README.md) · [架构与采集图](docs/diagrams/README.md)
 
 部署新环境请使用 [部署入口](deploy/README.md)，单集制作与图片导入见 [sync 生产任务](apps/sync/ops/production/README.md)。
 

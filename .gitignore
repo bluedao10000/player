@@ -30,3 +30,8 @@ tunnel-token
 *.local.xcconfig
 
 /apps/web/src/routeTree.public.gen.js
+
+# 架构图渲染产物由 docs/diagrams/render.cjs 按需生成
+/docs/architecture.html
+/docs/diagrams/*.svg
+/docs/diagrams/*.png

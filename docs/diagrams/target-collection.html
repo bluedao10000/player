@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>目标采集架构 · Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@400&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #bf4520;
+      --font-sans:     'Geist', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif SC', 'Songti SC', serif;
+      --font-mono:     'Geist Mono', 'Noto Sans Mono CJK SC', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1280px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .note, .nav {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.7;
+      color: var(--color-muted);
+    }
+    .note { margin-bottom: 1.25rem; }
+    .nav { margin-bottom: 0.75rem; }
+    .nav a { color: var(--color-muted); text-underline-offset: 3px; }
+
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · Target</p>
+    <h1>目标采集架构（待建设）</h1>
+    <p class="nav"><a href="current.html">现状</a> · <a href="target-collection.html">目标采集</a> · <a href="deployment-boundaries.html">部署边界</a> · <a href="source-evidence.html">来源证据</a> · <a href="README.md">索引</a></p>
+    <p class="note">来源任务在请求仍 blocked 时运行；模型只提案，验证、附接与晋升仍由 Go 写。</p>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="target-collection-title target-collection-desc">
+        <title id="target-collection-title">目标采集架构</title>
+        <desc id="target-collection-desc">九步蛇形流程：分集制作请求停在 blocked，来源任务 tick 入队并领取租约，agent loop 只用只读工具，模型提出来源规则，固定验证器生成并筛选证据，证据快照落在 episode_source_tasks，Go 用 AttachSourceBundle 写回 source_bundle，请求回到 inventory 并等待广州批次，最后按原有五集每三十分钟的配额进入配置、五维与发布。抓取与模型预算独立，C 级停在 blocked/weak_source。</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- Arrows -->
+        <line x1="240" y1="168" x2="292" y2="168" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="492" y1="168" x2="544" y2="168" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="744" y1="168" x2="796" y2="168" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="996" y1="168" x2="1048" y2="168" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="1148" y1="240" x2="1148" y2="388" stroke="#bf4520" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+        <line x1="982" y1="460" x2="934" y2="460" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="668" y1="460" x2="620" y2="460" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="354" y1="460" x2="306" y2="460" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="173" y1="532" x2="173" y2="560" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Arrow labels -->
+        <rect x="254" y="150" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="266" y="159" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">入队</text>
+        <rect x="506" y="150" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="518" y="159" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">发放</text>
+        <rect x="758" y="150" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="770" y="159" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">提案</text>
+        <rect x="1010" y="150" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="1022" y="159" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">校验</text>
+        <rect x="1156" y="294" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="1164" y="303" fill="#bf4520" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">通过</text>
+        <rect x="946" y="442" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="958" y="451" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">快照</text>
+        <rect x="632" y="442" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="644" y="451" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">写回</text>
+        <rect x="318" y="442" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="330" y="451" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">领取</text>
+
+        <!-- Band labels -->
+        <text x="40" y="72" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.16em">来源任务 · 请求仍 BLOCKED · 独立抓取与模型预算</text>
+        <text x="40" y="372" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.16em">回到现有生产线 · 5 集／30 分钟配额不变</text>
+
+        <!-- Node 01 -->
+        <rect x="40" y="96" width="200" height="144" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="54" y="126" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">REQ</text>
+        <text x="225" y="126" fill="#5a6580" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">01</text>
+        <text x="54" y="148" fill="#2d3142" font-size="13" font-weight="600">分集制作请求</text>
+        <text x="54" y="168" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">blocked · 等待来源</text>
+        <line x1="54" y1="180" x2="226" y2="180" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="54" y="202" fill="#4f5d75" font-size="12">已播缺集登记为</text>
+        <text x="54" y="222" fill="#4f5d75" font-size="12">blocked，等待来源。</text>
+
+        <!-- Node 02 -->
+        <rect x="292" y="96" width="200" height="144" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="306" y="126" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">GO</text>
+        <text x="477" y="126" fill="#5a6580" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">02</text>
+        <text x="306" y="148" fill="#2d3142" font-size="13" font-weight="600">来源任务 tick</text>
+        <text x="306" y="168" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">enqueue · claim · lease</text>
+        <line x1="306" y1="180" x2="478" y2="180" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="306" y="202" fill="#4f5d75" font-size="12">Go 入队、claim、租约；</text>
+        <text x="306" y="222" fill="#4f5d75" font-size="12">重复执行收敛同状态。</text>
+
+        <!-- Node 03 -->
+        <rect x="544" y="96" width="200" height="144" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+        <text x="558" y="126" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">AGENT</text>
+        <text x="729" y="126" fill="#5a6580" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">03</text>
+        <text x="558" y="148" fill="#2d3142" font-size="13" font-weight="600">agent loop</text>
+        <text x="558" y="168" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">只读工具 · 上下文预算</text>
+        <line x1="558" y1="180" x2="730" y2="180" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="558" y="202" fill="#4f5d75" font-size="12">检索、抓取、比对，</text>
+        <text x="558" y="222" fill="#4f5d75" font-size="12">不写库、不发布。</text>
+
+        <!-- Node 04 -->
+        <rect x="796" y="96" width="200" height="144" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+        <text x="810" y="126" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">MODEL</text>
+        <text x="981" y="126" fill="#5a6580" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">04</text>
+        <text x="810" y="148" fill="#2d3142" font-size="13" font-weight="600">规则提案</text>
+        <text x="810" y="168" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">选择器 · 样例 · 来源</text>
+        <line x1="810" y1="180" x2="982" y2="180" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="810" y="202" fill="#4f5d75" font-size="12">只提出规则与样例，</text>
+        <text x="810" y="222" fill="#4f5d75" font-size="12">证据由验证器生成。</text>
+
+        <!-- Node 05 (focal) -->
+        <rect x="1048" y="96" width="200" height="144" rx="6" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+        <text x="1062" y="126" fill="#bf4520" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">GO</text>
+        <text x="1233" y="126" fill="#bf4520" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">05</text>
+        <text x="1062" y="148" fill="#2d3142" font-size="13" font-weight="600">固定验证器</text>
+        <text x="1062" y="168" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">generate-and-filter</text>
+        <line x1="1062" y1="180" x2="1232" y2="180" stroke="rgba(191,69,32,0.20)" stroke-width="0.8"/>
+        <text x="1062" y="202" fill="#4f5d75" font-size="12">规则未过即来源未过；</text>
+        <text x="1062" y="222" fill="#4f5d75" font-size="12">模型不能宣布成功。</text>
+
+        <!-- Node 06 -->
+        <rect x="982" y="388" width="266" height="144" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <text x="996" y="418" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">PG</text>
+        <text x="1234" y="418" fill="#5a6580" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">06</text>
+        <text x="996" y="440" fill="#2d3142" font-size="13" font-weight="600">证据快照</text>
+        <text x="996" y="460" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">episode_source_tasks.evidence</text>
+        <line x1="996" y1="472" x2="1234" y2="472" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="996" y="494" fill="#4f5d75" font-size="12">来源指纹、样例、结果；</text>
+        <text x="996" y="514" fill="#4f5d75" font-size="12">失败只阻塞该集。</text>
+
+        <!-- Node 07 -->
+        <rect x="668" y="388" width="266" height="144" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="682" y="418" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">GO</text>
+        <text x="920" y="418" fill="#5a6580" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">07</text>
+        <text x="682" y="440" fill="#2d3142" font-size="13" font-weight="600">附接来源</text>
+        <text x="682" y="460" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">AttachSourceBundle</text>
+        <line x1="682" y1="472" x2="920" y2="472" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="682" y="494" fill="#4f5d75" font-size="12">写回 source_bundle；</text>
+        <text x="682" y="514" fill="#4f5d75" font-size="12">不重建已登记任务。</text>
+
+        <!-- Node 08 -->
+        <rect x="354" y="388" width="266" height="144" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="368" y="418" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">GO</text>
+        <text x="606" y="418" fill="#5a6580" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">08</text>
+        <text x="368" y="440" fill="#2d3142" font-size="13" font-weight="600">回到 inventory</text>
+        <text x="368" y="460" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">5 集／30 分钟 · 配额不变</text>
+        <line x1="368" y1="472" x2="606" y2="472" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="368" y="494" fill="#4f5d75" font-size="12">请求回到 inventory，</text>
+        <text x="368" y="514" fill="#4f5d75" font-size="12">下一轮 dispatch 晋升。</text>
+
+        <!-- Node 09 -->
+        <rect x="40" y="388" width="266" height="144" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="54" y="418" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">GO</text>
+        <text x="292" y="418" fill="#5a6580" font-size="9" font-family="'Geist Mono', monospace" text-anchor="end">09</text>
+        <text x="54" y="440" fill="#2d3142" font-size="13" font-weight="600">生产晋升</text>
+        <text x="54" y="460" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">配置 → 五维 → 发布</text>
+        <line x1="54" y1="472" x2="292" y2="472" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="54" y="494" fill="#4f5d75" font-size="12">原有路径继续运行；</text>
+        <text x="54" y="514" fill="#4f5d75" font-size="12">验收与上线门槛不变。</text>
+
+        <!-- Callout: independent budget -->
+        <line x1="40" y1="254" x2="40" y2="330" stroke="rgba(45,49,66,0.30)" stroke-width="2"/>
+        <text x="52" y="272" fill="#2d3142" font-size="13" font-style="italic" font-family="'Instrument Serif', 'Noto Serif SC', 'Songti SC', serif">来源任务先于生产晋升。</text>
+        <text x="52" y="294" fill="#4f5d75" font-size="12">抓取与模型预算独立，不占 5 集／30 分钟的额度。</text>
+        <text x="52" y="314" fill="#4f5d75" font-size="12">请求仍在 blocked 时运行；附接后由下一轮 dispatch 领取。</text>
+
+        <!-- Callout: C never passes -->
+        <line x1="664" y1="254" x2="664" y2="330" stroke="rgba(45,49,66,0.30)" stroke-width="2"/>
+        <text x="676" y="272" fill="#2d3142" font-size="13" font-style="italic" font-family="'Instrument Serif', 'Noto Serif SC', 'Songti SC', serif">C 级永不自动通过。</text>
+        <text x="676" y="294" fill="#4f5d75" font-size="12">预算耗尽停在 blocked/weak_source，</text>
+        <text x="676" y="314" fill="#4f5d75" font-size="12">不默认进入人工复核。</text>
+
+        <!-- Exit to readers -->
+        <text x="173" y="582" fill="#2d3142" font-size="13" font-weight="600" text-anchor="middle">读者 H5 · iOS</text>
+        <text x="173" y="600" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">公开投影不变</text>
+
+        <!-- Legend strip -->
+        <line x1="40" y1="620" x2="1240" y2="620" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="40" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+        <rect x="130" y="631" width="14" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="150" y="640" fill="#4f5d75" font-size="12" font-weight="500">请求与生产线</text>
+
+        <rect x="286" y="631" width="14" height="10" rx="2" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+        <text x="306" y="640" fill="#4f5d75" font-size="12" font-weight="500">Pi Agent</text>
+
+        <rect x="430" y="631" width="14" height="10" rx="2" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+        <text x="450" y="640" fill="#4f5d75" font-size="12" font-weight="500">固定验证器</text>
+
+        <rect x="574" y="631" width="14" height="10" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <text x="594" y="640" fill="#4f5d75" font-size="12" font-weight="500">PostgreSQL 快照</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

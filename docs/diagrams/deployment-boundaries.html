@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>部署与信任边界 · Deployment</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@400&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #bf4520;
+      --font-sans:     'Geist', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif SC', 'Songti SC', serif;
+      --font-mono:     'Geist Mono', 'Noto Sans Mono CJK SC', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1280px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .note, .nav {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.7;
+      color: var(--color-muted);
+    }
+    .note { margin-bottom: 1.25rem; max-width: 78ch; }
+    .nav { margin-bottom: 0.75rem; }
+    .nav a { color: var(--color-muted); text-underline-offset: 3px; }
+
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Deployment · Trust boundaries</p>
+    <h1>部署与信任边界（目标拓扑）</h1>
+    <p class="nav"><a href="current.html">现状</a> · <a href="target-collection.html">目标采集</a> · <a href="deployment-boundaries.html">部署边界</a> · <a href="source-evidence.html">来源证据</a> · <a href="README.md">索引</a></p>
+    <p class="note">目标拓扑，依据 docs/部署架构.md、deploy/guangzhou 与 deploy/gateway 的仓库配置绘制；未登录现网核对，迁移状态未知。</p>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="deployment-title deployment-desc">
+        <title id="deployment-title">部署与信任边界（目标拓扑）</title>
+        <desc id="deployment-desc">目标拓扑，依据仓库部署文档与 Compose 绘制，未登录现网核对，迁移状态未知。四个地理边界：公网只含读者端；阿里云杭州只放公开入口 Nginx 与正式读者库，不持有业务数据；腾讯云广州放阅读与业务服务、制作执行、制作库和读者库；腾讯云硅谷放媒体与验收、模型网关，供应商在境外。跨边界只有 HTTPS、Mesh、受限 SSH 与 mTLS，模型凭据只留在硅谷网关。</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- Zones -->
+        <rect x="40" y="76" width="208" height="524" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="0.8" stroke-dasharray="4,4"/>
+        <rect x="40" y="70" width="76" height="12" fill="#f5f5f5"/>
+        <text x="48" y="79" fill="rgba(45,49,66,0.45)" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.14em">公网</text>
+
+        <rect x="272" y="76" width="264" height="524" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="0.8" stroke-dasharray="4,4"/>
+        <rect x="272" y="70" width="166" height="12" fill="#f5f5f5"/>
+        <text x="280" y="79" fill="rgba(45,49,66,0.45)" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.14em">阿里云 · 杭州</text>
+
+        <rect x="560" y="76" width="432" height="524" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="0.8" stroke-dasharray="4,4"/>
+        <rect x="560" y="70" width="204" height="12" fill="#f5f5f5"/>
+        <text x="568" y="79" fill="rgba(45,49,66,0.45)" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.14em">腾讯云 · 广州 · 私有业务</text>
+
+        <rect x="1016" y="76" width="224" height="524" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="0.8" stroke-dasharray="4,4"/>
+        <rect x="1016" y="70" width="184" height="12" fill="#f5f5f5"/>
+        <text x="1024" y="79" fill="rgba(45,49,66,0.45)" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.14em">腾讯云 · 硅谷 · 媒体与模型</text>
+
+        <!-- Paths -->
+        <line x1="232" y1="288" x2="288" y2="288" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <rect x="239" y="270" width="42" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="260" y="279" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HTTPS</text>
+
+        <line x1="520" y1="176" x2="576" y2="176" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <rect x="534" y="158" width="28" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="548" y="167" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">Mesh</text>
+
+        <line x1="632" y1="232" x2="632" y2="392" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="642" y="304" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="654" y="313" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">TLS</text>
+
+        <line x1="880" y1="368" x2="880" y2="392" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="888" y="376" width="24" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="900" y="385" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">TLS</text>
+
+        <line x1="1032" y1="432" x2="976" y2="432" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <rect x="992" y="414" width="28" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="1006" y="423" fill="#2e5aa8" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">Mesh</text>
+
+        <line x1="1032" y1="480" x2="976" y2="480" stroke="#bf4520" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-accent)"/>
+        <rect x="992" y="488" width="28" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="1006" y="497" fill="#bf4520" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">SSH</text>
+
+        <path d="M 976,288 H 1008 V 176 H 1032" fill="none" stroke="#bf4520" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-accent)"/>
+        <rect x="966" y="158" width="32" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="974" y="167" fill="#bf4520" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle">mTLS</text>
+
+        <line x1="1128" y1="232" x2="1128" y2="288" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="1138" y="246" width="51" height="12" rx="2" fill="#f5f5f5"/>
+        <text x="1164" y="255" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">HTTPS:443</text>
+
+        <!-- Node: readers (external) -->
+        <rect x="56" y="232" width="176" height="112" rx="6" fill="#f5f5f5" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="70" y="246" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">PUBLIC</text>
+        <text x="70" y="268" fill="#2d3142" font-size="13" font-weight="600">读者端</text>
+        <text x="70" y="288" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">H5 · iOS</text>
+        <text x="70" y="316" fill="#4f5d75" font-size="12">只读公开投影，</text>
+        <text x="70" y="334" fill="#4f5d75" font-size="12">支付通知走原域名。</text>
+
+        <!-- Node: public entry -->
+        <rect x="288" y="200" width="232" height="176" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="302" y="214" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">EDGE</text>
+        <text x="302" y="236" fill="#2d3142" font-size="13" font-weight="600">公开入口</text>
+        <text x="302" y="256" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">Nginx · www / img</text>
+        <line x1="302" y1="268" x2="506" y2="268" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="302" y="292" fill="#4f5d75" font-size="12">TLS 终止 · 静态站点</text>
+        <text x="302" y="312" fill="#4f5d75" font-size="12">同源 API 白名单</text>
+        <text x="302" y="332" fill="#4f5d75" font-size="12">图片域只读 :14580</text>
+        <text x="302" y="352" fill="#4f5d75" font-size="12">不持有业务数据</text>
+
+        <!-- Node: reader DB -->
+        <rect x="288" y="392" width="232" height="136" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <text x="302" y="406" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">DATA</text>
+        <text x="302" y="428" fill="#2d3142" font-size="13" font-weight="600">正式读者库</text>
+        <text x="302" y="448" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">PostgreSQL · 只读投影</text>
+        <line x1="302" y1="460" x2="506" y2="460" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="302" y="482" fill="#4f5d75" font-size="12">发布指针与投递回执</text>
+        <text x="302" y="500" fill="#4f5d75" font-size="12">只由受限身份写入</text>
+        <text x="302" y="518" fill="#4f5d75" font-size="12">读者查询不需要凭据</text>
+
+        <!-- Node: Guangzhou business services -->
+        <rect x="576" y="120" width="192" height="112" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="590" y="134" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">EDGE</text>
+        <text x="590" y="156" fill="#2d3142" font-size="13" font-weight="600">阅读与业务</text>
+        <text x="590" y="176" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">api:4311 · reader-api:4310</text>
+        <line x1="590" y1="184" x2="754" y2="184" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="590" y="204" fill="#4f5d75" font-size="12">同源查询与登录</text>
+        <text x="590" y="222" fill="#4f5d75" font-size="12">图片签发在私网</text>
+
+        <!-- Node: production execution -->
+        <rect x="784" y="256" width="192" height="112" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="798" y="270" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">PRIVATE</text>
+        <text x="798" y="292" fill="#2d3142" font-size="13" font-weight="600">制作执行</text>
+        <text x="798" y="312" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">sync · Pi · egress:18080</text>
+        <line x1="798" y1="320" x2="962" y2="320" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="798" y="340" fill="#4f5d75" font-size="12">研究 · 媒体 · 发布</text>
+        <text x="798" y="358" fill="#4f5d75" font-size="12">SQLite 仅检查点</text>
+
+        <!-- Node: data -->
+        <rect x="576" y="392" width="400" height="136" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+        <text x="590" y="406" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">DATA</text>
+        <text x="590" y="428" fill="#2d3142" font-size="13" font-weight="600">数据与接收</text>
+        <text x="590" y="448" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">PostgreSQL · receiver:5432</text>
+        <line x1="590" y1="460" x2="962" y2="460" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="590" y="482" fill="#4f5d75" font-size="12">制作库：唯一业务事实源</text>
+        <text x="590" y="500" fill="#4f5d75" font-size="12">读者库：公开投影与投递回执</text>
+        <text x="590" y="518" fill="#4f5d75" font-size="12">发布接收器：校验单集后安装</text>
+
+        <!-- Node: model gateway -->
+        <rect x="1032" y="120" width="192" height="112" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="1046" y="134" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">EGRESS</text>
+        <text x="1046" y="156" fill="#2d3142" font-size="13" font-weight="600">模型网关</text>
+        <text x="1046" y="176" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">mTLS · 供应商凭据</text>
+        <line x1="1046" y1="184" x2="1210" y2="184" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="1046" y="204" fill="#4f5d75" font-size="12">模型白名单与计量</text>
+        <text x="1046" y="222" fill="#4f5d75" font-size="12">仅广州服务可达</text>
+
+        <!-- Node: model provider -->
+        <rect x="1032" y="288" width="192" height="96" rx="6" fill="#f5f5f5" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="1046" y="304" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">VENDOR</text>
+        <text x="1046" y="326" fill="#2d3142" font-size="13" font-weight="600">模型供应商</text>
+        <text x="1046" y="346" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">境外 HTTPS 端点</text>
+        <line x1="1046" y1="354" x2="1210" y2="354" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="1046" y="374" fill="#4f5d75" font-size="12">凭据只留网关，广州不直连</text>
+
+        <!-- Node: media workers -->
+        <rect x="1032" y="400" width="192" height="128" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="1046" y="414" fill="#5a6580" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.08em">SV</text>
+        <text x="1046" y="436" fill="#2d3142" font-size="13" font-weight="600">媒体与验收</text>
+        <text x="1046" y="456" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace">调度 · 五维 · 发布</text>
+        <line x1="1046" y1="464" x2="1210" y2="464" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="1046" y="486" fill="#4f5d75" font-size="12">写验收用受限库角色</text>
+        <text x="1046" y="504" fill="#4f5d75" font-size="12">定稿只走 SSH 投递</text>
+        <text x="1046" y="522" fill="#4f5d75" font-size="12">模型调用不出硅谷</text>
+
+        <!-- Legend strip -->
+        <line x1="40" y1="624" x2="1240" y2="624" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="40" y="644" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+        <line x1="120" y1="639" x2="144" y2="639" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="150" y="643" fill="#4f5d75" font-size="12" font-weight="500">跨边界 Mesh</text>
+
+        <line x1="270" y1="639" x2="294" y2="639" stroke="#bf4520" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-accent)"/>
+        <text x="300" y="643" fill="#4f5d75" font-size="12" font-weight="500">受限凭据通道</text>
+
+        <line x1="440" y1="639" x2="464" y2="639" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="470" y="643" fill="#4f5d75" font-size="12" font-weight="500">区内连接</text>
+
+        <line x1="566" y1="639" x2="590" y2="639" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="596" y="643" fill="#4f5d75" font-size="12" font-weight="500">出站（外部）</text>
+
+<text x="1000" y="696" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace">备份：局域网 K3s · 只读快照</text>
+        <text x="40" y="696" fill="#5a6580" font-size="8" font-family="'Geist Mono', monospace">依据仓库部署文档与 Compose 绘制 · 未登录现网核对 · 迁移状态未知</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
