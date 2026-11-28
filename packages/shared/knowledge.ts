@@ -33,10 +33,12 @@ export class KnowledgeError extends Error {
     this.status = status
   }
 }
+export function serverKnowledgeApiUrl(): string {
+  return process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'
+}
+
 async function request<T>(path: string): Promise<T> {
-  const base = typeof window === 'undefined'
-    ? process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'
-    : window.location.origin
+  const base = typeof window === 'undefined' ? serverKnowledgeApiUrl() : window.location.origin
   const response = await fetch(new URL('/api/v1/knowledge/' + path, base), {
     signal: AbortSignal.timeout(12000),
   })

@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import { serverKnowledgeApiUrl } from '@anime/shared/knowledge'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
@@ -12,6 +13,6 @@ export default defineConfig({
     host: '127.0.0.1',
     port: Number(process.env.WEB_PORT ?? 4310),
     strictPort: true,
-    proxy: { '/api/v1/knowledge': process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321' },
+    proxy: { '/api/v1/knowledge': serverKnowledgeApiUrl() },
   },
 })
