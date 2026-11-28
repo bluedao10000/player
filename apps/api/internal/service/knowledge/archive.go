@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"anime-agent/api/internal/config"
 	queries "anime-agent/api/internal/repository/queries/knowledge"
 )
 
@@ -20,13 +21,9 @@ func ArchivePath(key string) (string, error) {
 	if !digestPattern.MatchString(key) {
 		return "", fmt.Errorf("invalid snapshot checksum")
 	}
-	dir := os.Getenv("KNOWLEDGE_ARCHIVE_DIR")
-	if dir == "" {
-		base, err := os.UserConfigDir()
-		if err != nil {
-			return "", err
-		}
-		dir = filepath.Join(base, "tidepost", "knowledge-archive")
+	dir, err := config.ArchiveDir()
+	if err != nil {
+		return "", err
 	}
 	return filepath.Join(dir, key[7:]), nil
 }

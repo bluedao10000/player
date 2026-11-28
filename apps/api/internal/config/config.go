@@ -1,7 +1,23 @@
 // Package config reads process configuration without mutating the environment.
 package config
 
-import "github.com/spf13/viper"
+import (
+	"os"
+	"path/filepath"
+
+	"github.com/spf13/viper"
+)
+
+// ArchiveDir returns the configured or per-user archive root. If the user
+// directory is unavailable, the path is relative and only valid for the legacy
+// model-usage outbox. Snapshot callers must propagate the error.
+func ArchiveDir() (string, error) {
+	if dir := os.Getenv("KNOWLEDGE_ARCHIVE_DIR"); dir != "" {
+		return dir, nil
+	}
+	base, err := os.UserConfigDir()
+	return filepath.Join(base, "tidepost", "knowledge-archive"), err
+}
 
 type API struct{ Host, Port string }
 type Sync struct {

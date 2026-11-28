@@ -9,14 +9,14 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"anime-agent/api/internal/config"
 )
 
 func RecoveryDir() string {
-	if dir := os.Getenv("KNOWLEDGE_ARCHIVE_DIR"); dir != "" {
-		return filepath.Join(dir, "model-usage-outbox")
-	}
-	dir, _ := os.UserConfigDir()
-	return filepath.Join(dir, "tidepost", "knowledge-archive", "model-usage-outbox")
+	// Keep the historical cwd-relative outbox when no user directory is available.
+	dir, _ := config.ArchiveDir()
+	return filepath.Join(dir, "model-usage-outbox")
 }
 
 // Store a recoverable receipt when a successful provider exchange outlives

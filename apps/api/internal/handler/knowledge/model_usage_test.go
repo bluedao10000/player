@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	routing "anime-agent/api/internal/router"
+	"anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/service/modelusage"
 	"anime-agent/api/internal/testsupport"
 	sqltest "anime-agent/api/internal/testsupport/fixtures"
@@ -144,12 +145,53 @@ func TestProviderUsageReconciliation(t *testing.T) {
 	}
 }
 
+func TestArchiveLocations(t *testing.T) {
+	const digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	check := func(want string) {
+		t.Helper()
+		if path, err := knowledge.ArchivePath("sha256:" + digest); err != nil || path != filepath.Join(want, digest) {
+			t.Fatalf("snapshot path = %q, err = %v", path, err)
+		}
+		if path := modelusage.RecoveryDir(); path != filepath.Join(want, "model-usage-outbox") {
+			t.Fatalf("outbox path = %q, want it under %q", path, want)
+		}
+	}
+	home := t.TempDir()
+	for _, env := range []string{"HOME", "home", "AppData", "XDG_CONFIG_HOME"} {
+		t.Setenv(env, home)
+	}
+	t.Setenv("KNOWLEDGE_ARCHIVE_DIR", "")
+	base, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(filepath.Join(base, "tidepost", "knowledge-archive"))
+	for _, env := range []string{"HOME", "home", "AppData", "XDG_CONFIG_HOME"} {
+		t.Setenv(env, "")
+	}
+	if path, err := knowledge.ArchivePath("sha256:" + digest); err == nil || path != "" {
+		t.Fatalf("snapshot without a root = %q, err = %v", path, err)
+	}
+	if got := modelusage.RecoveryDir(); got != filepath.Join("tidepost", "knowledge-archive", "model-usage-outbox") {
+		t.Fatalf("legacy outbox = %q", got)
+	}
+	for _, override := range []string{home, "relative archive"} {
+		t.Setenv("KNOWLEDGE_ARCHIVE_DIR", override)
+		check(override)
+	}
+}
+
 // The offline image CLI can finish a paid request while PostgreSQL is unavailable.
 // Recovery may see the terminal file before the start file.
 func TestOfflineModelUsageImport(t *testing.T) {
 	ctx := context.Background()
 	db := testsupport.Database(t)
-	dir := t.TempDir()
+	// Seed the historical path independently of the resolver used for replay.
+	t.Chdir(t.TempDir())
+	for _, env := range []string{"HOME", "home", "AppData", "XDG_CONFIG_HOME", "KNOWLEDGE_ARCHIVE_DIR"} {
+		t.Setenv(env, "")
+	}
+	dir := filepath.Join("tidepost", "knowledge-archive", "model-usage-outbox")
 	start := time.Now().UTC()
 	e := modelusage.Event{ID: modelusage.NewID(), Purpose: "image", Operation: "images/edits", Subject: "preview:fixture", Endpoint: "https://fixture.invalid/v1", Model: "art", Started: start, Outcome: "started"}
 	if err := modelusage.Deliver(ctx, nil, dir, e); err != nil {
@@ -166,7 +208,7 @@ func TestOfflineModelUsageImport(t *testing.T) {
 		t.Fatal("invalid offline receipt", err)
 	}
 	for i := 0; i < 2; i++ {
-		if err := modelusage.Replay(ctx, db, dir); err != nil {
+		if err := modelusage.Replay(ctx, db, modelusage.RecoveryDir()); err != nil {
 			t.Fatal(err)
 		}
 	}
