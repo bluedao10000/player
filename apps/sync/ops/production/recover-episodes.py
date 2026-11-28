@@ -108,6 +108,26 @@ def source(job):
     prior = receipts.get("source_discovery")
     payload.update(priorDiscovery=prior, priorRule=receipts.get("source_rule"), sourceCandidates=job.get("sourceCandidates"))
     result = run_source_agent({**payload, "reuseOnly": True}) if sample.get("official") else {}
+    if not result.get("verified") and not result.get("sourcePairReady"):
+        # A different registered publisher for this edition may already have a
+        # verifiable episode URL. Try one such pair before reserving a model call.
+        alternate = sql("""SELECT jsonb_build_object('number',number,'spec',spec) FROM episode_plans
+          WHERE world_slug=:'world' AND number<>:'number'::int AND spec->'sourceRules'->>'guide'='paired'
+            AND split_part(spec->>'official','/',3)<>:'host'
+          ORDER BY abs(number-:'number'::int),number LIMIT 1;""",
+          world=job["world"], number=number, host=urlparse(sample["official"]).netloc)
+        if alternate:
+            entry = json.loads(alternate)
+            spec = entry["spec"]
+            reference = target(entry["number"])
+            delta = (spec.get("sourceNumber") or reference["sourceNumber"]) - reference["number"]
+            reference.update(official=spec["official"], guide=spec["guide"], sourceNumber=reference["number"]+delta)
+            alternative = {**payload, "sample": reference, "target": {**current, "sourceNumber":number+delta},
+                "domains":[urlparse(reference[k]).hostname for k in ("official","guide")],
+                "reusable":spec, "reuseOnly":True}
+            probe = run_source_agent(alternative)
+            if probe.get("verified"):
+                result = probe
     if not result.get("verified"):
         # Hold the request lock while opening a reservation. Leave the planning lane paused.
         reserved = sql(r"""BEGIN;

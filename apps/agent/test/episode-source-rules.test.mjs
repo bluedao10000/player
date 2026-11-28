@@ -243,3 +243,14 @@ test('single-episode chapter articles can supply scene paragraphs without import
   assert.throws(()=>extractEpisodeSource(raw('第4話'),rule,target),/容器/)
   assert.throws(()=>extractEpisodeSource(raw('港'),{...rule,body:'p.summary'},target),/容器/)
 })
+
+test('a guide search result must print the registered work, number and catalog subtitle',async()=>{
+  const { discoverRegisteredCandidates } = await import('../src/episode-source-candidates.ts')
+  const base='https://guide.test/previous', next='https://guide.test/next'
+  const get=async url => url===base ? '<h1>『物語』第3話 感想</h1><form action="/"><input name="s"></form>'
+    : url.includes('?s=') ? '<a href="/next">『物語』第4話 感想</a>'
+    : url===next ? '<article><h1>『物語』第4話 感想</h1><div class="entry-content"><p>第4話「帰還」です。</p></div></article>' : ''
+  const sample={number:3,title:'出発',official:'https://publisher.test/3',guide:base}
+  assert.equal((await discoverRegisteredCandidates(sample,{number:4,title:'帰還'},get)).guide,next)
+  assert.equal((await discoverRegisteredCandidates(sample,{number:4,title:'別の題'},get)).guide,undefined)
+})

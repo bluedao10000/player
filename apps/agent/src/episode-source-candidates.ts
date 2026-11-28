@@ -99,6 +99,18 @@ export async function discoverRegisteredCandidates(
       )
       if (urls.size === 1) return [...urls][0]
     }
+    async function chooseSearchResult(entries: ReturnType<typeof links>) {
+      const exact = choose(entries)
+      if (exact || !series || official) return exact
+      // Some review headlines print the work and episode number, while the
+      // canonical subtitle appears only in the opening paragraphs.
+      const related = [...new Set(entries.filter(a => episodeLabel.test(a.text) && a.text.includes(norm(series))).map(a => a.url))]
+      if (related.length !== 1) return
+      const page = load(await read(related[0]))
+      const headline = norm(page('article h1').text())
+      const opening = page('article .entry-content > p').slice(0,3).toArray().map(e=>norm(page(e).text()))
+      if (headline.includes(norm(series)) && episodeLabel.test(headline) && opening.some(text=>text.includes(title))) return related[0]
+    }
     const direct = choose(anchors)
     if (direct) return direct
     const candidates = examples.flatMap((entry) => {
@@ -143,7 +155,7 @@ export async function discoverRegisteredCandidates(
                   new URL(e.url).origin === search.origin,
               )
               .map((e) => ({ url: e.url as string, text: norm(load(e.title).text()) }))
-            const match = choose(candidates)
+            const match = await chooseSearchResult(candidates)
             if (match) return match
           }
         } catch {
@@ -160,7 +172,7 @@ export async function discoverRegisteredCandidates(
         const search = new URL(action, base)
         if (search.origin === new URL(base).origin && !search.username && !search.password) {
           search.searchParams.set('s', target.title)
-          const match = choose(links(await read(search.href), search.href))
+          const match = await chooseSearchResult(links(await read(search.href), search.href))
           if (match) return match
         }
       }
