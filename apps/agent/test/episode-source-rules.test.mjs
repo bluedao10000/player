@@ -218,3 +218,17 @@ test('a publisher search form can recover a guide when its REST endpoint is disa
   )
   assert.equal(result.guide, 'https://guide.test/next')
 })
+
+test('rule generation sees publisher metadata when the visible page has no synopsis', async () => {
+  const samples = cases.map(({number,title}) => ({number,title,official:'https://publisher.test/'+number}))
+  const rule = {kind:'html_episode_article', heading:'meta[property="og:title"]', body:'meta[property="og:description"]'}
+  const verified = await validateEpisodeSourceProposal(samples, async sample => {
+    assert.equal(sample.official.metadata[0].content, '第3話 分集3')
+    assert.equal(sample.official.metadata[1].content, officialBody(3))
+    return {value:{officialRule:rule}}
+  }, async url => {
+    const number = Number(new URL(url).pathname.slice(1))
+    return `<head><meta property="og:title" content="第${number}話 分集${number}"><meta property="og:description" content="${officialBody(number)}"></head><body></body>`
+  })
+  assert.equal(verified.proofs.official.length, 2)
+})

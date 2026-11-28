@@ -29,7 +29,9 @@ function describe(raw: string, title: string) {
   const scope = section?.length ? section : root
   const blocks = scope.find('h1,h2,h3,h4,p,b,strong').toArray().filter((el) => $(el).text().trim())
   blocks.sort((a,b) => Number($(b).text().includes(title)) - Number($(a).text().includes(title)))
-  return { format: 'html', blocks: blocks.slice(0, 22).map((el) => ({
+  const metadata = $('head meta[property="og:title"],head meta[property="og:description"]').slice(0, 4)
+    .toArray().map(el => ({ property: $(el).attr('property'), content: $(el).attr('content')?.slice(0, 180) }))
+  return { format: 'html', metadata, blocks: blocks.slice(0, 22).map((el) => ({
     ancestors: $(el).parents().slice(0, 5).toArray().map(parent => [parent.name, $(parent).attr('class')]),
     parent: { tag: el.parent?.type === 'tag' ? el.parent.name : undefined, class: $(el).parent().attr('class') },
     tag: el.tagName, class: $(el).attr('class'), id: $(el).attr('id'), text: $(el).text().trim().slice(0, 75),

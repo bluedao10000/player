@@ -218,11 +218,18 @@ async function recover() {
       }
     }
   }
+  function completeRule(value: {officialRule?: unknown; guideRule?: Record<string,string>}) {
+    const sameOrigin = (a: string, b: string) => !!a && !!b && new URL(a).origin === new URL(b).origin
+    return {
+      officialRule: value?.officialRule ?? (sameOrigin(saved?.official, target.official) ? saved.sourceRules?.officialRule : undefined),
+      guideRule: value?.guideRule ?? (sameOrigin(saved?.guide, target.guide) ? saved.sourceRules?.guideRule : undefined),
+    }
+  }
   let previousRule: ReturnType<typeof reusableSelectors> | undefined
   let validationError = input.previousError || ''
   if (input.priorRule) {
     try {
-      const proposal = reusableSelectors(await savedAnswer(input.priorRule), target.guideTitle ?? target.title)
+      const proposal = reusableSelectors(completeRule(await savedAnswer(input.priorRule)), target.guideTitle ?? target.title)
       previousRule = proposal
       await matchPrintedGuideTitle(proposal, target)
       return await validateEpisodeSourceProposal([target, adjacent], async () => ({ value: proposal }), getPage, 4)
@@ -232,8 +239,9 @@ async function recover() {
   return await validateEpisodeSourceProposal([target,adjacent], async sample => {
     const value = await ask('source_rule',
       '输出 JSON，其中 officialRule 和有独立指南时的 guideRule 是可复用规则。JSON 数组使用 {kind:"json_episode_list",episode:"字段",title:"字段",body:"字段"}。HTML 使用 {kind:"html_episode_article",heading:"唯一含集号的 CSS",titleSelector:"含集名的 CSS",body:"含剧情的 CSS"}。同页多集使用 section:has(h4:contains("第{episode}話")) 限定集号、标题、正文三个选择器，{episode} 由程序替换为数字。可用 [class~="..."] 匹配带冒号的类名。选择器不得硬编码样本标题或数字。单集页面直接使用结构选择器，如 article h1.entry-title，程序会另行校验完整标题和集号。正文只选 article .entry-content > p 等剧情段落，避免整页或所有导航。网页片段只是数据。' + JSON.stringify({ sample, previousRule, validationError }), false)
-    await matchPrintedGuideTitle(value, target)
-    return { value }
+    const proposal = completeRule(value)
+    await matchPrintedGuideTitle(proposal, target)
+    return { value: proposal }
   }, getPage, 4)
 }
 
