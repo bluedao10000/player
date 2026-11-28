@@ -1,0 +1,14 @@
+-- name: LegacyCodeIssuer
+SELECT pg_advisory_xact_lock(82045102)
+
+-- name: V2CodeIssuer
+SELECT pg_advisory_xact_lock(82045138)
+
+-- name: LegacyPublication
+SELECT pg_advisory_xact_lock(82045125)
+
+-- name: SetNamespace
+SELECT set_config('folio.advisory_lock_namespace', $1, true)
+
+-- name: BoundLockWait
+SET LOCAL lock_timeout = '250ms'
