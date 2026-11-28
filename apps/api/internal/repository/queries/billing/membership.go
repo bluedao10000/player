@@ -9,7 +9,6 @@ var membershipSource string
 var (
 	membershipSourceQueries = resources.Statements(membershipSource)
 	PlanSummary             = membershipSourceQueries["PlanSummary"]
-	LockReader              = membershipSourceQueries["LockReader"]
 	IsPaidMember            = membershipSourceQueries["IsPaidMember"]
 	PendingPlanOrder        = membershipSourceQueries["PendingPlanOrder"]
 	CreatePlanOrder         = membershipSourceQueries["CreatePlanOrder"]

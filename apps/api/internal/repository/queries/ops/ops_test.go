@@ -89,7 +89,7 @@ func TestOpsSourceAndWorkItemMappings(t *testing.T) {
 	for _, statement := range []string{
 		sqltest.SeedOpsSyncRuns,
 		sqltest.SeedOpsWorlds,
-		sqltest.SeedOpsMediaBatchWorlds,
+		ops.SeedOpsMediaBatchWorlds,
 		sqltest.SeedOpsQualityRuns,
 		sqltest.SeedOpsProductionRequests,
 		sqltest.SeedOpsConfigurationRuns,

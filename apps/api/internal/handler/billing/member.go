@@ -11,8 +11,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/smartwalle/alipay/v3"
 
-	domain "anime-agent/api/internal/service/billing"
 	queries "anime-agent/api/internal/repository/queries/billing"
+	"anime-agent/api/internal/repository/queries/reader"
+	domain "anime-agent/api/internal/service/billing"
 )
 
 var planOrderNumber = regexp.MustCompile("^MP[0-9a-f]{32}$")
@@ -47,7 +48,7 @@ func PlanRoutes(g *gin.RouterGroup, db *pgxpool.Pool) {
 		var expires time.Time
 		err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
 			var lock string
-			if err := tx.QueryRow(ctx, queries.LockReader, owner).Scan(&lock); err != nil {
+			if err := tx.QueryRow(ctx, reader.LockReader, owner).Scan(&lock); err != nil {
 				return err
 			}
 			var active bool

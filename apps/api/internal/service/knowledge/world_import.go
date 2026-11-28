@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	queries "anime-agent/api/internal/repository/queries/knowledge"
+	"anime-agent/api/internal/repository/queries/ops"
 )
 
 //go:embed worlddata/*.json
@@ -182,7 +183,7 @@ func importWorld(ctx context.Context, conn *pgx.Conn, s source, run string, st *
 		if e != nil {
 			return e
 		}
-		if _, e = tx.Exec(ctx, queries.SeedImportedWorldMediaBatchWorlds); e != nil {
+		if _, e = tx.Exec(ctx, ops.SeedOpsMediaBatchWorlds); e != nil {
 			return e
 		}
 		_, e = tx.Exec(ctx, queries.SetHomeSlot, w.Position, work)
