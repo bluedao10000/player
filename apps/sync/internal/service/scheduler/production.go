@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -74,7 +75,7 @@ func RunLane(ctx context.Context, db *pgxpool.Pool, lane, agent string) error {
 			addCycleError(ctx, &workErr, "media", knowledge.SyncMedia(ctx, db, agent))
 		}
 		workReporter.record(ctx, workErr, nil)
-		reportLoop(ctx, usageReporter, "usage", modelusage.Pull(ctx, db, agent))
+		reportLoop(ctx, usageReporter, "usage", syncLaneUsage(ctx, db, lane, agent))
 		select {
 		case <-ctx.Done():
 			return nil
@@ -82,4 +83,13 @@ func RunLane(ctx context.Context, db *pgxpool.Pool, lane, agent string) error {
 		}
 	}
 	return nil
+}
+
+func syncLaneUsage(ctx context.Context, db *pgxpool.Pool, lane, agent string) error {
+	pullErr := modelusage.Pull(ctx, db, agent)
+	// The two lanes share an archive. Only an opted-in research lane consumes its files.
+	if lane == "research" && os.Getenv(modelusage.LegacyOutboxEnv) != "" {
+		return errors.Join(pullErr, modelusage.ReplayConfigured(ctx, db))
+	}
+	return pullErr
 }

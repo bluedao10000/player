@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,10 +14,17 @@ import (
 	"anime-agent/api/internal/config"
 )
 
+const LegacyOutboxEnv = "KNOWLEDGE_LEGACY_USAGE_OUTBOX"
+
+func recoveryDir() (string, error) {
+	root, err := config.ArchiveDir()
+	return filepath.Join(root, "model-usage-outbox"), err
+}
+
 func RecoveryDir() string {
-	// Keep the historical cwd-relative outbox when no user directory is available.
-	dir, _ := config.ArchiveDir()
-	return filepath.Join(dir, "model-usage-outbox")
+	// Keep the historical cwd-relative write location when no user directory is available.
+	dir, _ := recoveryDir()
+	return dir
 }
 
 // Store a recoverable receipt when a successful provider exchange outlives
@@ -64,9 +72,36 @@ func Deliver(ctx context.Context, db *pgxpool.Pool, dir string, e Event) error {
 	return d.Sync()
 }
 
+// ReplayConfigured checks both inputs even when one fails. A missing active
+// outbox is normal unless the only recovery path is an uncertain cwd fallback.
+func ReplayConfigured(ctx context.Context, db *pgxpool.Pool) error {
+	active, rootErr := recoveryDir()
+	legacy := os.Getenv(LegacyOutboxEnv)
+	activeErr := replayDir(ctx, db, active, rootErr == nil || legacy != "")
+	if legacy == "" {
+		if rootErr != nil && errors.Is(activeErr, os.ErrNotExist) {
+			return fmt.Errorf("%w (archive root: %v; set %s to the absolute historical outbox path)", activeErr, rootErr, LegacyOutboxEnv)
+		}
+		return activeErr
+	}
+	if !filepath.IsAbs(legacy) {
+		return errors.Join(activeErr, fmt.Errorf("%s must be an absolute outbox path", LegacyOutboxEnv))
+	}
+	legacyErr := Replay(ctx, db, legacy)
+	if legacyErr != nil {
+		legacyErr = fmt.Errorf("%s: %w", LegacyOutboxEnv, legacyErr)
+	}
+	return errors.Join(activeErr, legacyErr)
+}
+
+// Replay imports an explicitly supplied directory. Its absence is an error.
 func Replay(ctx context.Context, db *pgxpool.Pool, dir string) error {
+	return replayDir(ctx, db, dir, false)
+}
+
+func replayDir(ctx context.Context, db *pgxpool.Pool, dir string, missingOK bool) error {
 	files, err := os.ReadDir(dir)
-	if errors.Is(err, os.ErrNotExist) {
+	if missingOK && errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
@@ -86,10 +121,10 @@ func Replay(ctx context.Context, db *pgxpool.Pool, dir string) error {
 		}
 		var e Event
 		if err = json.Unmarshal(b, &e); err != nil {
-			return err
+			return fmt.Errorf("decode %s: %w", path, err)
 		}
 		if err = Save(ctx, db, e); err != nil {
-			return err
+			return fmt.Errorf("save %s: %w", path, err)
 		}
 		if err = os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err

@@ -123,6 +123,7 @@ services:
     restart: unless-stopped
     environment:
       <<: *database
+      KNOWLEDGE_LEGACY_USAGE_OUTBOX: ${KNOWLEDGE_LEGACY_USAGE_OUTBOX:-}
       APP_VERSION: ${APP_VERSION:-dev}
       EPISODE_PLAN_DIR: /episode-plans
       EPISODE_BUDGET_BIND: 0.0.0.0:14328
