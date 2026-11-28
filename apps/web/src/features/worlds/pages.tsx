@@ -1,3 +1,4 @@
+import { chapterReading } from '../reader/chapter-reading'
 import { imageUrl } from '../../lib/images'
 import { Icon } from '../post/icons'
 import { Button, Layout, SectionHeader } from '../post/design'
@@ -351,17 +352,9 @@ function Sources({ items }: { items: ChapterDetail['attribution'] }) {
   )
 }
 
-export function ChapterPage({
-  work,
-  chapter,
-  blocks,
-  research,
-  reader_passages,
-  accepted_art,
-  next_chapter,
-  scenes,
-  attribution,
-}: ChapterDetail) {
+export function ChapterPage(page: ChapterDetail) {
+  const { work, chapter, research, accepted_art, next_chapter, scenes, attribution } = page
+  const reading = chapterReading(page)
   return (
     <Layout active="stories">
       <WorldTrail work={work} />
@@ -394,40 +387,28 @@ export function ChapterPage({
       )}
       <article className="column world-reading" id="chapter-body">
         <Save href={chapter.href} title={chapter.title} work={work.title} />
-        {reader_passages && (
+        {reading.kind === 'research' ? (
+          <>
+            <section className="episode-guide" aria-label="本集剧情">
+              <div className="prose">
+                {reading.paragraphs.map((p, i) => (
+                  <p key={p.key} id={`reading-${p.key}`} data-block={i + 1}>{p.text}</p>
+                ))}
+              </div>
+            </section>
+            {reading.blocks.map((b) => (
+              <aside className="scene-passage" key={b.key}>
+                <small>{scenes.find((s) => b.anchors.includes('passage-' + s.slug))?.title}</small>
+                <ReadingBlocks blocks={[b]} />
+              </aside>
+            ))}
+          </>
+        ) : (
           <ReadingBlocks
-            blocks={reader_passages}
-            illustrations={accepted_art ?? []}
+            blocks={reading.blocks}
+            illustrations={reading.kind === 'published' ? accepted_art ?? [] : undefined}
           />
         )}
-        {!reader_passages && research && (
-          <section className="episode-guide" aria-label="本集剧情">
-            <div className="prose">
-              {research.paragraphs.map((p, i) => (
-                <p key={i} id={`reading-research-${i + 1}`} data-block={i + 1}>{p.text}</p>
-              ))}
-            </div>
-          </section>
-        )}
-        {!reader_passages &&
-          (research ? (
-            blocks
-              .filter((b) => b.anchors.length > 0)
-              .map((b) => (
-                <aside className="scene-passage" key={b.key}>
-                  <small>
-                    {
-                      scenes.find((s) =>
-                        b.anchors.includes('passage-' + s.slug),
-                      )?.title
-                    }
-                  </small>
-                  <ReadingBlocks blocks={[b]} />
-                </aside>
-              ))
-          ) : (
-            <ReadingBlocks blocks={blocks} />
-          ))}
         {scenes.map((s) => (
           <SceneLink key={s.slug} scene={s} />
         ))}

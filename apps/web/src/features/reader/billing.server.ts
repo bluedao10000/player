@@ -1,3 +1,4 @@
+import { serverKnowledgeApiUrl } from '@anime/shared/knowledge'
 import { readBody } from '../../lib/request-body.server'
 
 export async function billingNotification(request: Request) {
@@ -32,7 +33,7 @@ export async function billingNotification(request: Request) {
         '/api/billing/alipay/notify',
         legacy
           ? 'https://r.codeiy.com'
-          : (process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'),
+          : serverKnowledgeApiUrl(),
       ),
       {
         method: 'POST',

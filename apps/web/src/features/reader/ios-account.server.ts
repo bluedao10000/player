@@ -1,3 +1,4 @@
+import { serverKnowledgeApiUrl } from '@anime/shared/knowledge'
 import { readBody } from '../../lib/request-body.server'
 
 const gets = ['state', 'membership', 'native/challenge']
@@ -13,7 +14,7 @@ export async function iosAccountRequest(request: Request, path: string) {
   try { if (post) body = await readBody(request, path === 'merge' ? 512*1024 : 128*1024) }
   catch { return new Response(null, {status:413, headers}) }
   try {
-    const r = await fetch(new URL('/api/v1/reader/' + path, process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321'), {
+    const r = await fetch(new URL('/api/v1/reader/' + path, serverKnowledgeApiUrl()), {
       method: request.method, redirect:'error', headers: {'Content-Type': 'application/json',
       Authorization: request.headers.get('authorization') ?? '', 'X-Reader-ID': request.headers.get('x-reader-id') ?? ''},
       body, signal: AbortSignal.timeout(15000),

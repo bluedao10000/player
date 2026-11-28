@@ -71,7 +71,7 @@ func Run(ctx context.Context, db *pgxpool.Pool, cfg config.Sync, options Options
 			reporter := newLoopReporter(db, node, "sync", "usage", 5*time.Second, false)
 			for ctx.Err() == nil {
 				var cycleErr error
-				addCycleError(ctx, &cycleErr, "model receipt recovery", modelusage.Replay(ctx, db, modelusage.RecoveryDir()))
+				addCycleError(ctx, &cycleErr, "model receipt recovery", modelusage.ReplayConfigured(ctx, db))
 				if base != "" {
 					addCycleError(ctx, &cycleErr, "model usage sync", modelusage.Pull(ctx, db, base))
 				}

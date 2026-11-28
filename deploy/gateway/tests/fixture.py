@@ -37,6 +37,13 @@ class Service(BaseHTTPRequestHandler):
                 "blocks": [{"key": "first", "text": "测试章节正文", "anchors": ["passage-unstamped-letter"]}],
                 "scenes": [], "chapter_cast": [],
             }
+        elif path == "/api/v1/knowledge/worlds/tidepost/chapters/legacy":
+            data = {
+                "work": world, "chapter": {**chapter, "slug": "legacy", "href": "/work/tidepost/chapter/legacy"},
+                "research": {"paragraphs": [{"text": "旧版导读正文"}]},
+                "blocks": [{"key": "pier", "text": "码头的场景", "anchors": ["passage-pier", "old-pier"]}],
+                "scenes": [], "attribution": [],
+            }
         elif path == "/api/v1/knowledge/worlds/tidepost/scenes/unstamped-letter":
             data = {
                 "work": world, "chapter": chapter, "scene": {"title": "邮局的灯", "place": "邮局", "text": "回到章节"},

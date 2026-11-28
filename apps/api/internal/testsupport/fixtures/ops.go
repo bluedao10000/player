@@ -11,7 +11,6 @@ var opsQueries = resources.Statements(opsSource)
 var (
 	SeedOpsSyncRuns                  = opsQueries["SeedOpsSyncRuns"]
 	SeedOpsWorlds                    = opsQueries["SeedOpsWorlds"]
-	SeedOpsMediaBatchWorlds          = opsQueries["SeedOpsMediaBatchWorlds"]
 	OpsExpectedBatchMappingCount     = opsQueries["OpsExpectedBatchMappingCount"]
 	SeedOpsQualityRuns               = opsQueries["SeedOpsQualityRuns"]
 	SeedOpsProductionRequests        = opsQueries["SeedOpsProductionRequests"]

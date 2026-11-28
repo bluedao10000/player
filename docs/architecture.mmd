@@ -30,7 +30,7 @@ flowchart TB
   publish -->|Mesh 内网投递| online
   readers -->|img.codeiy.com 经 Nginx 与私网| media
   backup -->|Mesh 只读快照| pg
-%% readers | H5 与 iOS 共享公开阅读契约和段落锚点。 | apps/ios/server/reader.server.ts
+%% readers | H5 与 iOS 共享公开阅读契约和段落锚点。 | apps/web/src/features/reader/ios-data.server.ts
 %% api | 在线 Gin 提供正式站公开读模型和读者业务。 | apps/api/internal/handler/knowledge/world_api.go
 %% localsync | 本地 Compose 的 sync、数据库和 Pi 实例互相配合。 | deploy/docker-compose.yml
 %% sync | 广州校验缺口并自动登记配置，硅谷执行媒体处理与五维验收。本地 Compose 运行同样的业务代码。 | apps/sync/internal/service/scheduler/production.go

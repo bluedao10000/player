@@ -5,12 +5,45 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+
+	"anime-agent/api/internal/repository/queries"
+	"anime-agent/api/internal/repository/queries/ops"
+	"anime-agent/api/internal/repository/queries/reader"
 )
+
+func TestSharedQueryOwners(t *testing.T) {
+	owners := map[string]string{
+		strings.TrimSpace(reader.LockReader):           "reader.LockReader",
+		strings.TrimSpace(ops.SeedOpsMediaBatchWorlds): "ops.SeedOpsMediaBatchWorlds",
+	}
+	counts := map[string]int{}
+	for _, pattern := range []string{"../queries/*/*.queries", "../../testsupport/fixtures/*.queries"} {
+		files, err := filepath.Glob(pattern)
+		if err != nil || len(files) == 0 {
+			t.Fatalf("no SQL resources for %s: %v", pattern, err)
+		}
+		for _, file := range files {
+			source, err := os.ReadFile(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, sql := range queries.Statements(string(source)) {
+				counts[strings.TrimSpace(sql)]++
+			}
+		}
+	}
+	for sql, owner := range owners {
+		if counts[sql] != 1 {
+			t.Errorf("%s: expected one SQL definition, got %d", owner, counts[sql])
+		}
+	}
+}
 
 // Inspect decoded Go string literals so multiline queries, fixtures and command
 // binaries are covered without matching SQL mentioned in ordinary comments.

@@ -20,9 +20,6 @@ INSERT INTO world_releases VALUES($1,$2)
 -- name: RegisterEditionWorld
 INSERT INTO work_worlds(work_id,version_id,slug,name,edition,intro,cast_title,origin) VALUES($1,$2,$3,$4,$5,$6,'登场人物','external')
 
--- name: SeedOpsMediaBatchWorlds
-SELECT ops_seed_media_batch_worlds()
-
 -- name: AppendHomeSlot
 INSERT INTO home_world_slots SELECT coalesce(max(position),0)+1,$1 FROM home_world_slots
 

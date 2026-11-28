@@ -1,6 +1,6 @@
 import { isIP } from 'node:net'
 import { serve } from 'srvx/node'
-import { iosReaderResponse } from '../../ios/server/reader.server'
+import { iosReaderResponse } from './features/reader/ios-data.server'
 import { authRequest } from './features/reader/proxy.server'
 import { billingNotification } from './features/reader/billing.server'
 import { iosAccountRequest } from './features/reader/ios-account.server'

@@ -28,6 +28,8 @@ open AnimeApp.xcodeproj
 
 ## 阅读接口
 
+`/ios-data/v1` 是 Swift 客户端消费的 HTTP 契约。[阅读投影](../web/src/features/reader/ios-data.server.ts)由 Web 工程构建，在开发路由与独立 Reader API 中复用；原生工程不参与适配器镜像构建。
+
 正式站的[作品目录](https://www.codeiy.com/ios-data/v1/discovery)可以直接在设备上打开。读取支持 GET 和 HEAD，其他方法返回 405。
 
 App 从内容站读取下表的 GET 路径，图像 URL 使用 `https://img.codeiy.com/i/…`。服务端按字段返回发布内容。人物、章节和场景 slug 以所属作品为作用域。场景的 anchor 与章节 blocks 中的 anchors 对应。

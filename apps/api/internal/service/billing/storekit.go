@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	queries "anime-agent/api/internal/repository/queries/billing"
+	"anime-agent/api/internal/repository/queries/reader"
 )
 
 //go:embed applecert/AppleRootCA-G3.cer
@@ -119,7 +120,7 @@ func RecordStore(ctx context.Context, db *pgxpool.Pool, t StoreTransaction, owne
 	}
 	return pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
 		var id string
-		if e := tx.QueryRow(ctx, queries.LockReader, owner).Scan(&id); e != nil {
+		if e := tx.QueryRow(ctx, reader.LockReader, owner).Scan(&id); e != nil {
 			return e
 		}
 		var revoked *time.Time

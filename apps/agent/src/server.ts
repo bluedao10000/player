@@ -14,6 +14,7 @@ import { runProductionModel } from './production-model.ts'
 import { streamWorkbenchRun } from './workbench.ts'
 import { research } from './research.ts'
 import { ExecutionCounters, readAgentStatus } from './executions.ts'
+import { readRequestText } from './request-body.ts'
 import { health } from '@anime/shared'
 
 const path = process.env.AGENT_DB_PATH ?? join(homedir(), '.local/share/folio/agent.sqlite')
@@ -87,20 +88,9 @@ const server = createServer(async (req, res) => {
   }
   if (req.method === 'POST' && req.url === '/internal/media') {
     try {
-      const chunks: Buffer[] = []
-      let size = 0
-      for await (const chunk of req) {
-        size += chunk.length
-        if (size > 4096) {
-          res.writeHead(413).end()
-          return
-        }
-        chunks.push(chunk)
-      }
-      const result = await mediaStatus(
-        harness,
-        JSON.parse(Buffer.concat(chunks).toString()),
-      )
+      const body = await readRequestText(req, res, 4096)
+      if (body === null) return
+      const result = await mediaStatus(harness, JSON.parse(body))
       res
         .writeHead(200, { 'Content-Type': 'application/json' })
         .end(JSON.stringify(result))
@@ -136,23 +126,15 @@ const server = createServer(async (req, res) => {
   if (req.method === 'POST' && planning) {
     const stopExecution = executionCounters.start('planning')
     try {
-      const parts: Buffer[] = []
-      let bytes = 0
-      for await (const part of req) {
-        bytes += part.length
-        if (bytes > 100000) {
-          res.writeHead(413).end()
-          return
-        }
-        parts.push(part)
-      }
+      const body = await readRequestText(req, res, 100000)
+      if (body === null) return
       const result = await runProductionModel(
         dirname(path),
         planning[1],
         Number(planning[2]),
         Number(planning[3]),
         'planning',
-        Buffer.concat(parts).toString(),
+        body,
       )
       res
         .writeHead(200, { 'Content-Type': 'application/json' })
@@ -175,14 +157,9 @@ const server = createServer(async (req, res) => {
   if (req.method === 'POST' && route) {
     const stopExecution = executionCounters.start('research')
     try {
-      const chunks: Buffer[] = []
-      let size = 0
-      for await (const chunk of req) {
-        size += chunk.length
-        if (size > 160 * 1024) { res.writeHead(413).end(); return }
-        chunks.push(chunk)
-      }
-      const result = await research(dirname(path), route[1], route[2], Buffer.concat(chunks).toString('utf8'))
+      const body = await readRequestText(req, res, 160 * 1024)
+      if (body === null) return
+      const result = await research(dirname(path), route[1], route[2], body)
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result))
     } catch (err) {
       const message = err instanceof Error ? err.message : '取证失败'

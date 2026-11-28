@@ -3,6 +3,7 @@ package knowledge_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	routing "anime-agent/api/internal/router"
+	"anime-agent/api/internal/service/knowledge"
 	"anime-agent/api/internal/service/modelusage"
 	"anime-agent/api/internal/testsupport"
 	sqltest "anime-agent/api/internal/testsupport/fixtures"
@@ -144,12 +146,54 @@ func TestProviderUsageReconciliation(t *testing.T) {
 	}
 }
 
+func TestArchiveLocations(t *testing.T) {
+	const digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	check := func(want string) {
+		t.Helper()
+		if path, err := knowledge.ArchivePath("sha256:" + digest); err != nil || path != filepath.Join(want, digest) {
+			t.Fatalf("snapshot path = %q, err = %v", path, err)
+		}
+		if path := modelusage.RecoveryDir(); path != filepath.Join(want, "model-usage-outbox") {
+			t.Fatalf("outbox path = %q, want it under %q", path, want)
+		}
+	}
+	home := t.TempDir()
+	for _, env := range []string{"HOME", "home", "AppData", "XDG_CONFIG_HOME"} {
+		t.Setenv(env, home)
+	}
+	t.Setenv("KNOWLEDGE_ARCHIVE_DIR", "")
+	base, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(filepath.Join(base, "tidepost", "knowledge-archive"))
+	for _, env := range []string{"HOME", "home", "AppData", "XDG_CONFIG_HOME"} {
+		t.Setenv(env, "")
+	}
+	if path, err := knowledge.ArchivePath("sha256:" + digest); err == nil || path != "" {
+		t.Fatalf("snapshot without a root = %q, err = %v", path, err)
+	}
+	if got := modelusage.RecoveryDir(); got != filepath.Join("tidepost", "knowledge-archive", "model-usage-outbox") {
+		t.Fatalf("legacy outbox = %q", got)
+	}
+	for _, override := range []string{home, "relative archive"} {
+		t.Setenv("KNOWLEDGE_ARCHIVE_DIR", override)
+		check(override)
+	}
+}
+
 // The offline image CLI can finish a paid request while PostgreSQL is unavailable.
 // Recovery may see the terminal file before the start file.
 func TestOfflineModelUsageImport(t *testing.T) {
 	ctx := context.Background()
 	db := testsupport.Database(t)
-	dir := t.TempDir()
+	// Seed the historical path independently of the resolver used for replay.
+	writer := t.TempDir()
+	t.Chdir(writer)
+	for _, env := range []string{"HOME", "home", "AppData", "XDG_CONFIG_HOME", "KNOWLEDGE_ARCHIVE_DIR", "KNOWLEDGE_LEGACY_USAGE_OUTBOX"} {
+		t.Setenv(env, "")
+	}
+	dir := filepath.Join("tidepost", "knowledge-archive", "model-usage-outbox")
 	start := time.Now().UTC()
 	e := modelusage.Event{ID: modelusage.NewID(), Purpose: "image", Operation: "images/edits", Subject: "preview:fixture", Endpoint: "https://fixture.invalid/v1", Model: "art", Started: start, Outcome: "started"}
 	if err := modelusage.Deliver(ctx, nil, dir, e); err != nil {
@@ -165,17 +209,85 @@ func TestOfflineModelUsageImport(t *testing.T) {
 	if err != nil || strings.Contains(string(receipt), "private-content") {
 		t.Fatal("invalid offline receipt", err)
 	}
-	for i := 0; i < 2; i++ {
-		if err := modelusage.Replay(ctx, db, dir); err != nil {
+	legacy := filepath.Join(writer, dir)
+	t.Chdir(t.TempDir())
+	for _, wrong := range []string{"", dir, filepath.Join(legacy, "missing"), filepath.Join(legacy, e.ID+"-ok.json")} {
+		t.Setenv("KNOWLEDGE_LEGACY_USAGE_OUTBOX", wrong)
+		if err := modelusage.ReplayConfigured(ctx, db); err == nil || !strings.Contains(err.Error(), "KNOWLEDGE_LEGACY_USAGE_OUTBOX") {
+			t.Fatalf("legacy path %q: got %v", wrong, err)
+		}
+	}
+	if err := modelusage.Replay(ctx, db, dir); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("manual import from wrong cwd: %v", err)
+	}
+	files, err := os.ReadDir(legacy)
+	if err != nil || len(files) != 2 {
+		t.Fatalf("wrong path acknowledged historical files: %v, %v", files, err)
+	}
+	var count, total int
+	if err := db.QueryRow(ctx, sqltest.ReceiptTotals).Scan(&count, &total); err != nil || count != 0 {
+		t.Fatal(count, err)
+	}
+
+	t.Setenv("KNOWLEDGE_LEGACY_USAGE_OUTBOX", legacy)
+	if err := modelusage.ReplayConfigured(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	// Re-delivery after a lost acknowledgement must agree with the committed event.
+	if err := os.WriteFile(filepath.Join(legacy, e.ID+"-ok.json"), receipt, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := modelusage.ReplayConfigured(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(ctx, sqltest.OfflineUsageTotals).Scan(&count, &total); err != nil || count != 1 || total != 17 {
+		t.Fatal(count, total, err)
+	}
+	files, err = os.ReadDir(legacy)
+	if err != nil || len(files) != 0 {
+		t.Fatal("committed files not acknowledged", err)
+	}
+}
+
+func TestUsageReplayIndependentDirectories(t *testing.T) {
+	ctx := context.Background()
+	db := testsupport.Database(t)
+	t.Setenv("KNOWLEDGE_ARCHIVE_DIR", t.TempDir())
+	t.Setenv("KNOWLEDGE_LEGACY_USAGE_OUTBOX", "")
+	if err := modelusage.ReplayConfigured(ctx, db); err != nil {
+		t.Fatalf("unused active outbox: %v", err)
+	}
+	active, legacy := modelusage.RecoveryDir(), t.TempDir()
+	t.Setenv("KNOWLEDGE_LEGACY_USAGE_OUTBOX", legacy)
+	if err := os.Mkdir(active, 0700); err != nil {
+		t.Fatal(err)
+	}
+	for _, dirs := range []struct{ failing, healthy string }{{active, legacy}, {legacy, active}} {
+		start := time.Now().UTC()
+		e := modelusage.Event{ID: modelusage.NewID(), Purpose: "image", Operation: "images/edits", Subject: "preview:fixture", Endpoint: "https://fixture.invalid/v1", Model: "art", Started: start, Finished: &start, Outcome: "ok", Usage: json.RawMessage(`{"total_tokens":7}`)}
+		if err := modelusage.Deliver(ctx, nil, dirs.healthy, e); err != nil {
+			t.Fatal(err)
+		}
+		// This decodes, but cannot be saved without a model call identity.
+		failed := filepath.Join(dirs.failing, "bad.json")
+		if err := os.WriteFile(failed, []byte(`{}`), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := modelusage.ReplayConfigured(ctx, db); err == nil || !strings.Contains(err.Error(), failed) {
+			t.Fatalf("missing failing receipt path: %v", err)
+		}
+		if data, err := os.ReadFile(failed); err != nil || string(data) != `{}` {
+			t.Fatalf("failed receipt was not retained: %v", err)
+		}
+		if files, err := os.ReadDir(dirs.healthy); err != nil || len(files) != 0 {
+			t.Fatalf("healthy outbox: %v, %v", files, err)
+		}
+		if err := os.Remove(failed); err != nil {
 			t.Fatal(err)
 		}
 	}
 	var count, total int
-	if err := db.QueryRow(ctx, sqltest.OfflineUsageTotals).Scan(&count, &total); err != nil || count != 1 || total != 17 {
+	if err := db.QueryRow(ctx, sqltest.OfflineUsageTotals).Scan(&count, &total); err != nil || count != 2 || total != 14 {
 		t.Fatal(count, total, err)
-	}
-	files, err := os.ReadDir(dir)
-	if err != nil || len(files) != 0 {
-		t.Fatal("committed files not acknowledged", err)
 	}
 }

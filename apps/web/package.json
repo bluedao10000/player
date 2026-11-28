@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node generate-images.mjs --check && vite build --config vite.static.config.ts",
-    "check": "tsc --noEmit",
+    "check": "tsc --noEmit && node --test test/*.test.mjs",
     "build:reader-api": "node generate-images.mjs --check && vite build --config vite.reader-api.config.ts"
   },
   "dependencies": {

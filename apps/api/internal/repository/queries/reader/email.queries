@@ -1,5 +1,6 @@
 -- name: LockCodeIssuer
-SELECT pg_advisory_xact_lock(82045102)
+SELECT pg_advisory_xact_lock(CASE current_setting('folio.advisory_lock_namespace', true)
+  WHEN 'v2' THEN 82045138 ELSE 82045102 END)
 
 -- name: PurgeOldCodes
 DELETE FROM reader_email_codes WHERE issued_at < now()-interval '1 day'

@@ -25,7 +25,7 @@ flowchart TB
 %% reader | 公开网页与 iOS 读取共享作品、章节及段落链接。 | apps/ios/Folio/Reading.swift
 %% edge | 两个公开域名共用一个 TLS 网关。 | deploy/gateway/nginx/nginx.conf
 %% gw | Nginx 托管静态资源，同源 API 按白名单代理。 | deploy/gateway/nginx/routes.conf
-%% site | 公开网页与原生客户端使用 Gin 与 Reader API。 | apps/ios/server/reader.server.ts
+%% site | 公开网页与原生客户端使用 Gin 与 Reader API。 | apps/web/src/features/reader/ios-data.server.ts
 %% online | 正式读库有自己的发布指针、资产归档和回执。 | apps/sync/ops/reader-release/receiver.psql
 %% receive | 发布端通过受限命令投递，接收端校验版本、来源和图像摘要。 | apps/sync/ops/reader-release/receive.sh
 %% text | 已部署自动配置生成与登记。符合模板的作品缺集进入文本生产队列。 | apps/sync/internal/service/scheduler/production.go

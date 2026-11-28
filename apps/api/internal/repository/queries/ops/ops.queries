@@ -1,3 +1,6 @@
+-- name: SeedOpsMediaBatchWorlds
+SELECT ops_seed_media_batch_worlds()
+
 -- name: HeartbeatSuccess
 INSERT INTO ops_worker_heartbeats(
  worker_id,loop,role,node,version,expected_seconds,last_tick_at,last_ok_at,executions

@@ -48,9 +48,6 @@ WITH version_source AS (
 )
 SELECT count(*) FROM worlds
 
--- name: SeedOpsMediaBatchWorlds
-SELECT ops_seed_media_batch_worlds()
-
 -- name: OpsExpectedBatchMappingCount
 SELECT count(DISTINCT c.batch)::int
 FROM media_candidates c

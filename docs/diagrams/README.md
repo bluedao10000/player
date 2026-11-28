@@ -26,7 +26,7 @@
 | [workbench.mmd](workbench.mmd) | 旧工作台 | 历史 |
 | [delivery-2026-11.mmd](delivery-2026-11.mmd) | 2026-11 交付 | 历史 |
 
-每个节点用一行 `%% 节点ID | 职责或验收含义 | 仓库相对源码路径` 记录证据；[render.cjs](render.cjs) 会核对节点与文件，缺一行就报错。
+每个节点用一行 `%% 节点ID | 职责或验收含义 | 仓库相对源码路径` 记录证据。[离线检查](../check.py)检查链接及源码路径，不依赖生成物。CI 复用下方渲染环境运行 `node docs/diagrams/render.cjs --check`，用 Mermaid 的实际节点逐图核对注释，不写入 SVG、PNG 或图集。
 
 ## 重绘 Mermaid
 

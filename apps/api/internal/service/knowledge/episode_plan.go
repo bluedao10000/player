@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	queries "anime-agent/api/internal/repository/queries/knowledge"
+	"anime-agent/api/internal/repository/queries/ops"
 )
 
 type planCast struct {
@@ -258,7 +259,7 @@ func registerEdition(ctx context.Context, tx pgx.Tx, w editionPlan) error {
 		if _, err = tx.Exec(ctx, queries.RegisterEditionWorld, work, v, w.World, w.Title, w.Edition, w.Intro); err != nil {
 			return err
 		}
-		if _, err = tx.Exec(ctx, queries.SeedRegisteredEditionMediaBatchWorlds); err != nil {
+		if _, err = tx.Exec(ctx, ops.SeedOpsMediaBatchWorlds); err != nil {
 			return err
 		}
 		if _, err = tx.Exec(ctx, queries.AppendHomeSlot, work); err != nil {

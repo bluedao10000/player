@@ -10,9 +10,6 @@ SELECT jsonb_build_object('enabled',$2::boolean,'periodStart',period_start,'peri
  WHEN expires_at<=now() OR closed THEN 'closed' ELSE 'pending' END status FROM reader_plan_orders WHERE reader_id=m.reader_id ORDER BY created_at DESC LIMIT 10)x))
  FROM reader_memberships m WHERE reader_id=$1
 
--- name: LockReader
-SELECT id FROM reader_identities WHERE id=$1 FOR UPDATE
-
 -- name: IsPaidMember
 SELECT plan<>'free' FROM reader_memberships WHERE reader_id=$1
 

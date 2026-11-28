@@ -16,6 +16,7 @@ import (
 var opsSource string
 
 var opsQueries = resources.Statements(opsSource)
+var SeedOpsMediaBatchWorlds = opsQueries["SeedOpsMediaBatchWorlds"]
 
 type Heartbeat struct {
 	WorkerID        string

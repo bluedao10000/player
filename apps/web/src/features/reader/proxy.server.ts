@@ -1,3 +1,4 @@
+import { serverKnowledgeApiUrl } from '@anime/shared/knowledge'
 import { readBody } from '../../lib/request-body.server'
 
 export async function authRequest(request: Request, path: string) {
@@ -80,7 +81,7 @@ export async function authRequest(request: Request, path: string) {
     const upstream = await fetch(
       new URL(
         '/api/v1/reader/' + (callback ? 'wechat/finish' : path),
-        process.env.KNOWLEDGE_API_URL ?? 'http://127.0.0.1:4321',
+        serverKnowledgeApiUrl(),
       ),
       {
         method: callback ? 'POST' : request.method,

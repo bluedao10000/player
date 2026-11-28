@@ -15,7 +15,6 @@ const reader = [
   'apps/web/src/site.ts',
   'apps/ios/Folio',
 ]
-const web = ['apps/web/src', 'apps/ios/server']
 
 // [pattern, what to write instead]
 const readerTerms = [
@@ -68,7 +67,7 @@ function scan(paths, rules) {
 }
 
 scan(reader, readerTerms)
-scan(web, logicTerms)
+scan(['apps/web/src'], logicTerms)
 
 if (problems.length) {
   console.error(problems.join('\n'))
