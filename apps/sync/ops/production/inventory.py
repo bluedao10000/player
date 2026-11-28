@@ -51,6 +51,22 @@ def episode_number(label):
     return int(match[1])
 
 
+def discovery():
+    route = "/ios-data/v1/discovery"
+    try:
+        return fetch(os.environ["READER_PUBLIC_URL"].rstrip("/") + route)["items"], "public"
+    except subprocess.CalledProcessError:
+        container = os.environ.get("READER_ORIGIN_CONTAINER")
+        if not container:
+            raise
+        command = ["sudo", "-n", "docker", "exec", container, "node", "--input-type=module", "-e",
+                   "const r=await fetch('http://127.0.0.1:4310/ios-data/v1/discovery',"
+                   "{redirect:'error',signal:AbortSignal.timeout(12000)});"
+                   "if(!r.ok) throw Error('reader origin HTTP '+r.status);"
+                   "console.log(JSON.stringify((await r.json()).items))"]
+        return json.loads(subprocess.check_output(command, timeout=20)), "reader_origin"
+
+
 def snapshot():
     now = datetime.datetime.now(ZoneInfo("Asia/Shanghai"))
     plans = Path(os.environ.get("EPISODE_CATALOG_DIR") or Path.home() / ".local/share/folio/episode-plans")
@@ -60,9 +76,13 @@ def snapshot():
         if plan["provider"] == "bangumi":
             subjects[plan["world"]] = plan["externalID"]
     rows = []
-    for world in fetch(os.environ["READER_PUBLIC_URL"].rstrip("/") + "/ios-data/v1/discovery")["items"]:
+    worlds, observation = discovery()
+    if observation == "reader_origin" and not set(subjects).issubset({world["slug"] for world in worlds}):
+        raise ValueError("读者源站目录与已登记的作品版本不齐，保留上次快照")
+    for world in worlds:
         slug = world["slug"]
-        row = {"slug": slug, "title": world["title"], "published": len(world["chapters"])}
+        row = {"slug": slug, "title": world["title"], "published": len(world["chapters"]),
+               "observationSource": observation}
         rows.append(row)
         if slug == "tidepost":
             row["note"] = "原创章节"

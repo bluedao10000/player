@@ -8,6 +8,8 @@ var mediaSource string
 
 var (
 	mediaSourceQueries      = resources.Statements(mediaSource)
+	OnlyProviderTestSlots   = mediaSourceQueries["OnlyProviderTestSlots"]
+	AgeProviderRetry        = mediaSourceQueries["AgeProviderRetry"]
 	SetReviewStage          = mediaSourceQueries["SetReviewStage"]
 	CandidateAttempt        = mediaSourceQueries["CandidateAttempt"]
 	InsertReviewStep        = mediaSourceQueries["InsertReviewStep"]

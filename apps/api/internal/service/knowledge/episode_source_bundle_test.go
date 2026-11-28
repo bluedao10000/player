@@ -43,6 +43,19 @@ func TestAttachEpisodeSourceBundle(t *testing.T) {
 {"number":6,"title":"Episode Six","official":"https://naruto-official.com/en/anime/","guide":"https://skypenguin.net/fixture-6/"},
 {"number":7,"title":"Episode Seven","official":"https://naruto-official.com/en/anime/","guide":"https://skypenguin.net/fixture-7/"}],
 "proofs":{"official":%s,"guide":%s}}`, rules, digest, proof, proof)
+	// An article headline may differ from the catalog title only with an
+	// episode-specific link proof from the same publisher.
+	indexed := strings.Replace(verified, `"title":"Episode Six",`,
+		`"title":"Episode Six","guideTitle":"第6話 Review","guideIndex":"https://skypenguin.net/index/",`, 1)
+	if _, err := AttachEpisodeSourceBundle(ctx, db, "naruto-tv-2002", strings.NewReader(indexed)); err == nil {
+		t.Fatal("accepted alternate article title without its catalog link proof")
+	}
+	indexed = strings.Replace(indexed, `"proofs":{`, `"proofs":{"guideIndex":`+proof+`,`, 1)
+	wrongHost := strings.Replace(indexed, "https://skypenguin.net/index/", "https://example.com/index/", 1)
+	if _, err := AttachEpisodeSourceBundle(ctx, db, "naruto-tv-2002", strings.NewReader(wrongHost)); err == nil {
+		t.Fatal("accepted a different publisher as the article index")
+	}
+	verified = indexed
 	for _, want := range []int64{2, 0} {
 		got, err := AttachEpisodeSourceBundle(ctx, db, "naruto-tv-2002", strings.NewReader(verified))
 		if err != nil || got != want {
@@ -74,6 +87,24 @@ func TestAttachEpisodeSourceBundle(t *testing.T) {
 	if err := json.Unmarshal(template, &input); err != nil || number != 6 || input.SourceBundle.Number != 6 || input.SourceBundle.RuleSHA256 != digest {
 		t.Fatalf("configuration received wrong source bundle: number=%d err=%v", number, err)
 	}
+	checkpoint := json.RawMessage(`{"fingerprint":"example","draft":{"title":"测试提纲"}}`)
+	for _, tc := range []struct {
+		rev  int
+		want int64
+	}{{revision + 1, 0}, {revision, 1}} {
+		tag, err := db.Exec(ctx, queries.Configuration["SaveOutline"], id, tc.rev, number, checkpoint)
+		if err != nil || tag.RowsAffected() != tc.want {
+			t.Fatalf("save configuration outline: %v %v", tag, err)
+		}
+	}
+	if err := db.QueryRow(ctx, queries.Configuration["Next"]).Scan(&id, &revision, &world, &number, &brief, &template); err != nil {
+		t.Fatal(err)
+	}
+	var saved struct{ ConfigurationOutline struct{ Fingerprint string } }
+	if err := json.Unmarshal(template, &saved); err != nil || saved.ConfigurationOutline.Fingerprint != "example" {
+		t.Fatalf("outline was not retained: %v", err)
+	}
+
 }
 
 // 续作的来源集号带季偏移：回执按来源集号留证，配置沿用 bundle 声明的偏移。

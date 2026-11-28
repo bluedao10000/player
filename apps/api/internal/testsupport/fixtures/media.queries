@@ -35,3 +35,9 @@ SELECT count(*) FROM edition_reader_art WHERE item_slug='jet'
 
 -- name: PublishedPortrait
 SELECT a.image,c.stage FROM edition_reader_art a JOIN media_candidates c ON a.item_slug=c.character_slug WHERE c.slot=19
+
+-- name: OnlyProviderTestSlots
+UPDATE media_candidates SET stage='held' WHERE slot NOT IN (2,3)
+
+-- name: AgeProviderRetry
+UPDATE media_steps SET finished_at=now()-interval '31 seconds' WHERE slot=3 AND step='generate' AND attempt=1

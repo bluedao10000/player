@@ -15,7 +15,10 @@ LEFT JOIN LATERAL (
    FROM edition_reader_art a WHERE a.world_slug=p.world_slug AND a.kind='character'
     AND a.image ~ '^/art/portraits/[a-f0-9]{64}\.webp$'
     AND p.spec->'people' @> jsonb_build_array(jsonb_build_object('slug',a.item_slug))
- ),'{}'), 'sourceBundle', r.production_policy->'source_bundle') AS spec
+ ),'{}'), 'sourceBundle', r.production_policy->'source_bundle',
+   'configurationOutline', CASE WHEN r.production_policy->'configuration_checkpoint'->>'revision'=r.revision::text
+       AND r.production_policy->'configuration_checkpoint'->>'number'=next.number::text
+       THEN r.production_policy->'configuration_checkpoint'->'outline' END) AS spec
  FROM episode_plans p WHERE p.world_slug=r.world AND p.number<next.number
  AND (p.spec->'sourceRules'->>'guide'='wiki-episode' OR r.production_policy ? 'source_bundle') AND p.spec ? 'art'
  ORDER BY p.number DESC LIMIT 1
@@ -26,6 +29,12 @@ ORDER BY r.created_at FOR UPDATE OF r SKIP LOCKED LIMIT 1
 
 -- name: Reserve
 SELECT reserve_episode_call($1,$2,'configuration',16000)
+
+-- name: SaveOutline
+UPDATE episode_production_requests SET production_policy=jsonb_set(production_policy,'{configuration_checkpoint}',
+ jsonb_build_object('revision',revision,'number',$3::int,'outline',$4::jsonb)),updated_at=now()
+WHERE id=$1 AND revision=$2 AND stage='plan_validated' AND NOT operator_paused AND paused_reason IS NULL
+ AND $3::int=ANY(gaps)
 
 -- name: AttachSourceBundle
 UPDATE episode_production_requests r
@@ -45,7 +54,7 @@ UPDATE episode_configuration_attempts SET finished_at=now(),error=$2,registered=
 WHERE id=$1 AND finished_at IS NULL
 
 -- name: Attempts
-SELECT count(*) FROM episode_configuration_attempts WHERE request_id=$1 AND revision=$2 AND number=$3
+SELECT count(*) FROM episode_configuration_attempts WHERE request_id=$1 AND revision=$2 AND number=$3 AND error IS NOT NULL
 
 -- name: Expire
 WITH stale AS (

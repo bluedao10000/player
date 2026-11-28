@@ -12,6 +12,7 @@ var (
 	PublishPortrait         = mediaSourceQueries["PublishPortrait"]
 	AdvanceCandidate        = mediaSourceQueries["AdvanceCandidate"]
 	RequeueProviderFailures = mediaSourceQueries["RequeueProviderFailures"]
+	ResumeCorrectedImage    = mediaSourceQueries["ResumeCorrectedImage"]
 	TryLockMedia            = mediaSourceQueries["TryLockMedia"]
 	UnlockMedia             = mediaSourceQueries["UnlockMedia"]
 	NextCandidate           = mediaSourceQueries["NextCandidate"]

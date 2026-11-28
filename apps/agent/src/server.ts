@@ -1,4 +1,5 @@
 import { createServer } from 'node:http'
+import { countVisionInput } from './episode-vision-count.ts'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { homedir } from 'node:os'
@@ -28,6 +29,10 @@ const startedAt = new Date().toISOString()
 const executionCounters = new ExecutionCounters()
 
 const server = createServer(async (req, res) => {
+  if (req.method === 'POST' && req.url === '/internal/episode-vision-input-count') {
+    await countVisionInput(req, res)
+    return
+  }
   if (req.method === 'GET' && req.url === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(health('agent')))
@@ -116,7 +121,7 @@ const server = createServer(async (req, res) => {
       let body = ''
       for await (const part of req) {
         body += part
-        if (Buffer.byteLength(body) > 16000) { res.writeHead(413).end(); return }
+        if (Buffer.byteLength(body) > 65536) { res.writeHead(413).end(); return }
       }
       const result = await prepareEpisodeConfiguration(dirname(path), configuration[1], JSON.parse(body))
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(result))

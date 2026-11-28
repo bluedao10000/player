@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/url"
 
 	queries "anime-agent/api/internal/repository/queries/knowledge"
 	"github.com/jackc/pgx/v5"
@@ -26,10 +27,10 @@ func AttachEpisodeSourceBundle(ctx context.Context, db *pgxpool.Pool, world stri
 		SourceRules json.RawMessage
 		RuleSHA256  string
 		Sources     []struct {
-			Number, SourceNumber   int
-			Title, Official, Guide string
+			Number, SourceNumber                           int
+			Title, Official, Guide, GuideIndex, GuideTitle string
 		}
-		Proofs struct{ Official, Guide []sourceRuleProof }
+		Proofs struct{ Official, Guide, GuideIndex []sourceRuleProof }
 	}
 	if err := json.NewDecoder(io.LimitReader(input, 65536)).Decode(&verified); err != nil {
 		return 0, err
@@ -65,6 +66,16 @@ func AttachEpisodeSourceBundle(ctx context.Context, db *pgxpool.Pool, world stri
 		if source.SourceNumber != 0 {
 			proofNumber = source.SourceNumber
 		}
+		if source.GuideTitle != "" || source.GuideIndex != "" {
+			idx, err := url.Parse(source.GuideIndex)
+			article, articleErr := url.Parse(source.Guide)
+			if !paired || err != nil || articleErr != nil || idx.Scheme != "https" || idx.User != nil ||
+				idx.Fragment != "" || idx.Host != article.Host || source.GuideTitle == "" ||
+				len(verified.Proofs.GuideIndex) != count || verified.Proofs.GuideIndex[i].Episode != proofNumber ||
+				!shaRE.MatchString(verified.Proofs.GuideIndex[i].PageSHA256) {
+				return 0, errors.New("缺少该集目录到指南正文的核对回执")
+			}
+		}
 		spec := episodeSpec{Number: source.Number, SourceNumber: source.SourceNumber, Official: source.Official, Guide: source.Guide,
 			OfficialTitle: source.Title, GuideTitle: source.Title, SourceRules: &rules}
 		if err := spec.validateRules(); err != nil {
@@ -90,6 +101,9 @@ func AttachEpisodeSourceBundle(ctx context.Context, db *pgxpool.Pool, world stri
 			}
 			if paired {
 				bundle["guide"], bundle["guideProof"] = source.Guide, verified.Proofs.Guide[i]
+			}
+			if source.GuideTitle != "" {
+				bundle["guideTitle"], bundle["guideIndex"], bundle["guideIndexProof"] = source.GuideTitle, source.GuideIndex, verified.Proofs.GuideIndex[i]
 			}
 			if source.SourceNumber != 0 {
 				bundle["sourceNumber"] = source.SourceNumber

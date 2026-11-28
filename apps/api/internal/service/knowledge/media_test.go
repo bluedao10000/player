@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
+
+	queries "anime-agent/api/internal/repository/queries/knowledge"
 	"anime-agent/api/internal/testsupport"
 	sqltest "anime-agent/api/internal/testsupport/fixtures"
 )
@@ -129,4 +132,65 @@ func TestPortraitPublicationRequiresPassingChecksForRenderedVersion(t *testing.T
 	if err = db.QueryRow(ctx, sqltest.PublishedPortrait).Scan(&path, &stage); err != nil || path != "/art/portraits/"+digest+".webp" || stage != "passed" {
 		t.Fatalf("publication mismatch: %q %q %v", path, stage, err)
 	}
+}
+
+func TestMediaProviderFailureRouting(t *testing.T) {
+	db := testsupport.Database(t)
+	ctx := context.Background()
+	pc, err := db.Acquire(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pc.Release()
+	for _, tc := range []struct {
+		slot, attempt int
+		action, want  string
+	}{
+		{1, 1, "moderation", "held"}, {2, 1, "correct_input", "failed"},
+		{3, 1, "retry", "generate"}, {4, 3, "retry", "failed"},
+	} {
+		j := mediaJob{Slot: tc.slot, Step: "generate", Round: 1, Attempt: tc.attempt}
+		if _, err = pc.Exec(ctx, queries.StartMediaStep, j.Slot, j.Round, j.Step, j.Attempt); err != nil {
+			t.Fatal(err)
+		}
+		detail, _ := json.Marshal(map[string]any{"provider_error": map[string]string{"action": tc.action}})
+		if err = advanceMedia(ctx, pc.Conn(), j, mediaReply{State: "failed", Error: "provider failure", Result: detail}); err != nil {
+			t.Fatal(err)
+		}
+		var stage, sha string
+		if err = pc.QueryRow(ctx, sqltest.CandidateReference, j.Slot).Scan(&stage, &sha); err != nil || stage != tc.want {
+			t.Fatal(tc, stage, err)
+		}
+		resumeErr := ResumeCorrectedImage(ctx, db, j.Slot)
+		if (resumeErr == nil) != (tc.action == "correct_input") {
+			t.Fatal(tc, resumeErr)
+		}
+	}
+	if _, err = db.Exec(ctx, sqltest.OnlyProviderTestSlots); err != nil {
+		t.Fatal(err)
+	}
+	for _, due := range []bool{false, true} {
+		if due {
+			if _, err = db.Exec(ctx, sqltest.AgeProviderRetry); err != nil {
+				t.Fatal(err)
+			}
+		}
+		rows, err := db.Query(ctx, queries.NextCandidate)
+		if err != nil {
+			t.Fatal(err)
+		}
+		jobs, err := pgx.CollectRows(rows, pgx.RowToStructByPos[mediaJob])
+		if err != nil {
+			t.Fatal(err)
+		}
+		slots := map[int]mediaJob{}
+		for _, j := range jobs {
+			slots[j.Slot] = j
+		}
+		_, found := slots[3]
+		if slots[2].Correction != 1 || found != due {
+			t.Fatal(due, jobs)
+		}
+	}
+
 }

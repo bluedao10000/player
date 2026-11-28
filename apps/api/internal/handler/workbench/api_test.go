@@ -79,7 +79,7 @@ func TestWorkbenchReadsAndSourceApproval(t *testing.T) {
 	if err := knowledge.RecalculateCompleteness(ctx, db); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{fixtures.SeedOpsSyncRuns, fixtures.SeedOpsSyncRuns, fixtures.Workbench["SourceMark"]} {
+	for _, name := range []string{fixtures.SeedOpsSyncRuns, fixtures.SeedOpsSyncRuns, fixtures.Workbench["SourceMark"], fixtures.Workbench["SeedEpisodeGaps"]} {
 		if _, err := db.Exec(ctx, name); err != nil {
 			t.Fatal(err)
 		}
@@ -195,8 +195,23 @@ func TestWorkbenchReadsAndSourceApproval(t *testing.T) {
 	}
 	gaps := jsonResponse[[]object](t, r, "GET", workPath+"/gaps", "", 200)
 	recs := jsonResponse[[]object](t, r, "GET", workPath+"/recommendations", "", 200)
-	if len(gaps) == 0 || len(recs) != len(gaps) || recs[0]["estimated_cost"] != nil {
+	if len(gaps) == 0 || len(recs) < len(gaps) || recs[0]["estimated_cost"] != nil {
 		t.Fatalf("gaps=%v recommendations=%v", gaps, recs)
+	}
+	rangeFound := false
+	for _, gap := range gaps {
+		if gap["detail_human"] == nil || gap["detail_human"] == "" {
+			t.Fatalf("gap without human detail: %v", gap)
+		}
+		if gap["kind"] == "episode_range" {
+			rangeFound = true
+			if span := gap["range"].([]any); len(span) != 2 || gap["count"].(float64) < 2 {
+				t.Fatalf("episode range: %v", gap)
+			}
+		}
+	}
+	if !rangeFound {
+		t.Fatalf("missing episode_range: %v", gaps)
 	}
 	missing := jsonResponse[object](t, r, "GET", "/works?search=not-found-fixture", "", 200)
 	if missing["total"] != float64(0) || len(missing["rows"].([]any)) != 0 {

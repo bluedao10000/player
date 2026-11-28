@@ -21,6 +21,7 @@ func main() {
 	once := flag.Bool("once", false, "probe enabled sources once and exit")
 	source := flag.String("source", "", "optional source name")
 	refresh := flag.Bool("refresh", false, "with -once: revalidate and reconcile the current snapshot")
+	correctedImage := flag.Int("resume-corrected-image", 0, "resume one candidate after correcting its reported input error")
 	resumeImages := flag.String("resume-image-work", "", "requeue failed image provider requests for one work after upstream recovery")
 	lane := flag.String("episode-lane", "", "run the research or media episode scheduler against its local Pi")
 	flag.Parse()
@@ -42,6 +43,12 @@ func main() {
 	defer db.Close()
 	if *lane != "" {
 		if err := scheduler.RunLane(ctx, db, *lane, cfg.AgentURL); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *correctedImage != 0 {
+		if err := knowledge.ResumeCorrectedImage(ctx, db, *correctedImage); err != nil {
 			log.Fatal(err)
 		}
 		return

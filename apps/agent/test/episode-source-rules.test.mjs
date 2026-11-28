@@ -95,3 +95,30 @@ test('long recaps retain the beat anchor and character proof within the acceptan
   assert.equal(outline.evidence[6].text, guide.at(-1))
   assert.equal(outline.evidence[7].id, 'official-3')
 })
+
+test('matches each episode in a shared page using its printed identity and scoped body', async () => {
+  const { checkEpisodeSourceRule } = await import('../src/episode-source-rules.ts')
+  const raw = '<main><section><h4>第2話</h4><h3>港口</h3><p>' + '潮水把来船推向东边的旧码头。'.repeat(5) +
+    '</p></section><section><h4>第3話</h4><h3>来信</h3><p>' + '早晨的信使带回了家人的消息。'.repeat(5) + '</p></section></main>'
+  const scope = 'section:has(h4:contains("第{episode}話"))'
+  const rule = { kind: 'html_episode_article', heading: scope + ' h4', titleSelector: scope + ' h3', body: scope + ' p' }
+  const samples = [{ raw, target: { number: 2, title: '港口' } }, { raw, target: { number: 3, title: '来信' } }]
+  assert.equal(checkEpisodeSourceRule(rule, samples).length, 2)
+  assert.throws(() => checkEpisodeSourceRule(rule, [samples[0], { raw, target: { number: 3, title: '港口' } }]))
+})
+
+test('binds a guide headline to the catalog title through the exact same-site episode link', async () => {
+  const hub = 'https://guide.example.test/series'
+  const cases = [2,3].map(number => ({ number, title: '本集' + number, official: official, guide: 'https://guide.example.test/review/' + number,
+    guideIndex: hub, guideTitle: '第' + number + '話 回顧と感想' }))
+  const rows = cases.map(c => '<tr><td>第' + c.number + '話</td><td>' + c.title + '</td><td><a href="' + c.guide + '">感想</a></td></tr>')
+  const data = new Map([[hub, '<table>' + rows.join('') + '</table>'],[official, JSON.stringify(cases.map(c =>
+    ({no: c.number, name: c.title, text: ('官方给出本场演出的时间和地点' + c.number).repeat(5)})))]])
+  for (const c of cases) data.set(c.guide, '<article><h1>' + c.guideTitle + '</h1><p>' + ('来信说明了父亲出海后发生的变化' + c.number).repeat(6) + '</p></article>')
+  const propose = async () => ({value: {officialRule: {kind:'json_episode_list',episode:'no',title:'name',body:'text'},
+    guideRule: {kind:'html_episode_article',heading:'article h1',body:'article p'}}})
+  const result = await validateEpisodeSourceProposal(cases, propose, async url => data.get(url))
+  assert.equal(result.proofs.guideIndex[0].episode, 2)
+  data.set(hub, '<table>' + rows[0].replace('/review/2','/review/3') + rows[1] + '</table>')
+  await assert.rejects(validateEpisodeSourceProposal(cases, propose, async url => data.get(url)), /未唯一指向/)
+})

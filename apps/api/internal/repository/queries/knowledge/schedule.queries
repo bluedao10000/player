@@ -80,7 +80,8 @@ WITH candidate AS (
  JOIN media_candidates c ON c.art_job=j.id
  JOIN LATERAL (SELECT step,attempt,error FROM media_steps WHERE slot=c.slot AND round=c.round ORDER BY started_at DESC LIMIT 1)s ON s.error=c.reason
  WHERE c.stage='failed' AND c.reason='分集预算未获预留 HTTP 429' AND r.paused_reason IS NULL
- AND NOT r.operator_paused AND r.reserved=0 AND r.token_limit-r.consumed>=16000 AND s.attempt<100
+ AND NOT r.operator_paused AND r.reserved=0 AND s.attempt<100
+ AND r.token_limit-r.consumed>=CASE WHEN s.step IN ('review','recheck') THEN 1024 ELSE 16000 END
  ORDER BY c.updated_at LIMIT 1 FOR UPDATE OF c SKIP LOCKED)
 UPDATE media_candidates c SET stage=k.step,attempt=k.attempt+1,reason='',updated_at=now()
 FROM candidate k WHERE c.slot=k.slot AND k.step IN ('generate','review','recheck')

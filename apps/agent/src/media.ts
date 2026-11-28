@@ -1,3 +1,4 @@
+import { MediaProviderError } from './media-provider-error.ts'
 import { modelJSON, profile } from './model-api.ts'
 import { createHash } from 'node:crypto'
 import { constants } from 'node:fs'
@@ -44,6 +45,7 @@ type Job = {
   position?: number
   referenceSHA?: string
   slot: number
+  correction?: number
   attempt?: number
   reviewVersion?: number
   round: number
@@ -102,6 +104,9 @@ const shaKey = (j: Job) =>
         ? portraitRef(j)
         : 'bebop-reference-v1'
     : key(j) + '-' + j.step
+// Replaying a transport failure keeps its original idempotency key. A
+// corrected payload is a new request, including its subsequent retries.
+const correctionSuffix = (j: Job) => j.correction ? '-corrected-' + j.correction : ''
 const cached = async (p: string) =>
   access(p).then(
     () => true,
@@ -253,7 +258,7 @@ async function prepareReference(j: Job): Promise<Result> {
         headers: {
           'Content-Type': 'application/json',
           Authorization: 'Bearer ' + p.key,
-          'Idempotency-Key': 'bebop-reference-v1',
+          'Idempotency-Key': 'bebop-reference-v1' + correctionSuffix(j),
         },
         signal: AbortSignal.timeout(300000),
         body: JSON.stringify({
@@ -353,7 +358,7 @@ async function generate(j: Job) {
       method: 'POST',
       headers: {
         Authorization: 'Bearer ' + p.key,
-        'Idempotency-Key': shaKey(j) + '-' + (j.referenceSHA || refHash),
+        'Idempotency-Key': shaKey(j) + '-' + (j.referenceSHA || refHash) + correctionSuffix(j),
       },
       body: form,
       signal: AbortSignal.timeout(300000),
@@ -613,6 +618,7 @@ const task = defineTask<Job, { phase: 'run' }, Result>({
               status: 'failed',
               error: {
                 message: e instanceof Error ? e.message : '图片任务失败',
+                ...(e instanceof MediaProviderError && { detail: { provider_error: e.detail } }),
               },
             },
           }),
@@ -682,6 +688,7 @@ export async function mediaStatus(harness: Harness, j: Job) {
       ? { state: 'done', result: outcome.result }
       : {
           state: 'failed',
+          ...(outcome.status === 'failed' && outcome.error.detail && { result: outcome.error.detail }),
           error:
             outcome.status === 'failed' ? outcome.error.message : 'Pi 任务中断',
         }

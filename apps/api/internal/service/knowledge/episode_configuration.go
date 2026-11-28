@@ -15,6 +15,7 @@ import (
 )
 
 type EpisodeConfiguration struct {
+	Outline   json.RawMessage    `json:"outline,omitempty"`
 	Spec      json.RawMessage    `json:"spec"`
 	Documents []researchDocument `json:"documents"`
 }

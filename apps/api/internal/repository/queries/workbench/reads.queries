@@ -64,9 +64,44 @@ FROM workbench_work_summary w LEFT JOIN workbench_profiles p USING(work_id)
 WHERE w.work_id=$1;
 
 -- name: WorkGaps
-SELECT coalesce(jsonb_agg(to_jsonb(x)-'work_id' ORDER BY
- CASE x.severity WHEN 'high' THEN 1 WHEN 'mid' THEN 2 ELSE 3 END,x.id),'[]')
-FROM workbench_work_gaps x WHERE x.work_id=$1;
+WITH episode AS (
+ SELECT (regexp_replace(label,'^分集覆盖 · ',''))::int AS n,severity
+ FROM workbench_work_gaps
+ WHERE work_id=$1 AND kind='missing_entity' AND label ~ '^分集覆盖 · [0-9]+$'
+), episode_range AS (
+ SELECT min(n) AS lo,max(n) AS hi,count(*)::int AS n,
+  CASE WHEN count(*) FILTER (WHERE severity='high')>0 THEN 'high' ELSE 'mid' END AS severity
+ FROM episode
+ HAVING count(*)>1
+), rows AS (
+ SELECT jsonb_build_object(
+  'id','episode_range:'||lo||'-'||hi,
+  'kind','episode_range',
+  'label','分集覆盖 · '||lo||CASE WHEN hi>lo THEN '–'||hi ELSE '' END,
+  'detail','共 '||n||' 集缺少当前版本的公开分集内容。',
+  'detail_human','第 '||lo||CASE WHEN hi>lo THEN '–'||hi ELSE '' END||' 集范围内有 '||n||' 集暂无已验证的分集内容，待来源同步补齐。',
+  'severity',severity,'range',jsonb_build_array(lo,hi),'count',n
+ ) AS item,CASE severity WHEN 'high' THEN 1 WHEN 'mid' THEN 2 ELSE 3 END AS priority,
+  lo AS sort1,''::text AS sort2
+ FROM episode_range
+ UNION ALL
+ SELECT jsonb_build_object(
+  'id',id,'kind',kind,'label',label,'detail',detail,
+  'detail_human',CASE kind
+   WHEN 'source_conflict' THEN '上游来源有新快照，需核对后决定是否更新。'
+   WHEN 'weak_evidence' THEN '已有内容但证据不足，需补充可核对的来源。'
+   WHEN 'missing_image' THEN '该场景缺少可用图片，需补图并完成验图。'
+   WHEN 'timeline_anomaly' THEN '时间线顺序与来源不一致，需核对。'
+   WHEN 'incomplete_relation' THEN '人物关系缺少有据出场，需补齐。'
+   ELSE '该知识项尚未补齐，需从来源同步或制作流程补充。' END,
+  'severity',severity
+ ) AS item,CASE severity WHEN 'high' THEN 1 WHEN 'mid' THEN 2 ELSE 3 END AS priority,
+  0 AS sort1,id AS sort2
+ FROM workbench_work_gaps
+ WHERE work_id=$1 AND NOT (kind='missing_entity' AND label ~ '^分集覆盖 · [0-9]+$'
+  AND EXISTS (SELECT 1 FROM episode_range))
+)
+SELECT coalesce(jsonb_agg(item ORDER BY priority,sort1,sort2),'[]') FROM rows;
 
 -- name: WorkRecommendations
 SELECT coalesce(jsonb_agg(jsonb_build_object(

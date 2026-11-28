@@ -33,6 +33,18 @@ SELECT jsonb_build_object(
  'all',(SELECT count(*) FROM workbench_work_summary),
  'processed',(SELECT count(*) FROM workbench_profiles WHERE verified_entity_count>0));
 
+-- name: SeedEpisodeGaps
+INSERT INTO knowledge_completeness_results(work_id,world_slug,version_id,rule_code,rule_version,
+ dimension,item_code,data_state,completed_required_items,applicable_required_items,status,details)
+SELECT w.work_id,w.slug,w.version_id,'plot.episodes',1,'plot','episodes','available',0,2,'missing',
+ jsonb_build_array(
+  jsonb_build_object('item_key','901','status','missing','reason','尚无当前版本的公开分集内容'),
+  jsonb_build_object('item_key','902','status','missing','reason','尚无当前版本的公开分集内容'))
+FROM work_worlds w WHERE w.slug='tidepost'
+ON CONFLICT(work_id,version_id,rule_code,rule_version) DO UPDATE SET
+ data_state='available',completed_required_items=0,applicable_required_items=2,status='missing',
+ details=excluded.details,calculated_at=now();
+
 -- name: SeedKnowledgeTrend
 WITH live AS (
  SELECT coalesce(sum(verified_items),0) AS n FROM workbench_verified_knowledge

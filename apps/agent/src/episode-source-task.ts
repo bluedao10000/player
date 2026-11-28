@@ -3,7 +3,7 @@ import { load } from 'cheerio'
 import { checkEpisodeSourceRule, checkIndependentSources, extractEpisodeSource, parseEpisodeSourceRule } from './episode-source-rules.ts'
 import { fetchSourceText } from './source-fetch.ts'
 
-type Case = { number: number; sourceNumber?: number; title: string; official: string; guide?: string }
+type Case = { number: number; sourceNumber?: number; title: string; official: string; guide?: string; guideIndex?: string; guideTitle?: string }
 type RuleProposal = { officialRule?: unknown; guideRule?: unknown }
 
 function sourceURL(value: string) {
@@ -13,7 +13,7 @@ function sourceURL(value: string) {
   return url
 }
 
-function describe(raw: string) {
+function describe(raw: string, title: string) {
   if (raw.trimStart().startsWith('[')) {
     const rows: unknown[] = JSON.parse(raw)
     const fields = Object.entries((rows[0] ?? {}) as Record<string, unknown>).slice(0, 24)
@@ -23,8 +23,13 @@ function describe(raw: string) {
   const $ = load(raw)
   const root = $('article').first().length ? $('article').first() : $('body')
   root.find('script,style,nav,footer,iframe,svg').remove()
-  const blocks = root.find('h1,h2,h3,h4,p').toArray().filter((el) => $(el).text().trim())
+  const match = root.find('h1,h2,h3,h4').toArray().find(el => $(el).text().trim() === title)
+  const section = match && $(match).closest('section')
+  const scope = section?.length ? section : root
+  const blocks = scope.find('h1,h2,h3,h4,p,b,strong').toArray().filter((el) => $(el).text().trim())
+  blocks.sort((a,b) => Number($(b).text().includes(title)) - Number($(a).text().includes(title)))
   return { format: 'html', blocks: blocks.slice(0, 22).map((el) => ({
+    ancestors: $(el).parents().slice(0, 5).toArray().map(parent => [parent.name, $(parent).attr('class')]),
     parent: { tag: el.parent?.type === 'tag' ? el.parent.name : undefined, class: $(el).parent().attr('class') },
     tag: el.tagName, class: $(el).attr('class'), id: $(el).attr('id'), text: $(el).text().trim().slice(0, 75),
   })) }
@@ -34,6 +39,7 @@ export async function validateEpisodeSourceProposal(
   cases: Case[],
   propose: (sample: unknown) => Promise<{ value: RuleProposal; tokens?: number }>,
   download = fetchSourceText,
+  minimumNarrativeSentences = 0,
 ) {
   if (!Array.isArray(cases) || cases.length < 2 || cases.length > 5 || cases.some(({ number, sourceNumber, title }) =>
     !Number.isSafeInteger(number) || number < 1 || typeof title !== 'string' || !title.trim() ||
@@ -55,15 +61,31 @@ export async function validateEpisodeSourceProposal(
   }
   // 续作的来源集号可能与本站集号不同（季偏移），按来源集号提取与留证。
   // 只有官方来源时，独立分集来源整组省略。
-  const samples = await Promise.all(cases.map(async (entry) => ({
-    target: { number: entry.sourceNumber ?? entry.number, title: entry.title },
-    official: await get(entry.official),
-    guide: entry.guide === undefined ? undefined : await get(entry.guide),
-  })))
+  const samples = await Promise.all(cases.map(async entry => {
+    const number = entry.sourceNumber ?? entry.number
+    const target = { number, title: entry.title }
+    let indexProof
+    if (entry.guideIndex || entry.guideTitle) {
+      if (!entry.guide || !entry.guideIndex || !entry.guideTitle ||
+          sourceURL(entry.guideIndex).origin !== sourceURL(entry.guide).origin) throw Error('缺少同站目录与文章标题核对')
+      const index = await get(entry.guideIndex)
+      const $ = load(index)
+      const label = (s: string) => s.normalize('NFKC').replace(/\s/g, '')
+      const matches = $('tr').toArray().filter(row => {
+        const cells = $(row).find('td').toArray().map(td => label($(td).text()))
+        return cells.includes('第' + number + '話') && cells.includes(label(entry.title)) &&
+          $(row).find('a[href]').toArray().some(a => new URL($(a).attr('href')!, entry.guideIndex).href === entry.guide)
+      })
+      if (matches.length !== 1) throw Error('同站分集目录未唯一指向指南文章')
+      indexProof = { episode: number, pageSha256: createHash('sha256').update(index).digest('hex') }
+    }
+    return { target, guideTarget: {number, title: entry.guideTitle ?? entry.title},
+      official: await get(entry.official), guide: entry.guide === undefined ? undefined : await get(entry.guide), indexProof }
+  }))
   const first = samples[0]
   const { value, tokens } = await propose({ target: { number: first.target.number, title: first.target.title },
-    official: describe(first.official),
-    ...(first.guide === undefined ? {} : { guide: describe(first.guide) }) })
+    official: describe(first.official, first.target.title),
+    ...(first.guide === undefined ? {} : { guide: describe(first.guide, first.guideTarget.title), guideTarget: first.guideTarget }) })
   const officialRule = parseEpisodeSourceRule(value?.officialRule)
   const officialProofs = checkEpisodeSourceRule(officialRule,
     samples.map(({ official, target }) => ({ raw: official, target })))
@@ -75,10 +97,13 @@ export async function validateEpisodeSourceProposal(
   const guideRule = parseEpisodeSourceRule(value?.guideRule)
   const sourceRules = { version: 1 as const, guide: 'paired' as const, officialRule, guideRule }
   const guideProofs = checkEpisodeSourceRule(guideRule,
-    samples.map(({ guide, target }) => ({ raw: guide!, target })))
-  for (const sample of samples) checkIndependentSources(
-    extractEpisodeSource(sample.official, officialRule, sample.target), extractEpisodeSource(sample.guide!, guideRule, sample.target),
-  )
+    samples.map(({ guide, guideTarget }) => ({ raw: guide!, target: guideTarget })))
+  for (const sample of samples) {
+    const narrative = extractEpisodeSource(sample.guide!, guideRule, sample.guideTarget)
+    checkIndependentSources(extractEpisodeSource(sample.official, officialRule, sample.target), narrative)
+    if (minimumNarrativeSentences && Array.from(new Intl.Segmenter('ja', {granularity: 'sentence'}).segment(narrative)).length < minimumNarrativeSentences)
+      throw Error('指南正文不足以定位四个独立剧情节点，需要完整分集文章')
+  }
   return { sourceRules, ruleSha256: createHash('sha256').update(JSON.stringify(sourceRules)).digest('hex'),
-    sources: cases, proofs: { official: officialProofs, guide: guideProofs }, tokens }
+    sources: cases, proofs: { official: officialProofs, guide: guideProofs, ...(samples.some(s => s.indexProof) ? { guideIndex: samples.map(s => s.indexProof) } : {}) }, tokens }
 }

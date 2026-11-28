@@ -41,3 +41,21 @@ test('new episodes inherit verified origins, evidence order and existing portrai
   assert.throws(() => compileEpisode(template, located, { ...draft, people: [{ slug: 'example', beat: 2, evidence: 'The boat' }] }), /原文/)
   await assert.rejects(locateEpisode(template, 11, official, recap))
 })
+
+test('character selections resolve to one exact paragraph and source, including shared official sentences', async () => {
+  const {castEvidenceMenu,bindCastEvidence,outlineFingerprint} = await import('../src/episode-configuration-task.ts')
+  const source={number:3}
+  const docs=[{id:'guide-3',sentences:['Anna leaves.','Ben returns.','Anna sees Ben.','The crew departs.']},{id:'official-3',sentences:['Anna opens the door.','Ben finds the key.']}]
+  const draft={slug:'test',sceneSlug:'door',title:'测试',intro:'简介',place:'港口',setting:['港口',1],beats:docs[0].sentences.map((needle,i)=>({
+    needle,kind:['motive','turn','cause','turn'][i],question:'谁在场？',...(i<2?{officialSentence:1}:{})
+  }))}
+  const located={source,docs}, menu=castEvidenceMenu(located,draft)
+  const previous={people:[{slug:'anna',name:'安娜'}],portraitReferences:{anna:{}}}
+  const choice={artCharacter:'anna',artBrief:'安娜开门',sceneName:'开门',people:[{slug:'anna',key:'b2/official-3#1',beat:99}]}
+  const cast=bindCastEvidence(previous,menu,choice)
+  assert.equal(cast.sceneBeat,2)
+  assert.deepEqual(cast.people,[{slug:'anna',beat:2,evidence:'Anna opens the door.'}])
+  for(const key of ['b3/official-3#1','b1/official-3#2','b1/guide-4#1'])
+    assert.throws(()=>bindCastEvidence(previous,menu,{...choice,people:[{slug:'anna',key}]}),/anna.*允许引用/)
+  assert.notEqual(outlineFingerprint(located),outlineFingerprint({source,docs:docs.slice(0,1)}))
+})

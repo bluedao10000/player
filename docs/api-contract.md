@@ -226,6 +226,7 @@
 ```
 
 - `coverage: 0-1 | null`（分母不可靠时 `null`，前端 N/A）；`maturity_level ∈ seed|growing|established|reference`。
+- `maturity_level` 描述作品在发布/关联/覆盖上的阶段，不等同于 `completeness`：`seed` 未发布且未关联；`growing` 已发布但未关联读者清单；`established` 已关联读者清单但覆盖或缺口未清零；`reference` 已关联且 `coverage=1`、`gap_count=0`。`completeness` 是知识检查项通过率，两者独立，可能出现 `established` 但完整度较低。
 - `processed=true` 只返回已有已验证知识的作品；`total` 同步为过滤后的数量。全量目录仍需浏览时省略该参数。
 
 ### `GET /works/:id/gaps` → `WorkGap[]`
@@ -237,12 +238,25 @@
     "kind": "missing_entity",
     "label": "角色「尤贝尔」缺少规范实体",
     "detail": "在第 3/5/7 章被引用，但未建立角色档案",
+    "detail_human": "该知识项尚未补齐，需从来源同步或制作流程补充。",
     "severity": "high"
+  },
+  {
+    "id": "episode_range:1-220",
+    "kind": "episode_range",
+    "label": "分集覆盖 · 1–220",
+    "detail": "共 215 集缺少当前版本的公开分集内容。",
+    "detail_human": "第 1–220 集范围内有 215 集暂无已验证的分集内容，待来源同步补齐。",
+    "severity": "high",
+    "range": [1, 220],
+    "count": 215
   }
 ]
 ```
 
-- `kind ∈ missing_entity|weak_evidence|incomplete_relation|timeline_anomaly|missing_image|source_conflict`；`severity ∈ high|mid|low`。
+- `kind ∈ missing_entity|weak_evidence|incomplete_relation|timeline_anomaly|missing_image|source_conflict|episode_range`；`severity ∈ high|mid|low`。
+- `detail_human` 是面向运营的中文描述；`detail` 保留系统态原文。
+- 批量「分集覆盖 · N」缺口（≥2 集）按作品聚合为一条 `episode_range`，带 `range:[首集,末集]` 与 `count`；单集缺口仍返回普通 `missing_entity`。
 
 ### `GET /works/:id/recommendations` → `WorkRecommendation[]`
 

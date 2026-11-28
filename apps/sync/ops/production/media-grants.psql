@@ -10,7 +10,7 @@ GRANT SELECT ON knowledge_migrations, episode_plans, episode_art_jobs,
   episode_source_captures, episode_inventory_snapshots TO folio_media;
 GRANT INSERT, UPDATE ON media_steps, edition_reader_art, scope_heads, model_calls,
   episode_source_captures TO folio_media;
-GRANT INSERT, UPDATE ON ops_worker_heartbeats TO folio_media;
+GRANT SELECT, INSERT, UPDATE ON ops_worker_heartbeats TO folio_media;
 GRANT UPDATE ON media_candidates TO folio_media;
 GRANT UPDATE (policy) ON research_topics TO folio_media;
 GRANT UPDATE (image) ON work_worlds TO folio_media;
@@ -24,6 +24,6 @@ GRANT SELECT, INSERT, UPDATE ON reader_release_attempts TO folio_media;
 GRANT EXECUTE ON FUNCTION reserve_episode_subject(text,uuid,text,bigint), settle_episode_call(uuid,uuid,bigint) TO folio_media;
 
 GRANT SELECT (request_id, world_slug, number, spec) ON episode_request_specs TO folio_media;
-GRANT SELECT (id, operator_paused) ON episode_production_requests TO folio_media;
+GRANT SELECT (id, operator_paused, paused_reason) ON episode_production_requests TO folio_media;
 
 GRANT SELECT (request_id, number, registered) ON episode_configuration_attempts TO folio_media;

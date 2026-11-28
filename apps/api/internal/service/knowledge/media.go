@@ -27,6 +27,7 @@ type mediaJob struct {
 	Step         string          `json:"step"`
 	Focus        int             `json:"focus"`
 	Reason       string          `json:"reason"`
+	Correction   int             `json:"correction,omitempty"`
 }
 type mediaReply struct {
 	State  string
@@ -74,10 +75,27 @@ func advanceMedia(ctx context.Context, conn *pgx.Conn, j mediaJob, reply mediaRe
 	case "failed":
 		next = "failed"
 		reason = reply.Error
-		// Retry transient provider/service errors once, preserving the original and the audit record.
-		if j.Attempt == 1 && (strings.Contains(reason, "HTTP 429") || strings.Contains(reason, "HTTP 5") || strings.HasPrefix(reason, "EACCES:")) {
+		var diagnostic struct {
+			ProviderError struct {
+				Action string `json:"action"`
+			} `json:"provider_error"`
+		}
+		if len(reply.Result) > 0 {
+			if err := json.Unmarshal(reply.Result, &diagnostic); err != nil {
+				return err
+			}
+		}
+		action := diagnostic.ProviderError.Action
+		if action == "moderation" {
+			next = "held"
+		}
+		// Older durable tasks may only carry the HTTP status.
+		legacyTransient := action == "" && (reason == "模型服务 HTTP 429" ||
+			(len(reason) == len("模型服务 HTTP 500") && strings.HasPrefix(reason, "模型服务 HTTP 5")))
+
+		if j.Attempt < 3 && (action == "retry" || legacyTransient) || j.Attempt == 1 && strings.HasPrefix(reason, "EACCES:") {
 			next = j.Step
-			attempt = 2
+			attempt = j.Attempt + 1
 			reason = j.Reason
 		}
 	case "done":
@@ -157,6 +175,16 @@ func ResumeImageProviderFailures(ctx context.Context, db *pgxpool.Pool, world st
 	}
 	result, err := db.Exec(ctx, queries.RequeueProviderFailures, world)
 	return result.RowsAffected(), err
+}
+
+// ResumeCorrectedImage reopens only the named candidate after the operator has
+// corrected its input. The provider receipt and prior attempt remain available.
+func ResumeCorrectedImage(ctx context.Context, db *pgxpool.Pool, slot int) error {
+	tag, err := db.Exec(ctx, queries.ResumeCorrectedImage, slot)
+	if err == nil && tag.RowsAffected() != 1 {
+		return fmt.Errorf("候选 %d 没有可恢复的输入错误", slot)
+	}
+	return err
 }
 
 // The advisory lock serializes admission across worker replicas. Polling reuses

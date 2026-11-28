@@ -53,15 +53,17 @@ export function extractEpisodeSource(raw: string, input: unknown, target: Episod
     extracted = load(row[rule.body].replace(/<br\s*\/?>/gi, ' ')).root().text()
   } else {
     const $ = load(raw)
-    const headings = $(rule.heading)
+    // Only the validated integer can be substituted in collection-page selectors.
+    const select = (selector: string) => $(selector.replaceAll('{episode}', String(target.number)))
+    const headings = select(rule.heading)
     const heading = headings.text()
     if (headings.length !== 1 || episodeNumber(heading) !== target.number)
       throw Error('来源标题未唯一命中目标分集')
-    const printed = rule.titleSelector ? $(rule.titleSelector).text() : heading
+    const printed = rule.titleSelector ? select(rule.titleSelector).text() : heading
     if (!normalizedTitle(printed).includes(title))
       throw Error('来源标题未唯一命中目标分集')
     const article = headings.closest('article, main, body').get(0)
-    const blocks = $(rule.body).toArray()
+    const blocks = select(rule.body).toArray()
     if (blocks.some((node) => $(node).closest('article, main, body').get(0) !== article))
       throw Error('正文选择器超出分集容器')
     extracted = blocks.map((node) => $(node).text()).join(' ')

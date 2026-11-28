@@ -23,7 +23,7 @@ WITH targets(slug) AS (VALUES
   INSERT INTO episode_production_requests
     (id,world,first_episode,last_episode,token_limit,operator_paused,paused_reason,production_policy)
   SELECT md5('gz-20-aired-20261125/'||t.slug||'/'||n.number)::uuid,t.slug,n.number,n.number,
-         60000,true,'等待广州批次',
+         100000,true,'等待广州批次',
          '{"character_consistency":"standard","preserve_published":true,"publish_to_reader":false,"queue":"gz-20-aired-20261125"}'
   FROM inventory i CROSS JOIN LATERAL jsonb_array_elements(i.works) w
   JOIN targets t ON t.slug=w->>'slug' JOIN work_worlds world ON world.slug=t.slug

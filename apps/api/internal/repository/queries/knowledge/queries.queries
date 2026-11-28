@@ -223,7 +223,8 @@ SELECT jsonb_build_object(
    LEFT JOIN work_scenes s ON (s.v,s.chapter)=(c.v,c.slug) AND s.slug=CASE c.episode WHEN 1 THEN 'bar-visit' ELSE 'chinatown-chase' END
    WHERE c.v=w.version_id AND c.episode BETWEEN t.first_episode AND t.last_episode),'[]'),
  'images',coalesce((SELECT jsonb_agg(jsonb_build_object('slot',c.slot,'position',c.position,'variant',c.variant,'round',c.round,'name',c.scene,
-   'ref',c.reference_sha,'stage',c.stage,'withdrawn',x.reason,'generated',g.result,'review',q.result,'crop',cr.result->>'phone')
+   'ref',c.reference_sha,'stage',CASE WHEN c.stage='failed' AND c.reason='分集预算未获预留 HTTP 429'
+     THEN 'budget_wait' ELSE c.stage END,'withdrawn',x.reason,'generated',g.result,'review',q.result,'crop',cr.result->>'phone')
    ORDER BY c.position)
    FROM media_candidates c LEFT JOIN media_withdrawals x ON (x.slot,x.round)=(c.slot,c.round)
    LEFT JOIN LATERAL(SELECT result FROM media_steps WHERE slot=c.slot AND round=c.round AND step='generate' AND finished_at IS NOT NULL AND error IS NULL ORDER BY attempt DESC LIMIT 1) g ON true

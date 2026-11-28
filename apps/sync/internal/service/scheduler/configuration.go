@@ -73,7 +73,15 @@ func prepareConfiguration(ctx context.Context, db *pgxpool.Pool, agent string) e
 		if _, err := tx.Exec(finishCtx, q.SettlePlanDraft, job.Request, job.Call, usage); err != nil {
 			return err
 		}
-		if reason == "" {
+		if reason == "" && len(result.Outline) > 0 {
+			tag, err := tx.Exec(finishCtx, q.Configuration["SaveOutline"], job.Request, job.Revision, job.Number, result.Outline)
+			if err != nil {
+				return err
+			}
+			if tag.RowsAffected() != 1 {
+				reason = "提纲保存前制作计划已变化"
+			}
+		} else if reason == "" {
 			err := pgx.BeginFunc(finishCtx, tx, func(registration pgx.Tx) error {
 				return knowledge.RegisterEpisodeConfiguration(finishCtx, registration, job.Request, job.Revision, job.Number, job.Previous, result)
 			})
@@ -85,7 +93,7 @@ func prepareConfiguration(ctx context.Context, db *pgxpool.Pool, agent string) e
 		if reason != "" {
 			recordedError = &reason
 		}
-		tag, err := tx.Exec(finishCtx, q.Configuration["Finish"], job.Call, recordedError, reason == "")
+		tag, err := tx.Exec(finishCtx, q.Configuration["Finish"], job.Call, recordedError, reason == "" && len(result.Outline) == 0)
 		if err != nil {
 			return err
 		}
@@ -130,7 +138,7 @@ func generateConfiguration(ctx context.Context, agent string, job configurationJ
 		result.Tokens == nil || *result.Tokens < 0 {
 		return result.EpisodeConfiguration, nil, "分集配置调用缺少可核对的用量回执"
 	}
-	if result.Error == "" && (*result.Tokens == 0 || len(result.Spec) == 0) {
+	if result.Error == "" && (*result.Tokens == 0 || (len(result.Spec) == 0) == (len(result.Outline) == 0)) {
 		return result.EpisodeConfiguration, result.Tokens, "分集配置结果不完整"
 	}
 	return result.EpisodeConfiguration, result.Tokens, result.Error

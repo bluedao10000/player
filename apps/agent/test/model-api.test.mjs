@@ -275,3 +275,24 @@ test('plan inputs keep paired Japanese sources inside the reserved range', async
     /预留范围/,
   )
 })
+
+test('media HTTP errors retain actionable diagnostics without echoing private input', async () => {
+  const { mediaProviderFailure } = await import('../src/media-provider-error.ts')
+  const failure = (status, error) => mediaProviderFailure(new Response(null, {
+    status, headers: { 'x-request-id': 'req_test' },
+  }), error, 'https://api.openai.com/v1/images/edits', 'gpt-image-2')
+  const blocked = failure(400, {code:'moderation_blocked', message:'private prompt', moderation_details:{moderation_stage:'input',categories:['violence']}})
+  assert.equal(blocked.action, 'moderation')
+  assert.equal(blocked.moderation_stage, 'input')
+  assert.equal(blocked.request_id, 'req_test')
+  assert.deepEqual(blocked.categories, ['violence'])
+  assert.ok(!JSON.stringify(blocked).includes('private prompt'))
+  const invalid = failure(400,{type:'invalid_request_error',param:'image[0]',message:'Unsupported image format: private-filename'})
+  assert.equal(invalid.action,'correct_input')
+  assert.equal(invalid.message,'Unsupported image format')
+  assert.equal(invalid.param,'image[0]')
+  assert.equal(failure(400,{}).action,'inspect')
+  assert.equal(failure(429,{code:'insufficient_quota'}).action,'inspect')
+  assert.equal(failure(429,{}).action,'retry')
+  assert.equal(failure(503,{}).action,'retry')
+})

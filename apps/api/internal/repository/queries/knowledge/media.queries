@@ -35,9 +35,19 @@ SELECT pg_try_advisory_lock(82045120)
 SELECT pg_advisory_unlock(82045120)
 
 -- name: NextCandidate
-SELECT (SELECT spec FROM episode_art_jobs WHERE id=art_job),batch,position,reference_sha,attempt,slot,round,stage,focus,reason FROM media_candidates WHERE stage NOT IN ('passed','held','failed')
+SELECT (SELECT spec FROM episode_art_jobs WHERE id=art_job),batch,position,reference_sha,attempt,slot,round,stage,focus,reason,
+ coalesce((SELECT max(s.attempt) FROM media_steps s WHERE s.slot=media_candidates.slot
+   AND s.round=media_candidates.round AND s.step=media_candidates.stage AND s.attempt<media_candidates.attempt
+   AND s.result->'provider_error'->>'action'='correct_input'),0) AS correction
+ FROM media_candidates WHERE stage NOT IN ('passed','held','failed')
+AND NOT EXISTS (SELECT FROM media_steps prev WHERE prev.slot=media_candidates.slot AND prev.round=media_candidates.round
+ AND prev.step=media_candidates.stage AND prev.attempt=media_candidates.attempt-1
+ AND (prev.result->'provider_error'->>'action'='retry' OR prev.error ~ '^模型服务 HTTP (429|5[0-9]{2})$')
+ AND prev.finished_at + CASE WHEN prev.attempt=1 THEN interval '30 seconds' ELSE interval '60 seconds' END > now())
 AND NOT EXISTS (SELECT FROM episode_art_jobs j JOIN episode_request_specs s ON s.world_slug=j.world_slug AND s.spec->>'sceneSlug'=j.slug
- JOIN episode_production_requests p ON p.id=s.request_id WHERE j.id=media_candidates.art_job AND p.operator_paused)
+ JOIN episode_production_requests p ON p.id=s.request_id WHERE j.id=media_candidates.art_job AND (p.operator_paused OR (p.paused_reason IS NOT NULL AND NOT EXISTS (
+ SELECT FROM media_steps running WHERE running.slot=media_candidates.slot AND running.round=media_candidates.round
+ AND running.step=media_candidates.stage AND running.attempt=media_candidates.attempt AND running.finished_at IS NULL))))
 AND NOT EXISTS (
  SELECT FROM episode_art_jobs j JOIN episode_request_specs s ON s.world_slug=j.world_slug AND s.spec->>'sceneSlug'=j.slug
  JOIN episode_configuration_attempts cfg ON cfg.request_id=s.request_id AND cfg.number=s.number AND cfg.registered
@@ -56,3 +66,15 @@ UPDATE media_candidates SET stage='generate',updated_at=now() WHERE slot=$1
 
 -- name: StartMediaStep
 INSERT INTO media_steps(slot,round,step,attempt) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING
+
+-- name: ResumeCorrectedImage
+WITH last_failure AS (
+ SELECT step, round, attempt, error, result FROM media_steps WHERE slot=$1
+ ORDER BY started_at DESC LIMIT 1
+)
+UPDATE media_candidates c SET stage=s.step,attempt=s.attempt+1,reason=coalesce((
+ SELECT prev.result->>'reason' FROM media_steps prev WHERE prev.slot=c.slot AND prev.round=c.round-1
+ AND prev.step IN ('review','recheck') AND prev.result->>'decision' IN ('redraw','recrop')
+ ORDER BY prev.finished_at DESC LIMIT 1),''),updated_at=now()
+FROM last_failure s WHERE c.slot=$1 AND c.round=s.round AND c.stage='failed' AND s.error=c.reason
+ AND s.result->'provider_error'->>'action'='correct_input' AND s.step IN ('generate','review','recheck','reference')

@@ -1,3 +1,4 @@
+import { MediaProviderError, mediaProviderFailure } from './media-provider-error.ts'
 import { existsSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
@@ -179,7 +180,16 @@ async function budgetDispatch(meta:Meta, init:RequestInit) {
   const text=typeof init.body==='string'?init.body:''
   const episodeWriting=meta.subject.startsWith('research:') && ['write','review'].includes(meta.operation)
   const limit=meta.purpose==='vision'?1024:episodeWriting?1536:4096
-  const allowance=meta.purpose==='content'?Buffer.byteLength(text)+limit+1024:16000
+  let allowance=meta.purpose==='content'?Buffer.byteLength(text)+limit+1024:16000
+  if (meta.purpose === 'vision' && existsSync('/state/episode-vision-count.enabled')) {
+    try {
+      const response = await fetch('http://127.0.0.1:4312/internal/episode-vision-input-count', {
+        method: 'POST', body: text, signal: AbortSignal.timeout(22000),
+      })
+      const count = response.ok ? (await response.json()).input_tokens : undefined
+      if (Number.isSafeInteger(count) && count > 0) allowance = count + limit + 128
+    } catch { /* A failed count uses the existing full reservation. */ }
+  }
   const result=await post('/reserve',{subject:meta.subject,call,step:meta.operation,allowance})
   if(!result.ok)throw Error('分集预算未获预留 HTTP '+result.status)
   const owner=await result.json()
@@ -215,6 +225,7 @@ export async function modelJSON(
     if (!res.ok) {
       body = await res.json().catch(() => undefined)
       complete = true
+      if (meta.subject.startsWith('media:')) throw new MediaProviderError(mediaProviderFailure(res, body?.error, url, meta.model))
       throw Error('模型服务 HTTP ' + res.status)
     }
     const result: Receipt = await res.json()
@@ -227,13 +238,16 @@ export async function modelJSON(
     complete = true
     return result
   } finally {
-    await settle(body,complete)
-    finish(
-      res,
-      body,
-      complete,
-      body?.status === 'failed' || Boolean(body?.error),
-    )
+    try {
+      await settle(body,complete)
+    } catch (error) {
+      // An issued request keeps its reservation. Preserve the upstream HTTP
+      // failure for media triage even when its independent settlement fails.
+      if (!meta.subject.startsWith('media:') || !res || res.ok) throw error
+      console.warn('图片请求结算待核对', meta.subject, res.status)
+    } finally {
+      finish(res, body, complete, body?.status === 'failed' || Boolean(body?.error))
+    }
   }
 }
 
