@@ -89,7 +89,7 @@ def source(job):
     payload = dict(target=current, sample=sample, work=catalog["title"], call=request, previousError=job.get("previous"),
                    domains=[urlparse(sample[k]).hostname for k in ("official", "guide") if sample.get(k)])
     payload["alternateGuide"] = urlparse(sample.get("guide", "")).hostname == "en.wikipedia.org" or bool(
-        re.search(r'Invalid URL|HTTP (403|404|410)|来源与登记域名不一致|同站分集目录未唯一|未返回已核实的分集链接|指南正文不足', job.get("previous") or ""))
+        re.search(r'Invalid URL|HTTP (403|404|410)|来源与登记域名不一致|同站分集目录未唯一|未返回已核实的分集链接|指南正文不足|来源标题未唯一|分集原文不完整|同一通稿', job.get("previous") or ""))
     reusable = sql("""SELECT production_policy->'source_bundle' FROM episode_production_requests
       WHERE world=:'world' AND production_policy?'source_bundle' ORDER BY abs(first_episode-:'number'::int) LIMIT 1;""",
       world=job["world"], number=number)

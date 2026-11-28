@@ -19,7 +19,7 @@ function getPage(url: string) {
 }
 
 const input = JSON.parse(readFileSync(0, 'utf8'))
-const guideDomains = input.alternateGuide ? ['ani-chara.net','anime-no-mikata.com','animenoyakata.com'] : []
+const guideDomains = input.alternateGuide ? ['ani-chara.net','anime-no-mikata.com','animenoyakata.com','anibanashi.com'] : []
 const domains = [...new Set([...input.domains,...guideDomains])]
 const model = profile('content')
 if (model.gateway || model.base !== 'https://api.openai.com/v1') throw Error('需要 OpenAI 官方连接')
@@ -205,6 +205,10 @@ async function recover() {
     const savedGuide = saved?.sourceRules?.guideRule
     const guideRules = savedGuide?.kind === 'html_episode_article'
       ? guideBodySelectors(guidePages,savedGuide.body).map(body=>({...savedGuide,body})) : []
+    if (guidePages.every(html => load(html)('main > section.chapter > article.chapter-scene > p.scene-summary').length >= 4)) {
+      guideRules.push({ kind: 'html_episode_article', heading: 'main > header > h1',
+        body: 'main > section.chapter > article.chapter-scene > p.scene-summary' })
+    }
     for (const body of guideBodySelectors(guidePages)) {
       for (const titleSelector of ['article h1',body]) {
         guideRules.push({kind:'html_episode_article', heading:'article h1', titleSelector, body})

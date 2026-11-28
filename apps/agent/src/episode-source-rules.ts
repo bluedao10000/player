@@ -67,8 +67,21 @@ export function extractEpisodeSource(raw: string, input: unknown, target: Episod
       throw Error('来源标题未唯一命中目标分集')
     const article = headings.closest('article, main, body, head').get(0)
     const blocks = select(rule.body).toArray()
-    if (blocks.some((node) => $(node).closest('article, main, body, head').get(0) !== article))
-      throw Error('正文选择器超出分集容器')
+    const outside = blocks.filter(node => $(node).closest('article, main, body, head').get(0) !== article)
+    if (outside.length) {
+      // A single episode can contain editorial scene articles inside its chapters.
+      // Permit explicitly scoped paragraphs, never sidebars or other episodes.
+      const nestedScenes = article && $(article).is('main') && $('main').length === 1 && $('h1').length === 1 &&
+        headings.is('main > header > h1') && /^main > section[.#][\w-]+ > article[.#][\w-]+ > p[.#][\w-]+$/.test(rule.body)
+      if (!nestedScenes || outside.some(node => {
+        if ($(node).closest('main').get(0) !== article) return true
+        const headings = $(node).closest('section').find('h1,h2,h3,h4,h5,h6')
+        return headings.toArray().some(h => {
+          const n = episodeNumber($(h).text())
+          return Number.isFinite(n) && n !== target.number
+        })
+      })) throw Error('正文选择器超出分集容器')
+    }
     extracted = blocks.map((node) => textOf($(node))).join(' ')
   }
   const text = normalizeBody(extracted)

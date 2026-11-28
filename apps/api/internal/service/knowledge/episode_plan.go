@@ -529,7 +529,7 @@ func (e episodeSpec) validateRules() error {
 			return errors.New("独立分集来源无效")
 		}
 		switch guide.Host {
-		case "skypenguin.net", "2jigen-otaku.com", "sayo.blog", "ani-chara.net", "tv-times.jp", "saisokustory.com", "animenoyakata.com", "anime-no-mikata.com", "mahoyaku.net", "biwaochan-blog.com":
+		case "anibanashi.com", "skypenguin.net", "2jigen-otaku.com", "sayo.blog", "ani-chara.net", "tv-times.jp", "saisokustory.com", "animenoyakata.com", "anime-no-mikata.com", "mahoyaku.net", "biwaochan-blog.com":
 		default:
 			return errors.New("未登记的分集资料站点")
 		}

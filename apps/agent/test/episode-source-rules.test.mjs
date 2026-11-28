@@ -232,3 +232,14 @@ test('rule generation sees publisher metadata when the visible page has no synop
   })
   assert.equal(verified.proofs.official.length, 2)
 })
+
+test('single-episode chapter articles can supply scene paragraphs without importing a different episode', () => {
+  const rule = { kind:'html_episode_article', heading:'main > header > h1',
+    body:'main > section.chapter > article.scene > p.summary' }
+  const raw = (section) => `<main><header><h1>第3話 帰還</h1></header><section class="chapter"><h2>${section}</h2>
+    <article class="scene"><p class="summary">${guideBody(3)}</p></article></section></main>`
+  const target = {number:3,title:'帰還'}
+  assert.equal(extractEpisodeSource(raw('港'),rule,target),guideBody(3))
+  assert.throws(()=>extractEpisodeSource(raw('第4話'),rule,target),/容器/)
+  assert.throws(()=>extractEpisodeSource(raw('港'),{...rule,body:'p.summary'},target),/容器/)
+})
