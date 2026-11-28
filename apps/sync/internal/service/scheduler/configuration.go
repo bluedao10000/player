@@ -3,10 +3,8 @@ package scheduler
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -14,6 +12,7 @@ import (
 
 	q "anime-agent/api/internal/repository/queries/knowledge"
 	"anime-agent/api/internal/service/knowledge"
+	"anime-agent/api/internal/service/modelusage"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -37,13 +36,7 @@ func prepareConfiguration(ctx context.Context, db *pgxpool.Pool, agent string) e
 		if err != nil {
 			return err
 		}
-		var random [16]byte
-		if _, err = rand.Read(random[:]); err != nil {
-			return err
-		}
-		random[6] = (random[6] & 0x0f) | 0x40
-		random[8] = (random[8] & 0x3f) | 0x80
-		call := fmt.Sprintf("%x-%x-%x-%x-%x", random[:4], random[4:6], random[6:8], random[8:10], random[10:])
+		call := modelusage.NewID()
 		if len(job.Previous) == 0 {
 			if _, err = tx.Exec(ctx, q.Configuration["Start"], call, job.Request, job.Revision, job.Number); err != nil {
 				return err
