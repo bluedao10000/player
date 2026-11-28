@@ -25,6 +25,7 @@ const model = profile('content')
 if (model.gateway || model.base !== 'https://api.openai.com/v1') throw Error('需要 OpenAI 官方连接')
 openUsage('/state')
 let tokens: number | null = 0
+let sourcePairReady = false
 async function ask(operation: string, prompt: string, search: boolean) {
   const before: number = tokens ?? 0
   tokens = null
@@ -151,6 +152,7 @@ async function recover() {
     const missing = ['official','guide'].filter(key => input.sample[key] && !found?.[key])
     throw Error(missing.length ? '未返回已核实的分集链接：'+missing.join(',') : '来源与登记域名不一致或 URL 无效')
   }
+  sourcePairReady = !hint
   if (!hint && !index && !usableDiscovery(cached)) {
     writeFileSync(cache + '.' + input.call, JSON.stringify(found), { mode: 0o600 })
     renameSync(cache + '.' + input.call, cache)
@@ -229,7 +231,7 @@ async function recover() {
 
 try {
   const verified = await recover()
-  console.log(JSON.stringify({ tokens, verified }))
+  console.log(JSON.stringify({ tokens, verified, sourcePairReady }))
 } catch (error) {
-  console.log(JSON.stringify({ tokens, error: error instanceof Error ? error.message.slice(0,300) : '采集规则失败' }))
+  console.log(JSON.stringify({ tokens, sourcePairReady, error: error instanceof Error ? error.message.slice(0,300) : '采集规则失败' }))
 }

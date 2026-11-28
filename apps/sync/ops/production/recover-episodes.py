@@ -110,7 +110,7 @@ def source(job):
           AND production_policy->>'dispatch_slot'=:'slot' RETURNING id AS locked \gset
           SELECT reserve_episode_call(:'locked',:'call','source_rule',:'allowance'::int);
           UPDATE episode_production_requests SET operator_paused=true,paused_reason=coalesce(paused_reason,'待补可复用的同版本来源模板') WHERE id=:'locked';
-          COMMIT;""", id=job["id"], slot=job["slot"], call=request, allowance=12000 if prior and not payload["alternateGuide"] else 32000)
+          COMMIT;""", id=job["id"], slot=job["slot"], call=request, allowance=12000 if result.get("sourcePairReady") else 32000)
         if reserved != "t":
             raise ValueError("来源生成预算未获预留")
         tokens = None
