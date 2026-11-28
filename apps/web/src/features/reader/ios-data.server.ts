@@ -1,3 +1,4 @@
+import { chapterReading } from './chapter-reading'
 import { imageUrl } from '../../lib/images'
 import {catalog,artUrl} from '../post/catalog'
 import {
@@ -102,18 +103,8 @@ async function read(path: string) {
     }
   }
   const c = await worldChapter(world, slug)
-  const blocks =
-    c.reader_passages ??
-    (c.research
-      ? [
-          ...c.research.paragraphs.map((p, i) => ({
-            key: 'research-' + (i + 1),
-            text: p.text,
-            anchors: [],
-          })),
-          ...c.blocks.filter((b) => b.anchors.length),
-        ]
-      : c.blocks)
+  const reading = chapterReading(c)
+  const blocks = reading.kind === 'research' ? [...reading.paragraphs, ...reading.blocks] : reading.blocks
   const branch = world === 'tidepost' ? catalog.find(story => story.slug === slug) : undefined
   return {
     play: branch && {scene:branch.scene, options:branch.options, replies:branch.replies, image:artUrl(branch)},

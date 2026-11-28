@@ -33,6 +33,10 @@ async function check() {
       const top = document.querySelector('#passage-unstamped-letter')?.getBoundingClientRect().top
       return window.scrollY > 0 && top >= 0 && top < window.innerHeight
     })
+    await page.goto(site + '/work/tidepost/chapter/legacy#passage-pier')
+    assert.equal(await page.locator('aside #passage-pier').textContent(), '码头的场景')
+    assert.equal(await page.locator('#reading-research-1[data-block="1"]').textContent(), '旧版导读正文')
+    assert.equal(await page.locator('aside #old-pier').count(), 1)
     assert.ok(routes.length > 0 && routes.every(url => url.startsWith('https://img.codeiy.com/i/')), routes.join('\n'))
     assert.deepEqual(errors, [])
     console.log('PASS 390px chapter deep link, image loading and scene return anchor')
