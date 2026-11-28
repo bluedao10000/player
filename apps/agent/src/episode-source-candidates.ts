@@ -151,6 +151,20 @@ export async function discoverRegisteredCandidates(
         }
       }
     }
+    // WordPress sites may expose search through a form even when the REST
+    // endpoint is disabled. Use only the publisher's own GET form.
+    if (!official) {
+      const form = $('form').filter((_, el) => $(el).find('input[name="s"]').length > 0).first()
+      const action = form.attr('action') || base
+      if (form.length && (form.attr('method') || 'get').toLowerCase() === 'get' && URL.canParse(action, base)) {
+        const search = new URL(action, base)
+        if (search.origin === new URL(base).origin && !search.username && !search.password) {
+          search.searchParams.set('s', target.title)
+          const match = choose(links(await read(search.href), search.href))
+          if (match) return match
+        }
+      }
+    }
     const directories = [
       ...new Set(
         anchors

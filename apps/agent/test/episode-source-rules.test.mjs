@@ -201,3 +201,20 @@ test('only matching registered URL sequences can establish a publisher numbering
   assert.equal(learnedSibling(base,5,6,{number:4,url:'https://guide.test/show14/'}),undefined)
   assert.equal(learnedSibling(base,5,6,{number:4,url:'https://other.test/show16/'}),undefined)
 })
+
+test('a publisher search form can recover a guide when its REST endpoint is disabled', async () => {
+  const { discoverRegisteredCandidates } = await import('../src/episode-source-candidates.ts')
+  const guide = 'https://guide.test/previous'
+  const search = new URL('/', guide)
+  search.searchParams.set('s', '帰還')
+  const pages = new Map([
+    [guide, '<link rel="https://api.w.org/" href="/wp-json/"><form action="/" method="get"><input name="s"></form>'],
+    [search.href, '<a href="/wrong">第3話「帰還」</a><a href="/next">第4話「帰還」</a>'],
+  ])
+  const result = await discoverRegisteredCandidates(
+    { number: 3, title: '出発', official: 'https://publisher.test/previous', guide },
+    { number: 4, title: '帰還' },
+    async url => pages.get(url) ?? '',
+  )
+  assert.equal(result.guide, 'https://guide.test/next')
+})
