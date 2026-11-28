@@ -19,6 +19,14 @@ async function listen(t, handler) {
   return 'http://127.0.0.1:' + server.address().port
 }
 
+test('workbench counts request bytes, accepting the limit and rejecting one extra byte', async (t) => {
+  const url = await listen(t, (req, res) => streamWorkbenchRun(req, res, 'unused'))
+  const text = JSON.stringify({ note: '中' }) // No intent: validation stops before a model call.
+  const body = text + ' '.repeat(256 * 1024 - Buffer.byteLength(text))
+  assert.equal((await fetch(url, { method: 'POST', body })).status, 400)
+  assert.equal((await fetch(url, { method: 'POST', body: body + ' ' })).status, 413)
+})
+
 test('workbench streams model text and plan arguments and cancels a disconnected inference', async (t) => {
   const dir = await mkdtemp(join(tmpdir(), 'folio-workbench-'))
   t.after(() => rm(dir, { recursive: true, force: true }))

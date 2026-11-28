@@ -1,3 +1,4 @@
+import { readRequestText } from './request-body.ts'
 import { once } from 'node:events'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createModels } from '@earendil-works/pi-ai/models'
@@ -63,17 +64,9 @@ export async function streamWorkbenchRun(req: IncomingMessage, res: ServerRespon
       await once(res, 'drain', { signal })
   }
   try {
-    const parts: Buffer[] = []
-    let bytes = 0
-    for await (const part of req) {
-      bytes += part.length
-      if (bytes > 256 * 1024) {
-        res.writeHead(413).end()
-        return
-      }
-      parts.push(part)
-    }
-    const facts = JSON.parse(Buffer.concat(parts).toString('utf8'))
+    const body = await readRequestText(req, res, 256 * 1024)
+    if (body === null) return
+    const facts = JSON.parse(body)
     if (typeof facts?.intent !== 'string' || !Array.isArray(facts.works)) {
       res.writeHead(400).end()
       return
