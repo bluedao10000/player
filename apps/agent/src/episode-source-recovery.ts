@@ -196,17 +196,25 @@ async function recover() {
     for (const episode of [target, adjacent]) {
       if (!episode.guideIndex) Object.assign(episode, await linkedGuideIdentity(episode.guide, episode,getPage))
     }
-    const officialRules = [saved?.sourceRules?.officialRule,
+    const episodeHeading = '.news-content h2:contains("第{episode}話")'
+    const previewRule = {kind:'html_episode_article', heading:episodeHeading,
+      body:[1,2,3].map(count=>episodeHeading+' + h3'+' + p'.repeat(count)).join(', ')}
+    const officialRules = [saved?.sourceRules?.officialRule, previewRule,
       {kind:'html_episode_article',heading:'meta[property="og:title"]',body:'meta[property="og:description"]'}].filter(Boolean)
-    const bodies = guideBodySelectors(await Promise.all([getPage(target.guide), getPage(adjacent.guide)]))
+    const guidePages = await Promise.all([getPage(target.guide), getPage(adjacent.guide)])
+    const savedGuide = saved?.sourceRules?.guideRule
+    const guideRules = savedGuide?.kind === 'html_episode_article'
+      ? guideBodySelectors(guidePages,savedGuide.body).map(body=>({...savedGuide,body})) : []
+    for (const body of guideBodySelectors(guidePages)) {
+      for (const titleSelector of ['article h1',body]) {
+        guideRules.push({kind:'html_episode_article', heading:'article h1', titleSelector, body})
+      }
+    }
     for (const officialRule of officialRules) {
-      for (const body of bodies) {
-        for (const titleSelector of ['article h1', body]) {
-          const guideRule = { kind: 'html_episode_article', heading: 'article h1', titleSelector, body }
-          try {
-            return await validateEpisodeSourceProposal([target, adjacent], async () => ({ value: { officialRule, guideRule } }), getPage, 4)
-          } catch { /* Other publishers can still supply a verified AI-generated rule. */ }
-        }
+      for (const guideRule of guideRules) {
+        try {
+          return await validateEpisodeSourceProposal([target, adjacent], async () => ({ value: { officialRule, guideRule } }), getPage, 4)
+        } catch { /* Other publishers can still supply a verified AI-generated rule. */ }
       }
     }
   }

@@ -7,7 +7,7 @@ export type EpisodeSourceRule =
   | { kind: 'json_episode_list'; episode: string; title: string; body: string }
   | { kind: 'html_episode_article'; heading: string; titleSelector?: string; body: string }
 
-export const normalizedTitle = (text: string) => text.normalize('NFKC').replace(/\.{3,}/g, '…').replace(/!+/g, '!').replace(/\s+/g, '').toLowerCase()
+export const normalizedTitle = (text: string) => text.normalize('NFKC').replace(/\.{3,}/g, '…').replace(/!+/g, '!').replace(/\s+/g, '').replace(/」「/g, '/').toLowerCase()
 export const maximumSourceLength = 6000
 export const normalizeBody = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim()
 

@@ -94,12 +94,12 @@ export async function siblingOfficial(
 
 // Keep complete paragraphs on unusually long recaps. The same selector must
 // still pass identity, independent narrative and sample checks on both pages.
-export function guideBodySelectors(documents: string[]) {
-  const selector = 'article .entry-content > p'
+export function guideBodySelectors(documents: string[], selector = 'article .entry-content > p') {
+  if (!/ > p$/.test(selector)) return [selector]
   let count = Infinity
   for (const raw of documents) {
     const $ = load(raw)
-    if ($('article .entry-content').length !== 1) return [selector]
+    if ($(selector.slice(0,-4)).length !== 1) return [selector]
     let length = 0
     const paragraphs = $(selector).toArray()
     for (const [index, paragraph] of paragraphs.entries()) {

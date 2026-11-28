@@ -186,3 +186,10 @@ test('printed emphasis can vary while the episode number and words remain exact'
   assert.throws(()=>extractEpisodeSource(page,rule,{number:6,title:'風雲！別の城'}))
   assert.throws(()=>extractEpisodeSource(page,rule,{number:7,title:'風雲！ギョブリン城'}))
 })
+
+test('multi-story episodes retain every subtitle and its order across Japanese display formats', () => {
+  const html='<article><h1>第6話</h1><h2>「やっちゃった」 「梅と先生」 「こまろの世界」</h2><p>'+'公式あらすじ。'.repeat(12)+'</p></article>'
+  const rule={kind:'html_episode_article',heading:'h1',titleSelector:'h2',body:'p'}
+  assert.ok(extractEpisodeSource(html,rule,{number:6,title:'やっちゃった／梅と先生／こまろの世界'}))
+  assert.throws(()=>extractEpisodeSource(html,rule,{number:6,title:'梅と先生／やっちゃった／こまろの世界'}))
+})
