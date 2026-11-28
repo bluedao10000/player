@@ -1,5 +1,5 @@
-import { imageUrl } from '../../web/src/lib/images'
-import {catalog,artUrl} from '../../web/src/features/post/catalog'
+import { imageUrl } from '../../lib/images'
+import {catalog,artUrl} from '../post/catalog'
 import {
   discoveryCatalog,
   getWorld,

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { iosReaderResponse } from '../../../ios/server/reader.server'
+import { iosReaderResponse } from '../features/reader/ios-data.server'
 
 export const Route = createFileRoute('/ios-data/$')({
   server: {
