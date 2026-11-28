@@ -79,6 +79,7 @@ func TestAttachEpisodeSourceBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 	var input struct {
+		People       []struct{ Slug string }
 		SourceBundle struct {
 			Number     int
 			RuleSHA256 string
@@ -86,6 +87,14 @@ func TestAttachEpisodeSourceBundle(t *testing.T) {
 	}
 	if err := json.Unmarshal(template, &input); err != nil || number != 6 || input.SourceBundle.Number != 6 || input.SourceBundle.RuleSHA256 != digest {
 		t.Fatalf("configuration received wrong source bundle: number=%d err=%v", number, err)
+	}
+	// Iruka and Konohamaru last appeared before the nearest template (episode 5).
+	counts := map[string]int{}
+	for _, person := range input.People {
+		counts[person.Slug]++
+	}
+	if counts["iruka"] != 1 || counts["konohamaru"] != 1 || counts["naruto"] != 1 {
+		t.Fatalf("configuration cast dropped or duplicated a registered character: %v", counts)
 	}
 	checkpoint := json.RawMessage(`{"fingerprint":"example","draft":{"title":"测试提纲"}}`)
 	for _, tc := range []struct {

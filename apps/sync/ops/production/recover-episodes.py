@@ -40,7 +40,8 @@ def repair_images(job):
         if dest.exists() and hashlib.sha256(dest.read_bytes()).hexdigest() == digest:
             continue
         with tempfile.NamedTemporaryFile(dir=dest.parent) as temp:
-            subprocess.run(["curl", "--disable", "-fsS", "--max-time", "30", "--max-filesize", "10000000",
+            subprocess.run(["curl", "--disable", "-fsS", "--retry", "2", "--retry-all-errors", "--retry-max-time", "60",
+                            "--max-time", "30", "--max-filesize", "10000000",
                             "-o", temp.name, "https://img.codeiy.com/i/" + digest], check=True)
             data = Path(temp.name).read_bytes()
             if data[:4] != b"RIFF" or data[8:12] != b"WEBP" or hashlib.sha256(data).hexdigest() != digest:
@@ -142,10 +143,35 @@ def source(job):
     return "已验证目标及参照集，已按本轮名额交给制作队列"
 
 
+def retry_configuration_in_slot(slot):
+    # Keep the original claim and the paid outline. Only a newly finished,
+    # actionable validation error can trigger one corrective attempt here.
+    return sql(r"""WITH eligible AS (
+      SELECT r.id,a.error FROM episode_production_requests r JOIN LATERAL (
+        SELECT error,finished_at FROM episode_configuration_attempts WHERE request_id=r.id
+        ORDER BY started_at DESC LIMIT 1) a ON true
+      WHERE r.production_policy->>'queue'='gz-20-aired-20261125'
+        AND r.production_policy->>'dispatch_slot'=:'slot' AND r.stage='blocked'
+        AND r.production_policy->>'configuration_retry_slot' IS DISTINCT FROM :'slot'
+        AND a.finished_at>=to_timestamp(:'slot'::bigint) AND a.error IS NOT NULL
+        AND a.error ~ '人物|场景|角色|提纲|剧情出处|快照句子索引|定位不在|五维验收所需定位'
+        AND r.reserved=0 AND r.token_limit-r.consumed>=16000
+        AND NOT r.operator_paused AND r.paused_reason IS NULL
+      FOR UPDATE OF r SKIP LOCKED)
+      UPDATE episode_production_requests r SET stage='plan_validated',updated_at=now(),
+        plan_brief=split_part(coalesce(r.plan_brief,''),E'\n上次配置校验：',1)||E'\n上次配置校验：'||left(e.error,1200),
+        production_policy=(CASE WHEN e.error ~ '提纲|剧情出处|快照句子索引|五维验收所需定位' THEN r.production_policy-'configuration_checkpoint'
+          ELSE r.production_policy END)||jsonb_build_object('configuration_retry_slot',:'slot'::text)
+      FROM eligible e WHERE e.id=r.id RETURNING r.world||' 第'||r.first_episode||'集';""",slot=slot)
+
+
 def finish_images_for_batch(slot):
     # A configuration can finish after dispatch. Use the original episode's slot
     # for its portrait repair, so the next batch does not have to claim it again.
     while True:
+        retried = retry_configuration_in_slot(slot)
+        if retried:
+            print("按本批名额修订配置", retried, flush=True)
         rows = sql("""SELECT json_build_object('id',r.id,'world',r.world,'number',r.first_episode,'topic',p.topic)
           FROM episode_production_requests r LEFT JOIN episode_plans p ON p.world_slug=r.world AND p.number=r.first_episode
           LEFT JOIN scope_heads h ON h.topic=p.topic LEFT JOIN scope_acceptances a ON a.id=h.latest

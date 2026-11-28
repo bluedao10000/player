@@ -7,19 +7,24 @@ JOIN LATERAL (
  ORDER BY n LIMIT 1
 ) next ON true
 LEFT JOIN LATERAL (
- SELECT p.spec || jsonb_build_object('portraitReferences',coalesce((
-   SELECT jsonb_object_agg(a.item_slug,jsonb_build_object(
-     'referenceURL','https://www.codeiy.com'||a.image,
-     'sourceSHA',substring(a.image from '/([a-f0-9]{64})\.webp$')
-   ))
-   FROM edition_reader_art a WHERE a.world_slug=p.world_slug AND a.kind='character'
-    AND a.image ~ '^/art/portraits/[a-f0-9]{64}\.webp$'
-    AND p.spec->'people' @> jsonb_build_array(jsonb_build_object('slug',a.item_slug))
- ),'{}'), 'sourceBundle', r.production_policy->'source_bundle',
+ SELECT p.spec || jsonb_build_object('people',cast_menu.people,'portraitReferences',cast_menu.portraits, 'sourceBundle', r.production_policy->'source_bundle',
    'configurationOutline', CASE WHEN r.production_policy->'configuration_checkpoint'->>'revision'=r.revision::text
        AND r.production_policy->'configuration_checkpoint'->>'number'=next.number::text
        THEN r.production_policy->'configuration_checkpoint'->'outline' END) AS spec
- FROM episode_plans p WHERE p.world_slug=r.world AND p.number<next.number
+ FROM episode_plans p
+ CROSS JOIN LATERAL (
+   SELECT coalesce(jsonb_agg(c.person ORDER BY c.slug),'[]'::jsonb) AS people,
+     coalesce(jsonb_object_agg(c.slug,jsonb_build_object('referenceURL','https://www.codeiy.com'||a.image,
+       'sourceSHA',substring(a.image from '/([a-f0-9]{64})\.webp$'))) FILTER (WHERE a.image IS NOT NULL),'{}'::jsonb) AS portraits
+   FROM (
+     SELECT DISTINCT ON (person->>'slug') person->>'slug' AS slug,person
+     FROM episode_plans earlier CROSS JOIN LATERAL jsonb_array_elements(earlier.spec->'people') person
+     WHERE earlier.world_slug=r.world AND earlier.number<next.number
+     ORDER BY person->>'slug',earlier.number DESC
+   ) c LEFT JOIN edition_reader_art a ON a.world_slug=r.world AND a.kind='character'
+     AND a.item_slug=c.slug AND a.image ~ '^/art/portraits/[a-f0-9]{64}\.webp$'
+ ) cast_menu
+ WHERE p.world_slug=r.world AND p.number<next.number
  AND (p.spec->'sourceRules'->>'guide'='wiki-episode' OR r.production_policy ? 'source_bundle') AND p.spec ? 'art'
  ORDER BY p.number DESC LIMIT 1
 ) template ON true
