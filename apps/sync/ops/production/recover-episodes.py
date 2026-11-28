@@ -219,7 +219,7 @@ def run_claimed_job(job):
         WHERE id=:'id' AND production_policy->>'dispatch_slot'=:'slot';""",
         slot=job["slot"], result=message, id=job["id"])
     print(job["world"], job["number"], message, flush=True)
-    return success
+    return None if success else job["id"]
 
 
 def batch_progress(slot):
@@ -258,7 +258,19 @@ def main():
         results = list(workers.map(run_claimed_job, (json.loads(line) for line in jobs.splitlines())))
     finish_images_for_batch(slot)
     print(batch_progress(slot), flush=True)
-    return int(not all(results))
+    failed = [request_id for request_id in results if request_id is not None]
+    if not failed:
+        return 0
+    # A second, validated attempt can recover an initially failed job within this slot.
+    unresolved = sql("""SELECT count(*) FROM episode_production_requests r
+      LEFT JOIN episode_plans p ON p.world_slug=r.world AND p.number=r.first_episode
+      LEFT JOIN scope_heads h ON h.topic=p.topic LEFT JOIN scope_acceptances a ON a.id=h.latest
+      WHERE r.id IN (SELECT value::uuid FROM jsonb_array_elements_text(:'failed'::jsonb))
+        AND r.production_policy->>'dispatch_slot'=:'slot' AND a.passed IS DISTINCT FROM true
+        AND NOT (r.production_policy->>'recovery_action'='source' AND r.production_policy?'source_bundle'
+          AND r.production_policy->>'repair_source' IS DISTINCT FROM 'true');""",
+        failed=json.dumps(failed), slot=slot)
+    return int(int(unresolved) > 0)
 
 
 if __name__ == "__main__":
