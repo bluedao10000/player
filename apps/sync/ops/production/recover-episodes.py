@@ -100,8 +100,8 @@ def source(job):
       AND m.response_id IS NOT NULL ORDER BY m.operation,m.finished_at DESC;""", id=job["id"])
     receipts = dict(row.split("|", 1) for row in previous_calls.splitlines())
     prior = receipts.get("source_discovery")
-    payload.update(priorDiscovery=prior, priorRule=receipts.get("source_rule"))
-    result = run_source_agent({**payload, "reuseOnly": True}) if reusable or prior else {}
+    payload.update(priorDiscovery=prior, priorRule=receipts.get("source_rule"), sourceCandidates=job.get("sourceCandidates"))
+    result = run_source_agent({**payload, "reuseOnly": True}) if reusable or prior or job.get("sourceCandidates") else {}
     if not result.get("verified"):
         # Hold the request lock while opening a reservation. Leave the planning lane paused.
         reserved = sql(r"""BEGIN;
@@ -208,7 +208,7 @@ def main():
     slot = sql("SELECT extract(epoch FROM date_bin('30 minutes',now(),'2000-01-01 UTC'::timestamptz))::bigint;")
     jobs = sql("""SELECT json_build_object('world',r.world,'number',r.first_episode,'id',r.id,
       'action',r.production_policy->>'recovery_action','previous',r.production_policy->>'recovery_result','slot',r.production_policy->>'dispatch_slot','topic',p.topic,
-      'sample',coalesce(r.production_policy->'recovery_sample',(SELECT jsonb_strip_nulls(jsonb_build_object('number',v.first_episode,
+      'sourceCandidates',r.production_policy->'source_candidates','sample',coalesce(r.production_policy->'recovery_sample',(SELECT jsonb_strip_nulls(jsonb_build_object('number',v.first_episode,
         'official',v.production_policy->'source_bundle'->>'official','guide',v.production_policy->'source_bundle'->>'guide',
         'offset',nullif(v.production_policy->'source_bundle'->>'sourceNumber','0')::int-v.first_episode))
         FROM episode_production_requests v WHERE v.world=r.world AND v.first_episode<>r.first_episode

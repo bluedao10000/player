@@ -122,3 +122,45 @@ test('binds a guide headline to the catalog title through the exact same-site ep
   data.set(hub, '<table>' + rows[0].replace('/review/2','/review/3') + rows[1] + '</table>')
   await assert.rejects(validateEpisodeSourceProposal(cases, propose, async url => data.get(url)), /未唯一指向/)
 })
+
+test('a linked catalog must tie the canonical title and broadcast number to the exact review', async () => {
+  const { linkedGuideIdentity } = await import('../src/episode-source-discovery.ts')
+  const url = 'https://guide.test/review/'
+  const episode = {number: 4, sourceNumber: 18, title: '緩解'}
+  const article = '<article><h1>第18話 感想</h1><div class="entry-content"><a href="/index">作品一覧</a></div></article>'
+  const row = '<tr><td>第18話</td><td>緩解</td><td><a href="/review/">読む</a></td></tr>'
+  const verify = rows => linkedGuideIdentity(url, episode, async href => href === url ? article : '<table>'+rows+'</table>')
+  assert.deepEqual(await verify(row), {guideIndex: 'https://guide.test/index', guideTitle: '第18話 感想'})
+  for (const invalid of [row+row, row.replace('/review/', '/other/'), row.replace('18', '4'), row.replace('緩解','別名')])
+    assert.equal(await verify(invalid), undefined)
+})
+
+test('numbered publisher links require an exact edition and episode on both pages', async () => {
+  const { siblingOfficial } = await import('../src/episode-source-discovery.ts')
+  const sample = {number: 2, title: '雪女', official: 'https://publisher.test/detail?partId=39002&workId=39'}
+  const target = {number: 4, title: '胎動'}
+  const expected = sample.official.replace('39002','39004')
+  const body = '配信元が公開する分集あらすじです。'.repeat(3)
+  const page = heading => '<head><meta property="og:title" content="'+heading+'"><meta property="og:description" content="'+body+'"></head>'
+  const verify = heading => siblingOfficial(sample,target, async url => page(url === sample.official ? '作品【放送版】 第2話 雪女' : heading))
+  assert.equal(await verify('作品【放送版】 第4話 胎動'), expected)
+  for (const wrong of ['作品【別版】 第4話 胎動','作品【放送版】 第4話 番外','作品【放送版】 第5話 胎動'])
+    assert.equal(await verify(wrong), undefined)
+  const rule = {kind:'html_episode_article',heading:'meta[property="og:title"]',body:'meta[property="og:description"]'}
+  assert.equal(extractEpisodeSource(page('作品 第4話 胎動'), rule, target), body)
+  assert.throws(() => extractEpisodeSource(page('作品 第3話 胎動'), rule, target), /标题/)
+})
+
+test('long review rules keep whole paragraphs within the shared sample limit', async () => {
+  const { guideBodySelectors } = await import('../src/episode-source-discovery.ts')
+  const page = lines => '<article><h1>第8話 題</h1><div class="entry-content">' +
+    lines.map(line => '<p>' + line + '</p>').join('') + '</div></article>'
+  const block = '原'.repeat(2999)
+  const short = page([block])
+  const long = page([block, block, 'あとがき'])
+  assert.equal(guideBodySelectors([short]).length, 1)
+  const [full, bounded] = guideBodySelectors([short, long])
+  const read = body => extractEpisodeSource(long, {kind:'html_episode_article',heading:'article h1',body}, {number:8,title:'題'})
+  assert.throws(() => read(full), /长度限制/)
+  assert.equal(read(bounded), block + ' ' + block)
+})

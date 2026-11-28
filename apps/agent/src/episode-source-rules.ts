@@ -8,7 +8,8 @@ export type EpisodeSourceRule =
   | { kind: 'html_episode_article'; heading: string; titleSelector?: string; body: string }
 
 const normalizedTitle = (text: string) => text.normalize('NFKC').replace(/\.{3,}/g, '…').replace(/\s+/g, '').toLowerCase()
-const normalizeBody = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim()
+export const maximumSourceLength = 6000
+export const normalizeBody = (text: string) => text.normalize('NFKC').replace(/\s+/g, ' ').trim()
 
 export function parseEpisodeSourceRule(value: unknown): EpisodeSourceRule {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw Error('采集规则必须是对象')
@@ -56,20 +57,22 @@ export function extractEpisodeSource(raw: string, input: unknown, target: Episod
     // Only the validated integer can be substituted in collection-page selectors.
     const select = (selector: string) => $(selector.replaceAll('{episode}', String(target.number)))
     const headings = select(rule.heading)
-    const heading = headings.text()
+    const textOf = (nodes: ReturnType<typeof select>) => nodes.toArray().map(node =>
+      'tagName' in node && node.tagName === 'meta' && $(node).closest('head').length ? $(node).attr('content') ?? '' : $(node).text()).join(' ')
+    const heading = textOf(headings)
     if (headings.length !== 1 || episodeNumber(heading) !== target.number)
       throw Error('来源标题未唯一命中目标分集')
-    const printed = rule.titleSelector ? select(rule.titleSelector).text() : heading
+    const printed = rule.titleSelector ? textOf(select(rule.titleSelector)) : heading
     if (!normalizedTitle(printed).includes(title))
       throw Error('来源标题未唯一命中目标分集')
-    const article = headings.closest('article, main, body').get(0)
+    const article = headings.closest('article, main, body, head').get(0)
     const blocks = select(rule.body).toArray()
-    if (blocks.some((node) => $(node).closest('article, main, body').get(0) !== article))
+    if (blocks.some((node) => $(node).closest('article, main, body, head').get(0) !== article))
       throw Error('正文选择器超出分集容器')
-    extracted = blocks.map((node) => $(node).text()).join(' ')
+    extracted = blocks.map((node) => textOf($(node))).join(' ')
   }
   const text = normalizeBody(extracted)
-  if (Buffer.byteLength(text) < 60 || text.length > 6000) throw Error('分集原文不完整或超过长度限制')
+  if (Buffer.byteLength(text) < 60 || text.length > maximumSourceLength) throw Error('分集原文不完整或超过长度限制')
   return text
 }
 
