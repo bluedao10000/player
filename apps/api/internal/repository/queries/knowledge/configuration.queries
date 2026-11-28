@@ -48,7 +48,12 @@ SET production_policy=jsonb_set(r.production_policy,'{source_bundle}',$3::jsonb)
     revision=r.revision+1,updated_at=now()
 WHERE r.world=$1 AND r.first_episode=$2 AND r.last_episode=$2
   AND r.production_policy ? 'queue' AND r.stage IN ('inventory','blocked') AND r.operator_paused
-  AND r.paused_reason IN ('等待广州批次','待补可复用的同版本来源模板') AND r.reserved=0
+  AND ((r.paused_reason IN ('等待广州批次','待补可复用的同版本来源模板') AND r.reserved=0)
+    OR (r.paused_reason='missing_usage_receipt' AND EXISTS (
+      SELECT FROM episode_call_reservations c WHERE c.request_id=r.id
+        AND c.call_id::text=r.production_policy->>'continue_with_source_hold' AND c.stage='source_rule'
+        AND c.actual IS NULL AND c.settled_at IS NULL AND c.ceiling=r.reserved
+        AND r.token_limit-r.consumed-r.reserved>=16000)))
   AND r.production_policy->'source_bundle' IS DISTINCT FROM $3::jsonb;
 
 -- name: Start

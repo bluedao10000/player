@@ -38,3 +38,22 @@ UPDATE media_candidates SET art_job=(SELECT min(id) FROM episode_art_jobs),stage
 
 -- name: RequeuedImage
 SELECT attempt,(SELECT count(*) FROM media_steps WHERE slot=1) FROM media_candidates WHERE slot=1 AND stage='generate'
+
+-- name: SeedUnreconciledSourceReservation
+WITH held AS (
+ UPDATE episode_production_requests SET reserved=32000,paused_reason='missing_usage_receipt'
+ WHERE world='naruto-tv-2002' AND first_episode=6 RETURNING id
+)
+INSERT INTO episode_call_reservations(request_id,call_id,stage,ceiling)
+SELECT id,gen_random_uuid(),'source_rule',32000 FROM held
+
+-- name: AuthorizeRemainingSourceBudget
+UPDATE episode_production_requests r SET production_policy=r.production_policy||
+ jsonb_build_object('continue_with_source_hold',c.call_id::text)
+FROM episode_call_reservations c WHERE r.id=c.request_id AND r.world='naruto-tv-2002'
+ AND r.first_episode=6 AND c.settled_at IS NULL AND c.ceiling=r.reserved
+
+-- name: RemainingSourceBudget
+SELECT r.token_limit-r.consumed-r.reserved,c.actual FROM episode_production_requests r
+JOIN episode_call_reservations c ON r.id=c.request_id AND c.settled_at IS NULL
+WHERE r.world='naruto-tv-2002' AND r.first_episode=6

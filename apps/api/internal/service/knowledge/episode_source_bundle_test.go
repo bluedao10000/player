@@ -56,11 +56,27 @@ func TestAttachEpisodeSourceBundle(t *testing.T) {
 		t.Fatal("accepted a different publisher as the article index")
 	}
 	verified = indexed
-	for _, want := range []int64{2, 0} {
+	if _, err := db.Exec(ctx, sqltest.SeedUnreconciledSourceReservation); err != nil {
+		t.Fatal(err)
+	}
+	// The unapproved hold blocks attachment only for its own episode.
+	first, err := AttachEpisodeSourceBundle(ctx, db, "naruto-tv-2002", strings.NewReader(verified))
+	if err != nil || first != 1 {
+		t.Fatalf("unapproved hold: attached %d: %v", first, err)
+	}
+	if _, err := db.Exec(ctx, sqltest.AuthorizeRemainingSourceBudget); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []int64{1, 0} {
 		got, err := AttachEpisodeSourceBundle(ctx, db, "naruto-tv-2002", strings.NewReader(verified))
 		if err != nil || got != want {
 			t.Fatalf("updated %d, want %d: %v", got, want, err)
 		}
+	}
+	var remaining int64
+	var actual *int64
+	if err := db.QueryRow(ctx, sqltest.RemainingSourceBudget).Scan(&remaining, &actual); err != nil || remaining != 28000 || actual != nil {
+		t.Fatalf("unresolved reservation changed: remaining=%d actual=%v err=%v", remaining, actual, err)
 	}
 	var count int
 	if err := db.QueryRow(ctx, sqltest.AttachedSourceBundleCount, digest).Scan(&count); err != nil || count != 2 {
