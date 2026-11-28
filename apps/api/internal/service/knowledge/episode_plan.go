@@ -511,7 +511,7 @@ func (e episodeSpec) validateRules() error {
 		return errors.New("官方来源无效")
 	}
 	switch official.Host {
-	case "www.cowboy-bebop.net", "mantan-web.jp", "www.animatetimes.com", "www.tbs.co.jp", "naruto-official.com", "nama-anaru.com", "www.aniplex.co.jp", "lookback-anime.com", "www.lastboss-anime.com", "fxkurumi-info.com", "romelia-senki.com", "www.b-ch.com", "animestore.docomo.ne.jp", "toaru-project.com", "anime-yukionna.af-original.com", "darksummoner.deregula.com":
+	case "www.cowboy-bebop.net", "mantan-web.jp", "www.animatetimes.com", "www.tbs.co.jp", "naruto-official.com", "nama-anaru.com", "www.aniplex.co.jp", "lookback-anime.com", "www.lastboss-anime.com", "fxkurumi-info.com", "romelia-senki.com", "www.b-ch.com", "animestore.docomo.ne.jp", "toaru-project.com", "anime-yukionna.af-original.com", "darksummoner.deregula.com", "horemajo-anime.com":
 	default:
 		return errors.New("未登记的来源站点")
 	}

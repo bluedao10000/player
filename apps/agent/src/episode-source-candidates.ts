@@ -1,9 +1,9 @@
+import { normalizedTitle as norm } from './episode-source-rules.ts'
 import { load } from 'cheerio'
 import { fetchSourceText } from './source-fetch.ts'
 
 type Episode = { number: number; sourceNumber?: number; title: string }
 type Sample = Episode & { official: string; guide?: string }
-const norm = (s: string) => s.normalize('NFKC').replace(/\s+/g, '')
 function links(raw: string, base: string) {
   const $ = load(raw)
   return $('a[href]')
@@ -18,10 +18,10 @@ function links(raw: string, base: string) {
 }
 function numberedSibling(base: string, from: number, to: number) {
   const url = new URL(base)
-  const part = url.pathname.match(/(^|[-/])(?:ep)?(\d+)(?:\.html?)?\/?$/i)
+  const part = url.pathname.match(/(^|[-/])ep(\d+)(?=[-/.]|$)/i) ?? url.pathname.match(/(^|[-/])(\d+)(?:wa)?(?:\.html?)?\/?$/i)
   if (part && Number(part[2]) === from) {
     url.pathname =
-      url.pathname.slice(0, part.index) + part[0].replace(part[2], String(to).padStart(part[2].length, '0'))
+      url.pathname.replace(part[0],part[0].replace(part[2], String(to).padStart(part[2].length, '0')))
     return url.href
   }
   for (const [key, value] of url.searchParams) {
@@ -43,7 +43,7 @@ export async function discoverRegisteredCandidates(sample: Sample, target: Episo
   const from = sample.sourceNumber ?? sample.number,
     to = target.sourceNumber ?? target.number
   const title = norm(target.title)
-  const episodeLabel = new RegExp('第0*' + to + '[話回集]')
+  const episodeLabel = new RegExp('(?:第|(?<![0-9]))0*' + to + '[話回集]')
   async function detail(base: string, official: boolean) {
     const raw = await read(base)
     const $ = load(raw)
@@ -72,7 +72,7 @@ export async function discoverRegisteredCandidates(sample: Sample, target: Episo
           .get()
           .join(' '),
       )
-      if (episodeLabel.test(heading) && heading.includes(title)) return sibling
+      if (episodeLabel.test(heading) && (heading.includes(title) || norm(page('article .entry-content').text()).includes(title))) return sibling
     }
     // A work tag or a series table is a candidate directory. Only use same-site
     // links and run the normal two-episode proof before binding any address.

@@ -1,3 +1,4 @@
+import { normalizedTitle } from './episode-source-rules.ts'
 import { readFileSync, existsSync, writeFileSync, renameSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { load } from 'cheerio'
@@ -171,8 +172,8 @@ async function recover() {
     if (key === 'guide') {
       const $ = load(await getPage(url.href))
       for (const episode of [target, adjacent]) {
-        const rows = $('tr').toArray().filter(el => $(el).find('td').toArray().some(td => $(td).text().trim() === episode.title) &&
-          $(el).text().includes('第' + episode.sourceNumber + '話'))
+        const rows = $('tr').toArray().filter(el => $(el).find('td').toArray().some(td => normalizedTitle($(td).text()) === normalizedTitle(episode.title)) &&
+          normalizedTitle($(el).text()).includes('第' + (episode.sourceNumber ?? episode.number) + '話'))
         const links = rows.length === 1 ? $(rows[0]).find('a[href]') : []
         if (links.length !== 1) continue
         const detail = new URL($(links[0]).attr('href')!, url)

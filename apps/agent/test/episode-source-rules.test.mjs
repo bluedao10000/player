@@ -178,3 +178,11 @@ test('registered publisher pagination and the guide series index yield candidate
   const links=await discoverRegisteredCandidates({number:3,title:'出発',official,guide},{number:4,title:'帰還'},async url=>pages.get(url)??'')
   assert.deepEqual(links,{official:'https://publisher.test/news/next',guide:'https://guide.test/post/next'})
 })
+
+test('printed emphasis can vary while the episode number and words remain exact', () => {
+  const rule={kind:'html_episode_article', heading:'h1',body:'p'}
+  const page='<article><h1>第6話「風雲!!ギョブリン城」</h1><p>'+'公式あらすじ。'.repeat(12)+'</p></article>'
+  assert.ok(extractEpisodeSource(page,rule,{number:6,title:'風雲！ギョブリン城'}))
+  assert.throws(()=>extractEpisodeSource(page,rule,{number:6,title:'風雲！別の城'}))
+  assert.throws(()=>extractEpisodeSource(page,rule,{number:7,title:'風雲！ギョブリン城'}))
+})

@@ -1,3 +1,4 @@
+import { normalizedTitle as label } from './episode-source-rules.ts'
 import { createHash } from 'node:crypto'
 import { load } from 'cheerio'
 import { checkEpisodeSourceRule, checkIndependentSources, extractEpisodeSource, parseEpisodeSourceRule } from './episode-source-rules.ts'
@@ -70,7 +71,6 @@ export async function validateEpisodeSourceProposal(
           sourceURL(entry.guideIndex).origin !== sourceURL(entry.guide).origin) throw Error('缺少同站目录与文章标题核对')
       const index = await get(entry.guideIndex)
       const $ = load(index)
-      const label = (s: string) => s.normalize('NFKC').replace(/\s/g, '')
       const matches = $('tr').toArray().filter(row => {
         const cells = $(row).find('td').toArray().map(td => label($(td).text()))
         return cells.includes('第' + number + '話') && cells.includes(label(entry.title)) &&

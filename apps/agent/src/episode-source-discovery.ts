@@ -1,9 +1,9 @@
+import { normalizedTitle as label } from './episode-source-rules.ts'
 import { load } from 'cheerio'
 import { maximumSourceLength, normalizeBody } from './episode-source-rules.ts'
 import { fetchSourceText } from './source-fetch.ts'
 
 type Episode = { number: number; sourceNumber?: number; title: string }
-const label = (s: string) => s.normalize('NFKC').replace(/\s+/g, '')
 function sameSite(value: string, base: string) {
   if (!URL.canParse(value, base)) return
   const url = new URL(value, base)
