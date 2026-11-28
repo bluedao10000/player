@@ -60,8 +60,20 @@ export function bindCastEvidence(previous: Template, menu: ReturnType<typeof cas
   })
   const primary = people.find(p => p.slug === selection.artCharacter)
   if (!primary) throw Error('场景人物缺少已选原句：'+selection.artCharacter)
-  return {people, sceneBeat:primary.beat, sceneName:selection.sceneName, artBrief:selection.artBrief,
+  const name = previous.people.find(person => person.slug === primary.slug)!.name
+  if (typeof selection.artBrief !== 'string' || !selection.artBrief.trim()) throw Error('分集缺少场景画面说明')
+  const artBrief = selection.artBrief.includes(name) ? selection.artBrief : name + '。' + selection.artBrief
+  return {people, sceneBeat:primary.beat, sceneName:selection.sceneName, artBrief,
     ...(Object.keys(previous.portraitReferences ?? {}).length && {artCharacter:primary.slug})}
+}
+
+// A model can return the right source pointers in narrative order instead of
+// page order. Keep each question and the setting attached to its source beat.
+export function orderOutline<T extends {guideSentence?:unknown}>(beats:T[], setting:[string,number]) {
+  if (!Array.isArray(beats) || !Array.isArray(setting) || !beats[setting[1]-1] ||
+      !beats.every(beat => Number.isSafeInteger(beat.guideSentence))) return {beats, setting}
+  const ordered = [...beats].sort((a,b) => Number(a.guideSentence)-Number(b.guideSentence))
+  return {beats:ordered, setting:[setting[0], ordered.indexOf(beats[setting[1]-1])+1] as [string,number]}
 }
 
 export async function prepareEpisodeConfiguration(dir: string, call: string, input: {
@@ -143,10 +155,11 @@ export async function prepareEpisodeConfiguration(dir: string, call: string, inp
       if (beat.guideSentence === undefined) continue
       const sentence = configurationSentence(guide, beat.guideSentence)
       if (!sentence) throw Error('剧情定位不在本集提供的来源句中')
+      beat.guideSentence = sentence.number
       beat.needle = sentence.text
     }
     const {slug,title,intro,place,sceneSlug,setting,beats} = output.value
-    const draft: Outline = {slug,title,intro,place,sceneSlug,setting,beats}
+    const draft: Outline = {slug,title,intro,place,sceneSlug,...orderOutline<Outline['beats'][number] & {guideSentence?:number}>(beats,setting)}
     castEvidenceMenu(located, draft)
     return {tokens:output.tokens, outline:{fingerprint,draft,refreshed:Boolean(saved)}}
   } catch (err) {

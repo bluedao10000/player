@@ -59,3 +59,9 @@ test('character selections resolve to one exact paragraph and source, including 
     assert.throws(()=>bindCastEvidence(previous,menu,{...choice,people:[{slug:'anna',key}]}),/anna.*允许引用/)
   assert.notEqual(outlineFingerprint(located),outlineFingerprint({source,docs:docs.slice(0,1)}))
 })
+
+test('restores source order without moving the setting to another event', async () => {
+  const {orderOutline} = await import('../src/episode-configuration-task.ts')
+  const beats = [{guideSentence:9},{guideSentence:2},{guideSentence:5}]
+  assert.deepEqual(orderOutline(beats,['约定',1]), {beats:[beats[1],beats[2],beats[0]],setting:['约定',3]})
+})

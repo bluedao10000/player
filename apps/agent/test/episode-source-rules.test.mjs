@@ -164,3 +164,17 @@ test('long review rules keep whole paragraphs within the shared sample limit', a
   assert.throws(() => read(full), /长度限制/)
   assert.equal(read(bounded), block + ' ' + block)
 })
+
+test('registered publisher pagination and the guide series index yield candidates for two-source validation', async () => {
+  const {discoverRegisteredCandidates} = await import('../src/episode-source-candidates.ts')
+  const official='https://publisher.test/news/previous', guide='https://guide.test/post/previous'
+  const pages=new Map([
+    [official,'<h1>『物語』第3話</h1><a href="/tag/series">物語</a>'],
+    ['https://publisher.test/tag/series','<a href="?p=2">2</a>'],
+    ['https://publisher.test/tag/series?p=2','<a href="/news/next">第4話「帰還」あらすじ</a>'],
+    [guide,'<a href="/story-matome/">全話</a>'],
+    ['https://guide.test/story-matome/','<table><tr><td>第4話</td><td><a href="/post/next">読む</a></td></tr></table>']
+  ])
+  const links=await discoverRegisteredCandidates({number:3,title:'出発',official,guide},{number:4,title:'帰還'},async url=>pages.get(url)??'')
+  assert.deepEqual(links,{official:'https://publisher.test/news/next',guide:'https://guide.test/post/next'})
+})
