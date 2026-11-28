@@ -27,17 +27,29 @@ async function build() {
         primaryColor:'#eaf3ed',primaryTextColor:'#183d39',primaryBorderColor:'#488071',lineColor:'#56756f',
         clusterBkg:'#f6f7f3',clusterBorder:'#a9bbb2',edgeLabelBackground:'#fafbf7'},
     }))
-    const workbenchOnly = process.argv[2] === 'workbench'
-    const backlogOnly = process.argv[2] === 'backlog'
-    const deliveryOnly = process.argv[2] === 'delivery'
-    const selected = workbenchOnly ? [['workbench','旧工作台（历史）','diagrams/workbench.mmd']] : backlogOnly ? [['backlog', '待开发功能', 'diagrams/backlog.mmd']] : deliveryOnly ? [['delivery-2026-11', '2026-11 交付', 'diagrams/delivery-2026-11.mmd']] : views
+    const extraViews = new Map([
+      ['workbench', ['workbench','旧工作台（历史）','diagrams/workbench.mmd']],
+      ['backlog', ['backlog','待开发功能','diagrams/backlog.mmd']],
+      ['delivery', ['delivery-2026-11','2026-11 交付','diagrams/delivery-2026-11.mmd']],
+    ])
+    const single = extraViews.get(process.argv[2])
+    const check = process.argv[2] === '--check'
+    const selected = check ? [...views, ...extraViews.values()] : single ? [single] : views
+    if (check) {
+      const registered = new Set(selected.map(([, , source]) => source))
+      for (const file of fs.readdirSync(__dirname)) {
+        if (file.endsWith('.mmd') && !registered.has('diagrams/'+file)) throw new Error('Unregistered diagram: '+file)
+      }
+    }
     const atlas=[]
     for (const [key,title,source] of selected) {
       const code=fs.readFileSync(path.join(docs,source),'utf8')
-      const nodes=Object.fromEntries([...code.matchAll(/^%% (\w+) \| (.+?) \| (.+)$/gm)].map(([,id,detail,file])=>{
-        if(!fs.existsSync(path.resolve(docs,'..',file))) throw new Error('Missing source: '+file)
-        return [id,{detail,file}]
-      }))
+      const nodes=Object.create(null)
+      for(const [,id,detail,file] of code.matchAll(/^%% (\w+) \| (.+?) \| (.+)$/gm)) {
+        if(Object.hasOwn(nodes,id)) throw new Error(source+': duplicate annotation: '+id)
+        if(!fs.existsSync(path.resolve(docs,'..',file))) throw new Error(source+': missing source: '+file)
+        nodes[id]={detail,file}
+      }
       const svg=await page.evaluate(async({key,code,nodes})=>{
         const {svg}=await mermaid.render('atlas-'+key,code)
         const template=document.createElement('template')
@@ -50,14 +62,15 @@ async function build() {
         if(template.content.querySelectorAll('[data-node]').length!==Object.keys(nodes).length) throw Error('Unused annotation')
         return new XMLSerializer().serializeToString(template.content.querySelector('svg'))
       },{key,code,nodes})
+      if(check) continue
       fs.writeFileSync(path.join(__dirname,key+'.svg'),svg)
-      if(key==='workbench'||backlogOnly||deliveryOnly||key==='product'||key==='business'||key==='features'){
+      if(single||key==='product'||key==='business'||key==='features'){
         await page.evaluate(svg=>{document.body.innerHTML=svg},svg)
         await page.locator('svg').screenshot({path:path.join(__dirname,key+'.png')})
       }
       atlas.push({key,title,source,nodes,svg})
     }
-    if (workbenchOnly || backlogOnly || deliveryOnly) return
+    if (check || single) return
     const template=fs.readFileSync(path.join(__dirname,'atlas.template.html'),'utf8')
     const payload=JSON.stringify(atlas).replaceAll('<','\\u003c')
     fs.writeFileSync(path.join(docs,'architecture.html'),template.replace('/* ATLAS_DATA */ []',()=>payload))

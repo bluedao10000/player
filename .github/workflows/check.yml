@@ -34,6 +34,7 @@ jobs:
         with:
           node-version: 24
       - run: |
-          npm install --prefix "$RUNNER_TEMP/folio-browser" playwright@1.62.1
+          npm install --prefix "$RUNNER_TEMP/folio-browser" playwright@1.62.1 mermaid@11.17.2
           "$RUNNER_TEMP/folio-browser/node_modules/.bin/playwright" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/folio-browser/node_modules" node docs/diagrams/render.cjs --check
           EDGE_SMOKE_BROWSER=1 NODE_PATH="$RUNNER_TEMP/folio-browser/node_modules" deploy/gateway/tests/smoke.sh
