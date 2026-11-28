@@ -94,6 +94,11 @@ def source(job):
       world=job["world"], number=number)
     if reusable:
         payload["reusable"] = json.loads(reusable)
+    examples = sql("""SELECT coalesce(jsonb_agg(jsonb_build_object('number',p.number,'official',p.spec->>'official',
+        'guide',p.spec->>'guide')),'[]'::jsonb) FROM (SELECT number,spec FROM episode_plans
+        WHERE world_slug=:'world' AND number<>:'sample' AND spec?'guide' AND spec?'official'
+        ORDER BY abs(number-:'target'::int) LIMIT 6) p;""", world=job["world"], sample=sample["number"], target=number)
+    payload["urlExamples"] = json.loads(examples)
     previous_calls = sql("""SELECT DISTINCT ON (m.operation) m.operation||'|'||m.response_id
       FROM episode_call_reservations c JOIN model_usage_receipts m ON m.subject='source:'||c.call_id
       WHERE c.request_id=:'id' AND m.operation IN ('source_rule','source_discovery') AND m.outcome='ok'

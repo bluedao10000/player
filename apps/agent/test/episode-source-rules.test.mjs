@@ -193,3 +193,11 @@ test('multi-story episodes retain every subtitle and its order across Japanese d
   assert.ok(extractEpisodeSource(html,rule,{number:6,title:'やっちゃった／梅と先生／こまろの世界'}))
   assert.throws(()=>extractEpisodeSource(html,rule,{number:6,title:'梅と先生／やっちゃった／こまろの世界'}))
 })
+
+test('only matching registered URL sequences can establish a publisher numbering offset', async () => {
+  const {learnedSibling} = await import('../src/episode-source-candidates.ts')
+  const base='https://guide.test/show17/'
+  assert.equal(learnedSibling(base,5,6,{number:4,url:'https://guide.test/show16/'}),'https://guide.test/show18/')
+  assert.equal(learnedSibling(base,5,6,{number:4,url:'https://guide.test/show14/'}),undefined)
+  assert.equal(learnedSibling(base,5,6,{number:4,url:'https://other.test/show16/'}),undefined)
+})

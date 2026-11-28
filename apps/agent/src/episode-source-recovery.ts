@@ -134,7 +134,7 @@ async function recover() {
   }
 
   const discovered = !index && !hint && !prior && !usableDiscovery(cached)
-    ? await discoverRegisteredCandidates(input.sample, input.target, getPage) : undefined
+    ? await discoverRegisteredCandidates(input.sample, input.target, getPage, input.urlExamples) : undefined
   if (discovered && !discovered.official) {
     discovered.official = collection ? saved.official : await siblingOfficial(input.sample,input.target,getPage)
   }

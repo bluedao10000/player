@@ -18,10 +18,14 @@ function links(raw: string, base: string) {
 }
 function numberedSibling(base: string, from: number, to: number) {
   const url = new URL(base)
-  const part = url.pathname.match(/(^|[-/])ep(\d+)(?=[-/.]|$)/i) ?? url.pathname.match(/(^|[-/])(\d+)(?:wa)?(?:\.html?)?\/?$/i)
+  const part =
+    url.pathname.match(/(^|[-/])ep(\d+)(?=[-/.]|$)/i) ??
+    url.pathname.match(/(^|[-/])(\d+)(?:wa)?(?:\.html?)?\/?$/i)
   if (part && Number(part[2]) === from) {
-    url.pathname =
-      url.pathname.replace(part[0],part[0].replace(part[2], String(to).padStart(part[2].length, '0')))
+    url.pathname = url.pathname.replace(
+      part[0],
+      part[0].replace(part[2], String(to).padStart(part[2].length, '0')),
+    )
     return url.href
   }
   for (const [key, value] of url.searchParams) {
@@ -32,7 +36,41 @@ function numberedSibling(base: string, from: number, to: number) {
   }
 }
 
-export async function discoverRegisteredCandidates(sample: Sample, target: Episode, get = fetchSourceText) {
+// Infer an offset only when two registered episodes share the exact URL pattern
+// and the differing numeric field advances by their episode-number difference.
+export function learnedSibling(
+  base: string,
+  number: number,
+  target: number,
+  other: { number: number; url: string },
+) {
+  if (other.number === number || !URL.canParse(other.url)) return
+  const a = new URL(base),
+    b = new URL(other.url)
+  if (a.origin !== b.origin || a.hash || b.hash) return
+  const path = a.pathname + a.search,
+    peer = b.pathname + b.search
+  for (const match of path.matchAll(/\d+/g)) {
+    const before = path.slice(0, match.index),
+      after = path.slice(match.index + match[0].length)
+    if (!peer.startsWith(before) || !peer.endsWith(after)) continue
+    const field = peer.slice(before.length, peer.length - after.length)
+    const n = Number(match[0])
+    if (!/^\d+$/.test(field) || Number(field) - n !== other.number - number) continue
+    const next = n + target - number
+    if (!Number.isSafeInteger(next) || next < 1) continue
+    return (
+      a.origin + before + String(next).padStart(match[0].startsWith('0') ? match[0].length : 1, '0') + after
+    )
+  }
+}
+
+export async function discoverRegisteredCandidates(
+  sample: Sample,
+  target: Episode,
+  get = fetchSourceText,
+  examples: Sample[] = [],
+) {
   const read = async (url: string) => {
     try {
       return await get(url)
@@ -63,7 +101,11 @@ export async function discoverRegisteredCandidates(sample: Sample, target: Episo
     }
     const direct = choose(anchors)
     if (direct) return direct
-    const sibling = numberedSibling(base, from, to)
+    const candidates = examples.flatMap((entry) => {
+      const url = official ? entry.official : entry.guide
+      return url ? [learnedSibling(base, sample.number, target.number, { url, number: entry.number })] : []
+    })
+    const sibling = numberedSibling(base, from, to) ?? candidates.find(Boolean)
     if (sibling) {
       const page = load(await read(sibling))
       const heading = norm(
@@ -72,7 +114,11 @@ export async function discoverRegisteredCandidates(sample: Sample, target: Episo
           .get()
           .join(' '),
       )
-      if (episodeLabel.test(heading) && (heading.includes(title) || norm(page('article .entry-content').text()).includes(title))) return sibling
+      if (
+        episodeLabel.test(heading) &&
+        (heading.includes(title) || norm(page('article .entry-content, .post h2').text()).includes(title))
+      )
+        return sibling
     }
     // A work tag or a series table is a candidate directory. Only use same-site
     // links and run the normal two-episode proof before binding any address.
